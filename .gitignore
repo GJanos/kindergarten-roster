@@ -1,0 +1,9 @@
+# Real staff data — never commit
+data/
+*.xlsx
+ovoda-mentes-*.json
+
+node_modules/
+dist/
+coverage/
+.env*
