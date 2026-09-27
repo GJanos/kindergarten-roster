@@ -4,7 +4,7 @@ import { fairShares, worstGapFloor, type GapKind } from './fairness'
 import { Lin, Milp } from './lp'
 import { SHIFTS, type Shift, type SolveInput, type Staff } from './types'
 
-/** Solve stages in strict priority order (spec §6.5). */
+/** Solve stages in strict priority order (spec §6.5); 'yearly' is the v2 tie-break. */
 export const STAGES = [
   'holes',
   'substitutions',
@@ -12,6 +12,7 @@ export const STAGES = [
   'totalGap',
   'switches',
   'turnarounds',
+  'yearly',
 ] as const
 export type Stage = (typeof STAGES)[number]
 
@@ -182,6 +183,9 @@ export function buildModel(input: SolveInput): RosterModel {
     if (r !== 0) milp.constrain(scaled, '>=', Math.min(r, share.den - r))
     milp.constrain(new Lin().add(worst), '>=', new Lin().add(gap))
     objectives.totalGap.add(gap)
+    // The year so far: someone ahead on this count is steered away from more of it (v2).
+    const year = input.history?.[share.staffId]?.[share.kind] ?? 0
+    if (year !== 0) objectives.yearly.plus(count, year)
   }
   // Without this floor HiGHS can take seconds to prove what counting shows at once.
   const floor = worstGapFloor(shares)
