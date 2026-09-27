@@ -73,6 +73,13 @@ export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU
 
 export const HOLE = 'BETÖLTETLEN'
 
+/** An absence as the printout and Excel name it. */
+export const ABSENCE_WORD: Record<AbsenceKind, string> = {
+  leave: 'szabadság',
+  sick: 'beteg',
+  other: 'távol',
+}
+
 /** 'H', 'K', 'Sze', … for the absence grid header. */
 export const weekdayInitial = (date: string) =>
   ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo'][weekday(date)]

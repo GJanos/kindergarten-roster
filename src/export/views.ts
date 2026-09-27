@@ -1,6 +1,6 @@
 import type { Absence, Assignment, Role, Roster, Staff } from '../core/types'
 import { resolveNames } from '../core/names'
-import { HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
+import { ABSENCE_WORD, HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
 
 /** The printout's two tables as plain data, shared by print and Excel. */
 
@@ -111,7 +111,7 @@ export function footnotes(roster: Roster, staff: Staff[]): string[] {
 /** One row per person (teachers, then nannies): 'DE · 1. cs.', 'DU · tartalék', 'távol'. */
 export function personView(roster: Roster, staff: Staff[], absences: Absence[]): PersonView {
   const days = roster.period.days
-  const absent = new Set(absences.map((a) => `${a.staffId}|${a.date}`))
+  const absent = new Map(absences.map((a) => [`${a.staffId}|${a.date}`, a.kind]))
   const at = new Map(roster.assignments.map((a) => [`${a.staffId}|${a.date}`, a]))
   const openDays = new Set(roster.assignments.map((a) => a.date))
   const inRoster = new Set(roster.assignments.map((a) => a.staffId))
@@ -144,7 +144,8 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
       }
     }
     if (!openDays.has(date)) return { text: 'zárva', fill: 'closed' }
-    if (absent.has(`${staffId}|${date}`)) return { text: 'távol', fill: 'absent' }
+    const kind = absent.get(`${staffId}|${date}`)
+    if (kind) return { text: ABSENCE_WORD[kind], fill: 'absent' }
     return { text: '' }
   }
 

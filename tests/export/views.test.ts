@@ -109,4 +109,12 @@ describe('personView', () => {
     expect(view.rows[4].cells[0]).toEqual({ text: 'távol', fill: 'absent' })
     expect(view.rows[4].cells[2]).toEqual({ text: 'zárva', fill: 'closed' })
   })
+
+  it('says szabadság or beteg for those kinds', () => {
+    // n2 is off on Monday in the fixture roster (and works on Tuesday).
+    const on = (kind: 'leave' | 'sick') =>
+      personView(roster, staff, [{ staffId: 'n2', date: MON, kind }]).rows[4].cells[0]
+    expect(on('leave')).toEqual({ text: 'szabadság', fill: 'absent' })
+    expect(on('sick')).toEqual({ text: 'beteg', fill: 'absent' })
+  })
 })
