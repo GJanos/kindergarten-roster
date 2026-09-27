@@ -622,7 +622,10 @@ td {
 }
 
 /* Absence kinds and the leave balance. */
+/* Three separate buttons with room between them, not a joined toggle. */
 .kinds {
+  display: flex;
+  gap: 8px;
   margin-left: 16px;
 }
 .kinds .kind-sick.on {
