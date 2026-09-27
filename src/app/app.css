@@ -15,9 +15,11 @@
   --warn-bg: #fff4e5;
   --banner-bg: #fff3c4;
   --overdue-bg: #ffe7cc;
-  --off-bg: #eee;
-  --off-text: #aaa;
-  --absent-cell: #b9b9b9;
+  --off-bg: #f2f2f2;
+  --off-stripe: #e2e2e2;
+  --hover: #eef5f1;
+  --off-text: #a0a0a0;
+  --absent-fill: #8f6ad8; /* violet: taken by nothing else (orange/red = warnings) */
   color-scheme: light;
   font-family: system-ui, 'Segoe UI', sans-serif;
   font-size: 16px;
@@ -46,9 +48,11 @@
     --warn-bg: #3a2a14;
     --banner-bg: #4a3f10;
     --overdue-bg: #4a2f10;
-    --off-bg: #1b1d1f;
-    --off-text: #555;
-    --absent-cell: #5c6268;
+    --off-bg: #1d1f22;
+    --off-stripe: #2e3237;
+    --hover: #24302a;
+    --off-text: #70767c;
+    --absent-fill: #8a6ee0;
     color-scheme: dark;
   }
 }
@@ -70,9 +74,11 @@
     --warn-bg: #3a2a14;
     --banner-bg: #4a3f10;
     --overdue-bg: #4a2f10;
-    --off-bg: #1b1d1f;
-    --off-text: #555;
-    --absent-cell: #5c6268;
+    --off-bg: #1d1f22;
+    --off-stripe: #2e3237;
+    --hover: #24302a;
+    --off-text: #70767c;
+    --absent-fill: #8a6ee0;
     color-scheme: dark;
   }
 }
@@ -331,17 +337,38 @@ td {
   touch-action: none;
 }
 .absence-grid td {
+  position: relative;
   height: 30px;
   cursor: pointer;
 }
-.absence-grid .off {
-  background: var(--off-bg);
-  color: var(--off-text);
+.absence-grid td:not(.off):hover {
+  background: var(--hover);
+}
+/* Weekends and holidays: hatched, so they stand apart even where the greys are close. */
+.absence-grid td.off {
+  background: repeating-linear-gradient(135deg, var(--off-bg) 0 4px, var(--off-stripe) 4px 8px);
   cursor: default;
 }
-.absence-grid td.absent {
-  background: var(--absent-cell);
-  font-weight: bold;
+.absence-grid thead th.off {
+  color: var(--off-text);
+  font-weight: normal;
+}
+/* An absence is a violet bar; days next to each other join into one stretch. */
+.absence-grid .bar-mark {
+  position: absolute;
+  inset: 6px 3px;
+  border-radius: 6px;
+  background: var(--absent-fill);
+}
+.absence-grid .join-left .bar-mark {
+  left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.absence-grid .join-right .bar-mark {
+  right: -1px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 .absence-grid .name {
   white-space: nowrap;

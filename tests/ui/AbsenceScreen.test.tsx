@@ -75,4 +75,20 @@ describe('AbsenceScreen', () => {
     fireEvent.click(screen.getByLabelText('Következő hónap'))
     expect(screen.getByText('2026. november')).toBeTruthy()
   })
+
+  it('draws a run of absent days as one bar, broken by the weekend', () => {
+    const away = reducer(state, {
+      type: 'setAbsent',
+      staffId: 'a',
+      dates: ['2026-10-22', '2026-10-26', '2026-10-27', '2026-10-28'],
+      absent: true,
+    })
+    render(<AbsenceScreen state={away} dispatch={vi.fn()} />)
+    const cell = (date: string) => screen.getByLabelText(`Anna ${date}`).className
+    expect(cell('2026-10-22')).toBe('absent') // Thursday; Friday is a holiday
+    expect(cell('2026-10-26')).toBe('absent join-right')
+    expect(cell('2026-10-27')).toBe('absent join-left join-right')
+    expect(cell('2026-10-28')).toBe('absent join-left')
+    expect(cell('2026-10-29')).toBe('')
+  })
 })

@@ -77,13 +77,25 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                 : []),
               <tr key={s.id}>
                 <th className="name">{s.displayName || s.fullName}</th>
-                {days.map((date) => {
+                {days.map((date, i) => {
                   if (!isWorkingDay(date)) return <td key={date} className="off" />
                   const isAbsent = absent.has(`${s.id}|${date}`)
+                  // Absent next door too: the bar runs on, so a week off reads as one stretch.
+                  const joins = (other?: string) =>
+                    other !== undefined && isWorkingDay(other) && absent.has(`${s.id}|${other}`)
+                  const className = isAbsent
+                    ? [
+                        'absent',
+                        joins(days[i - 1]) ? 'join-left' : '',
+                        joins(days[i + 1]) ? 'join-right' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
+                    : undefined
                   return (
                     <td
                       key={date}
-                      className={isAbsent ? 'absent' : undefined}
+                      className={className}
                       aria-label={`${s.displayName} ${date}`}
                       onPointerDown={(e) => {
                         e.preventDefault()
@@ -96,7 +108,7 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                           mark(s.id, date, held.absent)
                       }}
                     >
-                      {isAbsent ? '✕' : ''}
+                      {isAbsent && <span className="bar-mark" />}
                     </td>
                   )
                 })}
