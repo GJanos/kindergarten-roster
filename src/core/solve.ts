@@ -24,6 +24,9 @@ export type LpSolver = Pick<LegacyHighs, 'solve'>
 /** Fixed seed and proven optima at every stage: the same input gives the same roster. */
 export const HIGHS_OPTIONS = { random_seed: 0, mip_rel_gap: 0, output_flag: false } as const
 
+/** Seconds per stage. A stage that runs out keeps the best roster found so far. */
+export const STAGE_TIME_LIMIT = 4
+
 /** Slack when a fractional optimum becomes the next stage's bound; far below any real difference. */
 const TOLERANCE = 1e-6
 
@@ -51,14 +54,26 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
     const objective = model.objectives[stage]
     if (objective.isEmpty()) continue
     const lp = toLpText(model.milp, objective, bounds)
-    const result = highs.solve(lp, HIGHS_OPTIONS)
-    if (result.Status !== 'Optimal') throw new SolveError(stage, result.Status)
-    columns = result.Columns
-    const optimum = result.ObjectiveValue
-    const rhs = INTEGRAL_STAGES.has(stage) ? Math.round(optimum) : optimum + TOLERANCE
-    bounds.push({ terms: objective.terms, op: '<=', rhs })
+    const result = highs.solve(lp, { ...HIGHS_OPTIONS, time_limit: STAGE_TIME_LIMIT })
+    if (result.Status === 'Optimal') {
+      columns = result.Columns
+      const optimum = result.ObjectiveValue
+      const rhs = INTEGRAL_STAGES.has(stage) ? Math.round(optimum) : optimum + TOLERANCE
+      bounds.push({ terms: objective.terms, op: '<=', rhs })
+      continue
+    }
+    // Out of time: every rule is a constraint, so the best roster found so far is valid.
+    if (result.Status === 'Time limit reached') {
+      if (hasSolution(result.Columns)) columns = result.Columns
+      if (columns) break
+    }
+    throw new SolveError(stage, result.Status)
   }
   return decode(input, model, columns ?? {}, meta)
+}
+
+function hasSolution(columns: Columns | undefined): columns is Columns {
+  return columns !== undefined && Object.values(columns).some((c) => typeof c.Primal === 'number')
 }
 
 function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: RosterMeta): Roster {
