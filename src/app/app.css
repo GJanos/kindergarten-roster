@@ -656,8 +656,17 @@ td {
 }
 
 /* The month at a glance: today, the break, who is away, names always in view. */
+/* Side lines only, so today reads as one column rather than a stack of boxes. */
 .absence-grid .today {
-  box-shadow: inset 0 0 0 2px var(--green);
+  box-shadow:
+    inset 2px 0 0 var(--green),
+    inset -2px 0 0 var(--green);
+}
+.absence-grid thead th.today {
+  box-shadow:
+    inset 2px 0 0 var(--green),
+    inset -2px 0 0 var(--green),
+    inset 0 2px 0 var(--green);
 }
 .absence-grid thead th.break {
   background: var(--changed-bg);
