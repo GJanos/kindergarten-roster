@@ -177,6 +177,18 @@ export const ui = {
     tableHint:
       'DE = délelőtt, DU = délután. nyit / zár = ő nyitja vagy zárja az óvodát (vastag betű). ' +
       'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő.',
+    undo: '↶ Visszavonás',
+    undoHint: 'Visszaállítja, ami a módosítás előtt volt — a beosztással együtt.',
+    accept: 'Rendben',
+    acceptHint: 'Megtartod a változást; a kiemelés eltűnik.',
+    didSetGroups: (date: string, groups: number) =>
+      `${capitalize(onDay(date))} ${groups} csoport beállítva.`,
+    didCallIn: (name: string, date: string) => `${name} mégis jön ${onDay(date)}.`,
+    didSolve: 'Újraszámolva.',
+    changedCount: (count: number) =>
+      count === 0
+        ? 'A beosztás nem változott.'
+        : `${count} cella változott — kiemelve a táblázatban.`,
     holes: (count: number) => `${count} hiány`,
     otherNotes: (count: number) => `Egyéb megjegyzések (${count})`,
     callIn: (name: string) => `${name} mégis jön`,

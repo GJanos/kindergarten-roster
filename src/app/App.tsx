@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { defaultWeek } from '../core/calendar'
 import { ui } from '../i18n/hu'
+import type { AppState } from '../state/appState'
+import { useUndo } from '../state/undo'
 import { useAppState } from '../state/useAppState'
 import { AbsenceScreen } from '../ui/AbsenceScreen'
 import { today } from '../ui/dates'
@@ -15,7 +17,14 @@ type Tab = 'staff' | 'absences' | 'roster'
 const TABS: Tab[] = ['staff', 'absences', 'roster']
 
 export function App() {
-  const { state, dispatch, replace, persisted, storageError } = useAppState()
+  const app = useAppState()
+  const { state, dispatch, persisted, storageError } = app
+  const history = useUndo(dispatch)
+  // New data (a restore, the demo, a fresh start): the old undo steps no longer apply.
+  const replace = (next: AppState | null) => {
+    history.reset()
+    app.replace(next)
+  }
   const [chosen, setChosen] = useState<Tab>()
   const [week, setWeek] = useState(() => defaultWeek(today()))
 
@@ -46,7 +55,13 @@ export function App() {
         {tab === 'staff' && <StaffScreen state={state} dispatch={dispatch} />}
         {tab === 'absences' && <AbsenceScreen state={state} dispatch={dispatch} />}
         {tab === 'roster' && (
-          <RosterScreen state={state} dispatch={dispatch} week={week} onWeek={setWeek} />
+          <RosterScreen
+            state={state}
+            dispatch={dispatch}
+            week={week}
+            onWeek={setWeek}
+            history={history}
+          />
         )}
       </main>
       <Footer

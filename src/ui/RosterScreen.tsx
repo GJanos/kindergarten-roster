@@ -7,8 +7,10 @@ import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
 import { capitalize, dayHeader, formatDate, formatPeriod, groupName, ui } from '../i18n/hu'
 import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
 import { backupJson } from '../state/backup'
+import type { UndoHistory } from '../state/undo'
 import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
+import { changedCells } from './changedCells'
 import { XLSX_TYPE, download } from './download'
 import { PrintView } from './PrintView'
 import { RosterTable } from './RosterTable'
@@ -21,6 +23,7 @@ type Props = {
   dispatch: (action: Action) => void
   week: string
   onWeek: (week: string) => void
+  history: UndoHistory
 }
 
 /** Warns, never blocks: Számol always works. */
@@ -38,7 +41,7 @@ function dayStatus(c: DayCapacity): { ok: boolean; text: string } {
   }
 }
 
-export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
+export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) {
   const [solving, setSolving] = useState(false)
   const [error, setError] = useState<string>()
   const [hovered, setHovered] = useState<Warning>()
@@ -53,8 +56,14 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
   const stale = roster !== undefined && period.rosterInputKey !== inputKey(input)
   const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined
 
-  const solve = async (current: AppState) => {
+  /**
+   * Solves `current` and saves the result. With `change` (the input edit that led here, and its
+   * inverse) or an earlier roster to go back to, it also records an undo step.
+   */
+  const solve = async (current: AppState, change?: { label: string; inverse: Action }) => {
     const solveInput = solveInputFor(current, week)
+    const before = current.periods[week]
+    const undoInput = change ? [change.inverse] : []
     setSolving(true)
     setError(undefined)
     try {
@@ -63,7 +72,26 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
         appVersion: __APP_VERSION__,
       })
       dispatch({ type: 'saveRoster', week, roster: result, inputKey: inputKey(solveInput) })
+      if (change || before?.roster) {
+        const changed = changedCells(before?.roster, result, current.staff, before?.groupLabels)
+        history.record({
+          week,
+          label: change?.label ?? ui.roster.didSolve,
+          undo: [
+            ...undoInput,
+            {
+              type: 'restoreRoster',
+              week,
+              roster: before?.roster,
+              inputKey: before?.rosterInputKey,
+            },
+          ],
+          changed: [...changed],
+        })
+      }
     } catch (failure) {
+      // The input edit already happened; it stays undoable even though no roster came back.
+      if (change) history.record({ week, label: change.label, undo: undoInput, changed: [] })
       setError(
         failure instanceof SolveFailure && failure.reason === 'invalid'
           ? ui.roster.errorInvalid
@@ -76,13 +104,25 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
 
   // One click: reduce the day or call someone in, then solve again.
   const fix = (dayFix: DayFix) => {
-    const action: Action =
-      dayFix.kind === 'setGroups'
-        ? { type: 'setOverride', week, date: dayFix.date, groups: dayFix.groups }
-        : { type: 'setAbsent', staffId: dayFix.staffId, dates: [dayFix.date], absent: false }
+    const { date } = dayFix
+    let action: Action, inverse: Action, label: string
+    if (dayFix.kind === 'setGroups') {
+      const previous = period.dayPlans.find((d) => d.date === date)?.override
+      action = { type: 'setOverride', week, date, groups: dayFix.groups }
+      inverse = { type: 'setOverride', week, date, groups: previous }
+      label = ui.roster.didSetGroups(date, dayFix.groups)
+    } else {
+      const { staffId } = dayFix
+      action = { type: 'setAbsent', staffId, dates: [date], absent: false }
+      inverse = { type: 'setAbsent', staffId, dates: [date], absent: true }
+      label = ui.roster.didCallIn(dayFix.name, date)
+    }
     dispatch(action)
-    void solve(reducer(state, action))
+    void solve(reducer(state, action), { label, inverse })
   }
+
+  const lastChange = history.latest(week)
+  const changed = new Set(lastChange?.changed)
 
   const exportExcel = async () => {
     if (!roster) return
@@ -220,6 +260,24 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
         )}
         {error && <p className="error">{error}</p>}
         {!roster && days.length > 0 && input.staff.length > 0 && <p>{ui.roster.notSolved}</p>}
+        {lastChange && (
+          <div className="undo-bar" aria-live="polite">
+            <span>
+              <strong>{lastChange.label}</strong> {ui.roster.changedCount(changed.size)}
+            </span>
+            <button
+              className="primary"
+              title={ui.roster.undoHint}
+              disabled={solving}
+              onClick={() => history.undo(lastChange)}
+            >
+              {ui.roster.undo}
+            </button>
+            <button title={ui.roster.acceptHint} onClick={() => history.accept(week)}>
+              {ui.roster.accept}
+            </button>
+          </div>
+        )}
 
         {roster && (
           <>
@@ -245,6 +303,7 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
                 staff={state.staff}
                 labels={period.groupLabels}
                 highlight={hovered}
+                changed={changed}
               />
             </div>
             <div className="actions">

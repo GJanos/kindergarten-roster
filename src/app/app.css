@@ -18,6 +18,7 @@
   --off-bg: #f2f2f2;
   --off-stripe: #e2e2e2;
   --hover: #eef5f1;
+  --changed-bg: #e3f3ea;
   --off-text: #a0a0a0;
   --absent-fill: #8f6ad8; /* violet: taken by nothing else (orange/red = warnings) */
   color-scheme: light;
@@ -51,6 +52,7 @@
     --off-bg: #1d1f22;
     --off-stripe: #2e3237;
     --hover: #24302a;
+    --changed-bg: #1d3327;
     --off-text: #70767c;
     --absent-fill: #8a6ee0;
     color-scheme: dark;
@@ -77,6 +79,7 @@
     --off-bg: #1d1f22;
     --off-stripe: #2e3237;
     --hover: #24302a;
+    --changed-bg: #1d3327;
     --off-text: #70767c;
     --absent-fill: #8a6ee0;
     color-scheme: dark;
@@ -528,4 +531,25 @@ td {
 .actions {
   display: flex;
   gap: 12px;
+}
+
+/* After a fix or Számol: what changed, with one click back. */
+.undo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.undo-bar span {
+  margin-right: auto;
+}
+.roster-table td.changed {
+  outline: 2px dashed var(--green);
+  outline-offset: -3px;
+  background: var(--changed-bg);
 }

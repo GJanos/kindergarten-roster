@@ -92,6 +92,24 @@ describe('absences', () => {
 })
 
 describe('periods', () => {
+  it('puts back an earlier roster, or none, for undo', () => {
+    const roster: Roster = {
+      period: { start: WEEK, days: [WEEK] },
+      groupsPerDay: { [WEEK]: 1 },
+      assignments: [],
+      holes: [],
+      warnings: [],
+      ...TEST_META,
+    }
+    const saved = run(emptyState(), { type: 'saveRoster', week: WEEK, roster, inputKey: 'new' })
+    const back = run(saved, { type: 'restoreRoster', week: WEEK, roster, inputKey: 'old' })
+    expect(back.periods[WEEK].rosterInputKey).toBe('old')
+    const none = run(saved, { type: 'restoreRoster', week: WEEK })
+    expect(none.periods[WEEK].roster).toBeUndefined()
+    expect(none.periods[WEEK].rosterInputKey).toBeUndefined()
+    expect(none.periods[WEEK].dayPlans).toEqual(saved.periods[WEEK].dayPlans)
+  })
+
   it('fits a new week to the calendar with the default group count', () => {
     const period = periodState(emptyState(), WEEK)
     expect(period.dayPlans.map((d) => d.date)).toEqual([

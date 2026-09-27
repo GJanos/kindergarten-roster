@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { useReducer } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TEST_META, makeStaff } from '../core/fixtures'
 import type { Roster, Warning } from '../../src/core/types'
@@ -8,6 +9,7 @@ import { inputKey, solveInputFor } from '../../src/state/solveInput'
 import { SolveFailure, solveInWorker } from '../../src/worker/client'
 import { PrintView } from '../../src/ui/PrintView'
 import { RosterScreen } from '../../src/ui/RosterScreen'
+import { useUndo, type UndoHistory } from '../../src/state/undo'
 
 // The real client would start a Web Worker; keep SolveFailure, fake the solve.
 vi.mock(import('../../src/worker/client'), async (importOriginal) => ({
@@ -78,9 +80,26 @@ function withRoster(state: AppState, key = inputKey(solveInputFor(state, WEEK)))
   return reducer(state, { type: 'saveRoster', week: WEEK, roster, inputKey: key })
 }
 
+const noHistory: UndoHistory = {
+  entries: [],
+  record: vi.fn(),
+  undo: vi.fn(),
+  accept: vi.fn(),
+  reset: vi.fn(),
+  latest: () => undefined,
+}
+
 function renderScreen(state: AppState) {
   const dispatch = vi.fn<(action: Action) => void>()
-  render(<RosterScreen state={state} dispatch={dispatch} week={WEEK} onWeek={() => {}} />)
+  render(
+    <RosterScreen
+      state={state}
+      dispatch={dispatch}
+      week={WEEK}
+      onWeek={() => {}}
+      history={noHistory}
+    />,
+  )
   return dispatch
 }
 
@@ -196,5 +215,70 @@ describe('PrintView', () => {
     expect(screen.getByText(`* ${hole.text} ${hole.action}`)).toBeTruthy()
     expect(screen.getByText('DE · 1. cs. · nyit').className).toBe('fill-morning bold')
     expect(screen.getAllByText(/^Dajka: DE 6:00–14:00/)).toHaveLength(2)
+  })
+})
+
+// A real reducer and undo history, to follow a fix through to its undo.
+function Harness({ initial }: { initial: AppState }) {
+  const [state, dispatch] = useReducer(reducer, initial)
+  const history = useUndo(dispatch)
+  return (
+    <RosterScreen
+      state={state}
+      dispatch={dispatch}
+      week={WEEK}
+      onWeek={() => {}}
+      history={history}
+    />
+  )
+}
+
+// What the solver returns after the fix: T4 takes the empty afternoon seat.
+const fixed: Roster = {
+  ...roster,
+  assignments: roster.assignments.map((a) =>
+    a.staffId === 't4'
+      ? { ...a, shift: 'afternoon', seat: { kind: 'teacher', group: 2, shift: 'afternoon' } }
+      : a,
+  ),
+  holes: [],
+  warnings: [],
+}
+
+describe('RosterScreen undo', () => {
+  it('marks what a quick fix changed, and undoes it with one click', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    render(<Harness initial={withRoster(base)} />)
+    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    expect(await screen.findByText('Szerdán 1 csoport beállítva.')).toBeTruthy()
+    expect(screen.getByText('2 cella változott — kiemelve a táblázatban.')).toBeTruthy()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(2)
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screen.queryByText('Szerdán 1 csoport beállítva.')).toBeNull()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(0)
+    expect(screen.getByText('Szerdán 1 csoport')).toBeTruthy() // the old roster is back
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull() // and it is current
+  })
+
+  it('puts the absence back when a call-in is undone', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    const away = reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true })
+    render(<Harness initial={withRoster(away)} />)
+    fireEvent.click(screen.getByText('T4 mégis jön'))
+    expect(await screen.findByText('T4 mégis jön szerdán.')).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screen.getByText('T4 mégis jön')).toBeTruthy()
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull()
+  })
+
+  it('keeps the change and clears the marks on Rendben', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    render(<Harness initial={withRoster(base, 'old')} />)
+    fireEvent.click(screen.getByText('Újraszámol'))
+    expect(await screen.findByText('Újraszámolva.')).toBeTruthy()
+    fireEvent.click(screen.getByText('Rendben'))
+    expect(screen.queryByText('↶ Visszavonás')).toBeNull()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(0)
+    expect(screen.queryByText('Szerdán 1 csoport')).toBeNull()
   })
 })

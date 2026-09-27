@@ -35,6 +35,7 @@ export type Action =
   | { type: 'setOverride'; week: string; date: string; groups?: number }
   | { type: 'setGroupLabel'; week: string; group: number; label: string }
   | { type: 'saveRoster'; week: string; roster: Roster; inputKey: string }
+  | { type: 'restoreRoster'; week: string; roster?: Roster; inputKey?: string } // undo
   | { type: 'markBackedUp'; at: string }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -108,6 +109,10 @@ export function reducer(state: AppState, action: Action): AppState {
         roster: action.roster,
         rosterInputKey: action.inputKey,
       }))
+    case 'restoreRoster':
+      return updatePeriod(state, action.week, ({ roster: _, rosterInputKey: __, ...p }) =>
+        action.roster ? { ...p, roster: action.roster, rosterInputKey: action.inputKey } : p,
+      )
     case 'markBackedUp':
       return { ...state, lastBackupAt: action.at }
   }

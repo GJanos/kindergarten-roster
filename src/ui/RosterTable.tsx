@@ -14,9 +14,14 @@ export function RosterTable(props: {
   staff: Staff[]
   labels?: string[]
   highlight?: Warning
+  changed?: Set<string> // cells the last change altered, as row|date keys
 }) {
   const view = groupView(props.roster, props.staff, props.labels)
   const marked = highlightedCells(props.roster, props.staff, props.highlight)
+  const cellClass = (key: string) =>
+    [marked.has(key) ? 'highlight' : '', props.changed?.has(key) ? 'changed' : '']
+      .filter(Boolean)
+      .join(' ') || undefined
   return (
     <table className="roster-table">
       <thead>
@@ -34,10 +39,7 @@ export function RosterTable(props: {
           <tr key={row.label}>
             <th>{row.label}</th>
             {row.cells.map((lines, i) => (
-              <td
-                key={view.days[i]}
-                className={marked.has(`${r}|${view.days[i]}`) ? 'highlight' : undefined}
-              >
+              <td key={view.days[i]} className={cellClass(`${r}|${view.days[i]}`)}>
                 {lines.map((line, j) => (
                   <div key={j} className={lineClass(line)}>
                     {line.text}

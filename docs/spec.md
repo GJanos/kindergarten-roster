@@ -334,6 +334,15 @@ updated yearly by a push. **One absence type in v1.**
 - Optional group labels (*"1. cs. – Pillangó, Süni, Mókus"*).
 - The capacity row updates live and **warns, never blocks**: Számol always works.
 - Per-day override from a warning's button or by clicking a day header.
+- Warnings: one card per day on a single row, red before orange, each fix once. One-click fixes:
+  **Hétfőn 2 csoport** (reduce the day) and **Emese mégis jön** (clear an absence that would fix
+  it); both solve again at once. Grey notes fold into *Egyéb megjegyzések*.
+- An outdated roster (input changed since solving) is greyed under a sticky banner with its own
+  **Újraszámol** button.
+- **Undo:** after a fix, a call-in or a re-solve, a bar names the change, counts the table cells it
+  altered (outlined in the table) and offers **↶ Visszavonás** / **Rendben**. Undo puts back only
+  what the change touched — that day's input and the earlier roster — so later edits survive; up
+  to 20 steps, in memory only, per week. Rendben keeps the week's changes and clears the marks.
 - Every period's roster is saved (the yearly balance's history in v2).
 
 ### 8.4 Output
