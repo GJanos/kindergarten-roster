@@ -165,3 +165,17 @@ describe('AbsenceScreen kinds', () => {
     })
   })
 })
+
+describe('AbsenceScreen at a glance', () => {
+  const header = (text: string) =>
+    [...document.querySelectorAll('thead th')].find((th) => th.textContent === text)!
+
+  it("outlines today's column and tints the school-break days", () => {
+    render(<AbsenceScreen state={state} dispatch={vi.fn()} />)
+    expect(header('H5').className).toBe('today') // Monday 5 October, today in these tests
+    expect(screen.getByLabelText('Anna 2026-10-05').className).toBe('today')
+    expect(header('H26').className).toBe('break') // the autumn break
+    expect(header('P23').className).toBe('off break') // a holiday inside the break
+    expect(header('K6').className).toBe('')
+  })
+})

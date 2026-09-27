@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { isWorkingDay } from '../core/calendar'
+import { isBreakDay, isWorkingDay } from '../core/calendar'
 import type { AbsenceKind, Staff } from '../core/types'
 import { monthLabel, ui, weekdayInitial } from '../i18n/hu'
 import type { Action, AppState } from '../state/appState'
@@ -39,6 +39,8 @@ export function AbsenceScreen({ state, dispatch }: Props) {
   if (people.length === 0) return <p>{ui.absences.noStaff}</p>
   const days = monthDays(month)
   const year = month.slice(0, 4)
+  const now = today()
+  const classes = (...names: (string | false)[]) => names.filter(Boolean).join(' ') || undefined
   const tracksLeave = people.some((s) => s.leaveAllowance !== undefined)
   const kindOf = new Map(state.absences.map((a) => [`${a.staffId}|${a.date}`, a.kind]))
   const set = (staffId: string, date: string, paint: boolean) =>
@@ -88,7 +90,14 @@ export function AbsenceScreen({ state, dispatch }: Props) {
             <tr>
               <th className="name">{tracksLeave ? ui.absences.leaveHeader(year) : ''}</th>
               {days.map((date) => (
-                <th key={date} className={isWorkingDay(date) ? undefined : 'off'}>
+                <th
+                  key={date}
+                  className={classes(
+                    !isWorkingDay(date) && 'off',
+                    isBreakDay(date) && 'break',
+                    date === now && 'today',
+                  )}
+                >
                   {weekdayInitial(date)}
                   <br />
                   {Number(date.slice(8))}
@@ -126,7 +135,8 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                       )}
                     </th>
                     {days.map((date, d) => {
-                      if (!isWorkingDay(date)) return <td key={date} className="off" />
+                      if (!isWorkingDay(date))
+                        return <td key={date} className={classes('off', date === now && 'today')} />
                       const kind = kindOf.get(`${s.id}|${date}`)
                       // The same kind next door: the bar runs on, so a week off reads as one stretch.
                       const joins = (other?: string) =>
@@ -134,16 +144,13 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                         isWorkingDay(other) &&
                         kind !== undefined &&
                         kindOf.get(`${s.id}|${other}`) === kind
-                      const className = kind
-                        ? [
-                            'absent',
-                            kind,
-                            joins(days[d - 1]) ? 'join-left' : '',
-                            joins(days[d + 1]) ? 'join-right' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')
-                        : undefined
+                      const className = classes(
+                        kind !== undefined && 'absent',
+                        kind ?? false,
+                        joins(days[d - 1]) && 'join-left',
+                        joins(days[d + 1]) && 'join-right',
+                        date === now && 'today',
+                      )
                       return (
                         <td
                           key={date}
