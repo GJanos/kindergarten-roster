@@ -9,6 +9,7 @@ import { inputKey, solveInputFor } from '../../src/state/solveInput'
 import { SolveFailure, solveInWorker } from '../../src/worker/client'
 import { PrintView } from '../../src/ui/PrintView'
 import { RosterScreen } from '../../src/ui/RosterScreen'
+import { nameRef } from '../../src/core/names'
 import { useUndo, type UndoHistory } from '../../src/state/undo'
 
 // The real client would start a Web Worker; keep SolveFailure, fake the solve.
@@ -203,6 +204,24 @@ describe('RosterScreen', () => {
     expect(screen.getByText('Számol').className).toContain('attention')
     fireEvent.click(banner.getByText('Újraszámol'))
     await waitFor(() => expect(solveInWorker).toHaveBeenCalled())
+  })
+
+  it('shows a renamed person by the new name in a saved roster', () => {
+    const substitution: Warning = {
+      code: 'SUBSTITUTION',
+      severity: 'orange',
+      date: WED,
+      text: `Szerda, 2. cs.: dajka helyett óvónő — ${nameRef('t4')}.`,
+      cells: [{ staffId: 't4', date: WED, group: 2 }],
+    }
+    const saved = reducer(base, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: { ...roster, warnings: [substitution] },
+      inputKey: inputKey(solveInputFor(base, WEEK)),
+    })
+    renderScreen(reducer(saved, { type: 'updateStaff', id: 't4', patch: { displayName: 'Tímea' } }))
+    expect(screen.getByText('2. cs.: dajka helyett óvónő — Tímea.')).toBeTruthy()
   })
 
   it('reports a failed solve in words', async () => {

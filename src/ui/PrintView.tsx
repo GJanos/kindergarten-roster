@@ -10,7 +10,7 @@ export function PrintView({ roster, staff, absences, labels }: Props) {
   const groups = groupView(roster, staff, labels)
   const people = personView(roster, staff, absences)
   const period = formatPeriod(roster.period.days)
-  const notes = footnotes(roster)
+  const notes = footnotes(roster, staff)
   const header = (
     <tr>
       <th />

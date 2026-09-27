@@ -125,7 +125,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     if (!roster) return
     const workbook = await rosterWorkbook(roster, state.staff, state.absences, {
       groupLabels: period.groupLabels,
-      footnotes: footnotes(roster),
+      footnotes: footnotes(roster, state.staff),
       backupJson: backupJson(state),
     })
     download(await workbookBytes(workbook), rosterFileName(roster), XLSX_TYPE)
@@ -216,6 +216,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
               <WarningsPanel
                 warnings={roster.warnings}
                 input={input}
+                staff={state.staff}
                 onHover={setHovered}
                 onFix={archived ? undefined : fix}
               />

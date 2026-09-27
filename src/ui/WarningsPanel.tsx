@@ -1,4 +1,5 @@
-import type { SolveInput, Warning } from '../core/types'
+import { resolveNames } from '../core/names'
+import type { SolveInput, Staff, Warning } from '../core/types'
 import { dayHeader, ui } from '../i18n/hu'
 import { Info } from './Info'
 import { shownWarningCount, warningDays, type DayFix } from './warningDays'
@@ -6,13 +7,15 @@ import { shownWarningCount, warningDays, type DayFix } from './warningDays'
 type Props = {
   warnings: Warning[]
   input: SolveInput
+  staff: Staff[] // everyone, hidden people included, so old rosters resolve
   onHover: (warning?: Warning) => void
   onFix?: (fix: DayFix) => void // absent for an archived week: history has no fixes
 }
 
 /** Above the result, one card per day; hovering a line highlights its cells. */
-export function WarningsPanel({ warnings, input, onHover, onFix }: Props) {
+export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props) {
   const { days, notes } = warningDays(warnings, input)
+  const shown = (text: string) => resolveNames(text, staff)
   const line = (w: Warning, text: string, key: string) => (
     <li
       key={key}
@@ -20,7 +23,7 @@ export function WarningsPanel({ warnings, input, onHover, onFix }: Props) {
       onMouseEnter={() => onHover(w)}
       onMouseLeave={() => onHover(undefined)}
     >
-      {text}
+      {shown(text)}
     </li>
   )
 
@@ -51,7 +54,7 @@ export function WarningsPanel({ warnings, input, onHover, onFix }: Props) {
                   {onFix &&
                     day.actions.map((action) => (
                       <p key={action} className="action">
-                        {action}
+                        {shown(action)}
                       </p>
                     ))}
                   {onFix && day.fixes.length > 0 && (

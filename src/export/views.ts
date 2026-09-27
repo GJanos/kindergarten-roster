@@ -1,4 +1,5 @@
 import type { Absence, Assignment, Role, Roster, Staff } from '../core/types'
+import { resolveNames } from '../core/names'
 import { HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
 
 /** The printout's two tables as plain data, shared by print and Excel. */
@@ -95,10 +96,10 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
 }
 
 /** Red and orange warnings print as footnotes; grey ones stay on screen (spec §7). */
-export function footnotes(roster: Roster): string[] {
+export function footnotes(roster: Roster, staff: Staff[]): string[] {
   return roster.warnings
     .filter((w) => w.severity !== 'grey')
-    .map((w) => `* ${w.text}${w.action ? ` ${w.action}` : ''}`)
+    .map((w) => resolveNames(`* ${w.text}${w.action ? ` ${w.action}` : ''}`, staff))
 }
 
 /** One row per person (teachers, then nannies): 'DE · 1. cs.', 'DU · tartalék', 'távol'. */

@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import loadHighs from 'highs'
 import { groupSwitches, turnarounds } from '../src/core/metrics'
+import { resolveNames } from '../src/core/names'
 import { makeRoster } from '../src/core/pipeline'
 import { footnotes } from '../src/export/views'
 import { rosterFileName, rosterWorkbook, workbookBytes } from '../src/export/xlsx'
@@ -24,7 +25,7 @@ const { roster } = result
 
 const out = join(dirname(path), rosterFileName(roster))
 const workbook = await rosterWorkbook(roster, input.staff, input.absences, {
-  footnotes: footnotes(roster),
+  footnotes: footnotes(roster, input.staff),
 })
 await writeFile(out, await workbookBytes(workbook))
 
@@ -52,5 +53,6 @@ console.log(
   ].join(' · '),
 )
 for (const w of roster.warnings) {
-  console.log(`${w.severity.padEnd(6)} ${w.text}${w.action ? ` ${w.action}` : ''}`)
+  const text = `${w.text}${w.action ? ` ${w.action}` : ''}`
+  console.log(`${w.severity.padEnd(6)} ${resolveNames(text, input.staff)}`)
 }
