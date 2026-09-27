@@ -1,10 +1,10 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { groupSwitches, turnarounds } from './metrics'
-import { solve } from './solve'
-import type { Assignment, Roster, Seat, SolveInput } from './types'
-import { validateRoster } from './validate'
+import { groupSwitches, turnarounds } from '../../src/core/metrics'
+import { solve } from '../../src/core/solve'
+import type { Assignment, Roster, Seat, SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const [MON, TUE, WED] = consecutiveDays('2026-10-26', 3)

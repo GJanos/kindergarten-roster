@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { sliceInput, type SliceFile } from './slice-input'
+import { sliceInput, type SliceFile } from '../../scripts/slice-input'
 
 const file: SliceFile = {
   groups: 2,

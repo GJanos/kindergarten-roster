@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, weekday } from './calendar'
+import { addDays, weekday } from '../../src/core/calendar'
 
 describe('addDays and weekday', () => {
   it('moves across month and year ends and the October clock change', () => {

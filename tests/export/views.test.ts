@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeStaff } from '../core/fixtures'
-import type { Roster } from '../core/types'
-import { groupView, personView } from './views'
+import type { Roster } from '../../src/core/types'
+import { groupView, personView } from '../../src/export/views'
 
 const [MON, TUE, WED] = ['2026-10-26', '2026-10-27', '2026-10-28']
 const staff = makeStaff(3, 2)

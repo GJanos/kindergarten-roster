@@ -1,9 +1,9 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { solve } from './solve'
-import type { SolveInput } from './types'
-import { validateRoster } from './validate'
+import { solve } from '../../src/core/solve'
+import type { SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const D = '2026-10-26'

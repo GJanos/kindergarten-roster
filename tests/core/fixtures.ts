@@ -1,5 +1,5 @@
-import { addDays } from './calendar'
-import type { Absence, DayPlan, RosterMeta, SolveInput, Staff } from './types'
+import { addDays } from '../../src/core/calendar'
+import type { Absence, DayPlan, RosterMeta, SolveInput, Staff } from '../../src/core/types'
 
 /** Builders for tests. Nothing here reaches the app bundle. */
 

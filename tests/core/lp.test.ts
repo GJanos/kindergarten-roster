@@ -1,6 +1,6 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { Lin, Milp, toLpText, toRow } from './lp'
+import { Lin, Milp, toLpText, toRow } from '../../src/core/lp'
 
 const highs = await loadHighs()
 

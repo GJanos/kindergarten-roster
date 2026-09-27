@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayCapacities, gMax } from './capacity'
+import { dayCapacities, gMax } from '../../src/core/capacity'
 import { makeInput } from './fixtures'
 
 const D = '2026-10-26'

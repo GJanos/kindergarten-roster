@@ -1,9 +1,9 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { apportionmentFloor, fairShares, gapOf, worstGapFloor } from './fairness'
+import { apportionmentFloor, fairShares, gapOf, worstGapFloor } from '../../src/core/fairness'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { solve } from './solve'
-import { validateRoster } from './validate'
+import { solve } from '../../src/core/solve'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const WEEK = consecutiveDays('2026-10-26', 5)

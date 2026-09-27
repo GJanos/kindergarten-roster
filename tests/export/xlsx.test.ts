@@ -2,8 +2,8 @@ import ExcelJS from 'exceljs'
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput } from '../core/fixtures'
-import { solve } from '../core/solve'
-import { rosterFileName, rosterWorkbook, workbookBytes } from './xlsx'
+import { solve } from '../../src/core/solve'
+import { rosterFileName, rosterWorkbook, workbookBytes } from '../../src/export/xlsx'
 
 const highs = await loadHighs()
 

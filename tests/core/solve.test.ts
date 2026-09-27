@@ -1,8 +1,8 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput, randomInput } from './fixtures'
-import { SolveError, solve, type LpSolver } from './solve'
-import { validateRoster } from './validate'
+import { SolveError, solve, type LpSolver } from '../../src/core/solve'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 

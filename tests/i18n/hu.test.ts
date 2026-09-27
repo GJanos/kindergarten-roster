@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { dayHeader, dayName, formatDate, formatPeriod, fromDay, groupName, onDay } from './hu'
+import {
+  dayHeader,
+  dayName,
+  formatDate,
+  formatPeriod,
+  fromDay,
+  groupName,
+  onDay,
+} from '../../src/i18n/hu'
 
 describe('Hungarian dates', () => {
   it('names days in the forms the warnings need', () => {

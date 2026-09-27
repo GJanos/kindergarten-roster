@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput } from './fixtures'
-import type { Assignment, Roster, SolveInput } from './types'
-import { validateRoster } from './validate'
+import type { Assignment, Roster, SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const D = '2026-10-26'
 const E = '2026-10-27'
