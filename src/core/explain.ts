@@ -1,5 +1,7 @@
 import { warningText as t } from '../i18n/hu'
 import { dayCapacities, groupsWithoutTeacherHoles } from './capacity'
+import { countFor, fairShares } from './fairness'
+import { groupSwitches, turnarounds } from './metrics'
 import { shiftTimes } from './shifts'
 import type { Roster, Severity, SolveInput, Warning, WarningCode } from './types'
 
@@ -96,6 +98,38 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
         cells: [{ staffId: a.staffId, date: a.date, group: a.seat.group }],
       })
     }
+  }
+
+  for (const s of groupSwitches(input, roster)) {
+    add('GROUP_SWITCH', s.to, t.groupSwitch(name(s.staffId), s.to, s.toGroup), {
+      cells: [
+        { staffId: s.staffId, date: s.from, group: s.fromGroup },
+        { staffId: s.staffId, date: s.to, group: s.toGroup },
+      ],
+    })
+  }
+
+  for (const s of turnarounds(input, roster)) {
+    add('TURNAROUND', s.late, t.turnaround(name(s.staffId), s.late, s.early), {
+      cells: [
+        { staffId: s.staffId, date: s.late },
+        { staffId: s.staffId, date: s.early },
+      ],
+    })
+  }
+
+  for (const share of fairShares(input)) {
+    const count = countFor(share, roster)
+    const fair = share.num / share.den
+    if (Math.abs(count - fair) < 1 - 1e-9) continue
+    const of = share.days.length
+    const detail =
+      share.kind === 'morning' && count < fair
+        ? { kind: 'afternoon' as const, count: of - count, of }
+        : { kind: share.kind, count, of }
+    add('UNEVEN', share.days[0], t.uneven(name(share.staffId), detail), {
+      cells: share.days.map((date) => ({ staffId: share.staffId, date })),
+    })
   }
 
   // By day, then severity; ties keep the order above.

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { explain } from '../../src/core/explain'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
 import { solve } from '../../src/core/solve'
-import type { SolveInput } from '../../src/core/types'
+import type { Assignment, Roster, SolveInput } from '../../src/core/types'
 
 const highs = await loadHighs()
 const [MON, TUE, WED] = consecutiveDays('2026-10-26', 3)
@@ -92,5 +92,57 @@ describe('explain — holes and substitutions', () => {
     const keys = warnings.map((w) => `${w.date}:${{ red: 0, orange: 1, grey: 2 }[w.severity]}`)
     expect(keys).toEqual([...keys].sort())
     expect(warnings.map((w) => w.code)).toContain('TEACHER_SEAT_EMPTY')
+  })
+})
+
+describe('explain — comfort and fairness', () => {
+  const input = makeInput({ teachers: 2, nannies: 2, groups: 2, days: [MON, TUE] })
+  const seat = (group: number) => ({ kind: 'teacher' as const, group, shift: 'morning' as const })
+  const roster = (assignments: Assignment[]): Roster => ({
+    period: input.period,
+    groupsPerDay: { [MON]: 2, [TUE]: 2 },
+    assignments,
+    holes: [],
+    warnings: [],
+    ...TEST_META,
+  })
+
+  it('reports a group switch from the day it happens', () => {
+    const warnings = explain(
+      input,
+      roster([
+        { staffId: 't1', date: MON, shift: 'morning', seat: seat(1) },
+        { staffId: 't1', date: TUE, shift: 'morning', seat: seat(2) },
+      ]),
+    )
+    expect(warnings.find((w) => w.code === 'GROUP_SWITCH')?.text).toBe(
+      'T1 keddtől a 2. csoportban.',
+    )
+  })
+
+  it('reports a turnaround', () => {
+    const warnings = explain(
+      input,
+      roster([
+        { staffId: 'n1', date: MON, shift: 'afternoon' },
+        { staffId: 'n1', date: TUE, shift: 'morning' },
+      ]),
+    )
+    expect(warnings.find((w) => w.code === 'TURNAROUND')?.text).toBe(
+      'N1 hétfőn 18:00-ig, kedden 6:00-tól.',
+    )
+  })
+
+  it('reports a share missed by a whole day', () => {
+    const warnings = explain(
+      input,
+      roster([
+        { staffId: 't1', date: MON, shift: 'afternoon' },
+        { staffId: 't1', date: TUE, shift: 'afternoon' },
+      ]),
+    )
+    expect(warnings.find((w) => w.code === 'UNEVEN' && w.cells[0].staffId === 't1')?.text).toBe(
+      'Egyenlő elosztás nem volt lehetséges: T1 2 délutános műszak a 2-ből.',
+    )
   })
 })
