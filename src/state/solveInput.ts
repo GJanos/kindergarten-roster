@@ -1,6 +1,7 @@
 import { periodForWeek } from '../core/calendar'
 import type { SolveInput } from '../core/types'
 import { periodState, type AppState } from './appState'
+import { yearlyHistory } from './history'
 
 export function solveInputFor(state: AppState, week: string): SolveInput {
   const period = periodForWeek(week)
@@ -10,6 +11,7 @@ export function solveInputFor(state: AppState, week: string): SolveInput {
     absences: state.absences.filter((a) => days.has(a.date)),
     period,
     dayPlans: periodState(state, week).dayPlans,
+    history: yearlyHistory(state, week),
   }
 }
 

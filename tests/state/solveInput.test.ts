@@ -21,9 +21,19 @@ describe('solveInputFor', () => {
     expect(input.period.days).toHaveLength(5)
     expect(input.dayPlans).toHaveLength(5)
   })
+
+  it('carries the kindergarten year so far', () => {
+    expect(solveInputFor(base(), WEEK).history).toEqual({})
+  })
 })
 
 describe('inputKey', () => {
+  it('ignores the yearly history, which is only a tie-break', () => {
+    const key = inputKey(solveInputFor(base(), WEEK))
+    const withHistory = { ...solveInputFor(base(), WEEK), history: { a: { morning: 3 } } }
+    expect(inputKey(withHistory)).toBe(key)
+  })
+
   it('changes with absences and group counts, not with names', () => {
     const key = inputKey(solveInputFor(base(), WEEK))
     const renamed = run(base(), { type: 'updateStaff', id: 'a', patch: { displayName: 'Anna' } })
