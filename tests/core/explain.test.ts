@@ -44,6 +44,19 @@ describe('explain — day level', () => {
     })
   })
 
+  it('lists people on leave before the sick when asking to call someone in', () => {
+    const input = makeInput({
+      teachers: 2,
+      nannies: 2,
+      groups: 1,
+      days: [WED],
+      absent: { t1: [WED], t2: [WED] },
+    })
+    input.absences = input.absences.map((a) => (a.staffId === 't1' ? { ...a, kind: 'sick' } : a))
+    const [warning] = warningsFor(input)
+    expect(warning.action).toBe('Hívj be valakit: T2, T1 (távol).')
+  })
+
   it('stores names as references, so a later rename reaches the text', () => {
     const input = makeInput({
       teachers: 2,

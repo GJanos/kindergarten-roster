@@ -1,4 +1,4 @@
-import { warningText as t } from '../i18n/hu'
+import { CALL_IN_ORDER, warningText as t } from '../i18n/hu'
 import { dayCapacities, groupsWithoutTeacherHoles } from './capacity'
 import { countFor, fairShares } from './fairness'
 import { groupSwitches, turnarounds } from './metrics'
@@ -49,6 +49,7 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
             staff.get(a.staffId)?.role === 'teacher' &&
             staff.get(a.staffId)?.active,
         )
+        .sort((a, b) => CALL_IN_ORDER[a.kind] - CALL_IN_ORDER[b.kind])
         .map((a) => name(a.staffId))
       add('NO_TEACHER', c.date, t.noTeacher(c.date), { action: t.callIn(away) })
     } else if (c.groups < target) {

@@ -1,9 +1,10 @@
 import { dayCapacities, gMax } from '../core/capacity'
 import type { Role, SolveInput, Warning, WarningCode } from '../core/types'
-import { capitalize, dayName } from '../i18n/hu'
+import { CALL_IN_ORDER, capitalize, dayName } from '../i18n/hu'
 
 export type DayFix =
-  NonNullable<Warning['fix']> | { kind: 'callIn'; date: string; staffId: string; name: string }
+  | NonNullable<Warning['fix']>
+  | { kind: 'callIn'; date: string; staffId: string; name: string; sick?: true }
 
 export type WarningDay = {
   date: string
@@ -87,8 +88,17 @@ function callIns(date: string, items: Warning[], input: SolveInput): DayFix[] {
       codes.has('SUBSTITUTION') ||
       (reduced && gMax(c.teachers, c.nannies + 1) > gMax(c.teachers, c.nannies)),
   }
-  const away = new Set(input.absences.filter((a) => a.date === date).map((a) => a.staffId))
+  const kindOf = new Map(
+    input.absences.filter((a) => a.date === date).map((a) => [a.staffId, a.kind]),
+  )
   return input.staff
-    .filter((s) => s.active && away.has(s.id) && helps[s.role])
-    .map((s) => ({ kind: 'callIn', date, staffId: s.id, name: s.displayName }))
+    .filter((s) => s.active && kindOf.has(s.id) && helps[s.role])
+    .sort((a, b) => CALL_IN_ORDER[kindOf.get(a.id)!] - CALL_IN_ORDER[kindOf.get(b.id)!])
+    .map((s) => ({
+      kind: 'callIn' as const,
+      date,
+      staffId: s.id,
+      name: s.displayName,
+      ...(kindOf.get(s.id) === 'sick' ? { sick: true as const } : {}),
+    }))
 }

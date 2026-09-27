@@ -98,6 +98,29 @@ describe('warningDays', () => {
     expect(days[0].fixes).toEqual([{ kind: 'callIn', date: MON, staffId: 'n2', name: 'N2' }])
   })
 
+  it('offers people on leave first, then other absences, and the sick last, marked', () => {
+    const away = makeInput({
+      teachers: 6,
+      nannies: 2,
+      groups: 3,
+      absent: { t4: [MON], t5: [MON], t6: [MON] },
+    })
+    const kinds = { t4: 'sick', t5: 'other', t6: 'leave' } as const
+    away.absences = away.absences.map((a) => ({
+      ...a,
+      kind: kinds[a.staffId as keyof typeof kinds],
+    }))
+    const { days } = warningDays(
+      [seat(MON, 'Hétfő, 1. cs.: nincs délutános óvónő (10:30–17:00).')],
+      away,
+    )
+    expect(days[0].fixes).toEqual([
+      { kind: 'callIn', date: MON, staffId: 't6', name: 'T6' },
+      { kind: 'callIn', date: MON, staffId: 't5', name: 'T5' },
+      { kind: 'callIn', date: MON, staffId: 't4', name: 'T4', sick: true },
+    ])
+  })
+
   it('offers only the role that would bring a merged group back', () => {
     // 2 teachers, 3 nannies present: g_max = min(2, 2) = 2. Another teacher gives
     // min(3, 3) = 3; another nanny still min(2, 3) = 2, so only the teacher is offered.

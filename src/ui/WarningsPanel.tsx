@@ -76,7 +76,7 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
                             title={ui.roster.callInHint(fix.name, fix.date)}
                             onClick={() => onFix(fix)}
                           >
-                            {ui.roster.callIn(fix.name)}
+                            {ui.roster.callIn(fix.name, fix.sick)}
                           </button>
                         ),
                       )}

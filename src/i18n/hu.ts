@@ -1,5 +1,5 @@
 import { weekday } from '../core/calendar'
-import type { Shift } from '../core/types'
+import type { AbsenceKind, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -89,6 +89,9 @@ export function sinceText(days: number): string {
 }
 
 // ── Screens ──────────────────────────────────────────────────────────────────
+
+/** Who to ask first when someone must come in: people on leave, then other absences, the sick last. */
+export const CALL_IN_ORDER: Record<AbsenceKind, number> = { leave: 0, other: 1, sick: 2 }
 
 /** The strict rules a swap can break (validate.ts rule names), most telling first. */
 const SWAP_REASONS: [rule: string, reason: string][] = [
@@ -226,7 +229,7 @@ export const ui = {
         : `${count} cella változott — kiemelve a táblázatban.`,
     holes: (count: number) => `${count} hiány`,
     otherNotes: (count: number) => `Egyéb megjegyzések (${count})`,
-    callIn: (name: string) => `${name} mégis jön`,
+    callIn: (name: string, sick?: boolean) => `${name} mégis jön${sick ? ' (beteg)' : ''}`,
     callInHint: (name: string, date: string) =>
       `Törli ${name} távollétét ${onDay(date)}, és újraszámol.`,
     fixHint: (date: string, groups: number) =>

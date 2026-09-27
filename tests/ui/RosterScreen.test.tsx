@@ -285,6 +285,22 @@ describe('RosterScreen undo', () => {
     expect(screen.queryByText(/változott a számolás óta/)).toBeNull() // and it is current
   })
 
+  it('puts a sick day back as sick when a call-in is undone', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    const away = reducer(base, {
+      type: 'setAbsent',
+      staffId: 't4',
+      dates: [WED],
+      absent: true,
+      kind: 'sick',
+    })
+    render(<Harness initial={withRoster(away)} />)
+    fireEvent.click(screen.getByText('T4 mégis jön (beteg)'))
+    expect(await screen.findByText('T4 mégis jön szerdán.')).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screen.getByText('T4 mégis jön (beteg)')).toBeTruthy()
+  })
+
   it('puts the absence back when a call-in is undone', async () => {
     vi.mocked(solveInWorker).mockResolvedValue(fixed)
     const away = reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true })
