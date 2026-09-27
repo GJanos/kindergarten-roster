@@ -1,4 +1,7 @@
-import type { Assignment, Roster, Staff } from './types'
+import { explain } from './explain'
+import type { RosterResult } from './pipeline'
+import type { Assignment, Roster, SolveInput, Staff } from './types'
+import { validateRoster } from './validate'
 
 /** Two people who both work on `date` (staff ids). */
 export type Swap = { date: string; a: string; b: string }
@@ -35,4 +38,15 @@ export function swapDay(roster: Roster, staff: Staff[], swap: Swap): Roster {
       x === first ? takeOver(first, second) : x === second ? takeOver(second, first) : x,
     ),
   }
+}
+
+/**
+ * A swap through the same gate as a solve: every strict rule re-checked, the warnings explained
+ * again. A roster that breaks a rule never comes back — the caller shows why instead.
+ */
+export function editRoster(input: SolveInput, roster: Roster, swap: Swap): RosterResult {
+  const swapped = swapDay(roster, input.staff, swap)
+  const violations = validateRoster(input, swapped)
+  if (violations.length > 0) return { ok: false, violations }
+  return { ok: true, roster: { ...swapped, edited: true, warnings: explain(input, swapped) } }
 }
