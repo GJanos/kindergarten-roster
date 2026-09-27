@@ -64,6 +64,7 @@ export type Roster = {
   assignments: Assignment[]
   holes: Hole[]
   warnings: Warning[]
+  edited?: true // changed by hand after solving (v2 swaps); re-solving drops the edits
   solvedAt: string
   appVersion: string
 }

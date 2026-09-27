@@ -5,7 +5,7 @@ import { HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
 /** The printout's two tables as plain data, shared by print and Excel. */
 
 export type Tone = 'hole' | 'substitution' | 'muted'
-export type Line = { text: string; bold?: boolean; tone?: Tone }
+export type Line = { text: string; bold?: boolean; tone?: Tone; staffId?: string }
 export type GroupView = { days: string[]; rows: { label: string; cells: Line[][] }[] }
 
 export type Fill = 'morning' | 'afternoon' | 'absent' | 'closed'
@@ -60,7 +60,7 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
           (x) => x.seat?.kind === 'teacher' && x.seat.group === g && x.seat.shift === shift,
         )
         return a
-          ? { text: `${shiftShort[shift]}: ${name(a.staffId)}` }
+          ? { text: `${shiftShort[shift]}: ${name(a.staffId)}`, staffId: a.staffId }
           : { text: `${shiftShort[shift]}: ${HOLE}`, tone: 'hole' }
       })
       const nanny = today.find((x) => x.seat?.kind === 'nanny' && x.seat.group === g)
@@ -68,11 +68,13 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
         lines.push({
           text: `Dajka: ${name(nanny.staffId)} (óvónő, ${shiftShort[nanny.shift]})`,
           tone: 'substitution',
+          staffId: nanny.staffId,
         })
       } else if (nanny) {
         lines.push({
           text: `Dajka: ${name(nanny.staffId)} (${shiftShort[nanny.shift]}${key(nanny)})`,
           ...bold(nanny),
+          staffId: nanny.staffId,
         })
       }
       return lines
@@ -88,7 +90,11 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
       on(date)
         .filter((a) => !a.seat && role.get(a.staffId) === wanted)
         .sort(byShiftThenName(name))
-        .map((a) => ({ text: `${name(a.staffId)} (${shiftShort[a.shift]}${key(a)})`, ...bold(a) })),
+        .map((a) => ({
+          text: `${name(a.staffId)} (${shiftShort[a.shift]}${key(a)})`,
+          ...bold(a),
+          staffId: a.staffId,
+        })),
     )
     rows.push({ label, cells })
   }

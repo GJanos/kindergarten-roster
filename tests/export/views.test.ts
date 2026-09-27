@@ -74,21 +74,21 @@ describe('groupView', () => {
 
   it('lists the seats, bolds the keys and marks holes', () => {
     expect(view.rows[0].cells[0]).toEqual([
-      { text: 'DE: T1' },
-      { text: 'DU: T2' },
-      { text: 'Dajka: N1 (DE, nyit)', bold: true },
+      { text: 'DE: T1', staffId: 't1' },
+      { text: 'DU: T2', staffId: 't2' },
+      { text: 'Dajka: N1 (DE, nyit)', bold: true, staffId: 'n1' },
     ])
     expect(view.rows[1].cells[1]).toEqual([
-      { text: 'DE: T3' },
+      { text: 'DE: T3', staffId: 't3' },
       { text: 'DU: BETÖLTETLEN', tone: 'hole' },
-      { text: 'Dajka: N2 (DU, zár)', bold: true },
+      { text: 'Dajka: N2 (DU, zár)', bold: true, staffId: 'n2' },
     ])
   })
 
   it('marks merged groups, closed days and the reserve', () => {
     expect(view.rows[1].cells[0]).toEqual([{ text: 'összevonva', tone: 'muted' }])
     expect(view.rows[0].cells[2]).toEqual([{ text: 'zárva', tone: 'muted' }])
-    expect(view.rows[2].cells[0]).toEqual([{ text: 'T3 (DE)' }])
+    expect(view.rows[2].cells[0]).toEqual([{ text: 'T3 (DE)', staffId: 't3' }])
   })
 })
 
