@@ -424,6 +424,11 @@ type AppState = {
 
 ## 13. v2 list
 
+Designed in `docs/specs/2026-09-27-v2-design.md`, one plan each in `docs/plans/2026-09-27-v2-*.md`
+(A warning names · B swap · C yearly balance · D absence kinds · E month overview), built in that
+order. Each plan deletes its bullet here when it lands. The sick-call recalculation is left for
+later; her demo feedback will add to this list.
+
 - **Recalculation after a sick call:** past days locked; reserve on the same shift fills first;
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
