@@ -195,6 +195,14 @@ describe('RosterScreen', () => {
     expect(within(notes).getByText(note.text)).toBeTruthy()
   })
 
+  it("keeps a lone day's card in that day's column instead of stretching it", () => {
+    renderScreen(withRoster(base))
+    const grid = document.querySelector<HTMLElement>('.warning-days')!
+    expect(grid.style.gridTemplateColumns).toBe('repeat(5, minmax(170px, 1fr))')
+    const card = screen.getByRole('region', { name: /Szerda 10\.28\./ })
+    expect(card.style.gridColumn).toBe('3') // Wednesday, the third day of the week
+  })
+
   it('greys out an outdated roster and offers solving again right there', async () => {
     vi.mocked(solveInWorker).mockResolvedValue(roster)
     renderScreen(withRoster(base, 'old'))

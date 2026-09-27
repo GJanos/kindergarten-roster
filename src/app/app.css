@@ -19,6 +19,7 @@
   --off-stripe: #e2e2e2;
   --hover: #eef5f1;
   --changed-bg: #e3f3ea;
+  --today-bg: #eef7f1;
   --off-text: #a0a0a0;
   color-scheme: light;
   font-family: system-ui, 'Segoe UI', sans-serif;
@@ -52,6 +53,7 @@
     --off-stripe: #2e3237;
     --hover: #24302a;
     --changed-bg: #1d3327;
+    --today-bg: #1b2a22;
     --off-text: #70767c;
     color-scheme: dark;
   }
@@ -78,6 +80,7 @@
     --off-stripe: #2e3237;
     --hover: #24302a;
     --changed-bg: #1d3327;
+    --today-bg: #1b2a22;
     --off-text: #70767c;
     color-scheme: dark;
   }
@@ -442,9 +445,7 @@ td {
 }
 /* Every day on one row, so the highlighted cells below stay in view. */
 .warning-days {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(170px, 1fr);
+  display: grid; /* columns: one per day of the week, set inline */
   gap: 8px;
   overflow-x: auto;
   font-size: 0.85rem;
@@ -659,20 +660,24 @@ td {
 }
 
 /* The month at a glance: today, the break, who is away, names always in view. */
-/* Side lines only, so today reads as one column rather than a stack of boxes. */
-.absence-grid .today {
+.absence-grid thead th.break {
+  background: var(--changed-bg);
+}
+/* Today: a filled header you can't miss, and a soft tint down the column (after .break, so it
+   wins on a break day). */
+.absence-grid thead th.today {
+  border-radius: 6px 6px 0 0;
+  background: var(--green);
+  color: var(--on-accent);
+  font-weight: bold;
+}
+.absence-grid td.today:not(.off) {
+  background: var(--today-bg);
+}
+.absence-grid td.today.off {
   box-shadow:
     inset 2px 0 0 var(--green),
     inset -2px 0 0 var(--green);
-}
-.absence-grid thead th.today {
-  box-shadow:
-    inset 2px 0 0 var(--green),
-    inset -2px 0 0 var(--green),
-    inset 0 2px 0 var(--green);
-}
-.absence-grid thead th.break {
-  background: var(--changed-bg);
 }
 .absence-grid td.count,
 .absence-grid th.count {

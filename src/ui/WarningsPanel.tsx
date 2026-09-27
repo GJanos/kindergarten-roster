@@ -37,13 +37,20 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
             {ui.roster.warnings} ({shownWarningCount(warnings)}){' '}
             <Info text={ui.roster.warningsHint} />
           </h3>
-          <div className="warning-days">
+          {/* One column per day, so a lone card keeps its size and its day's place. */}
+          <div
+            className="warning-days"
+            style={{
+              gridTemplateColumns: `repeat(${input.period.days.length}, minmax(170px, 1fr))`,
+            }}
+          >
             {days.map((day) => {
               const headingId = `warnings-${day.date}`
               return (
                 <section
                   key={day.date}
                   className={day.holes > 0 ? 'warning-day red' : 'warning-day orange'}
+                  style={{ gridColumn: input.period.days.indexOf(day.date) + 1 }}
                   aria-labelledby={headingId}
                 >
                   <h4 id={headingId}>
