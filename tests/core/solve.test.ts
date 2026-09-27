@@ -41,6 +41,24 @@ describe('solve', () => {
     expect(validateRoster(input, roster)).toEqual([])
   })
 
+  it('ignores a stage that ran out of time before finding any roster', () => {
+    // Real HiGHS then reports an infinite objective, yet still puts a number in every column.
+    let calls = 0
+    const empty: LpSolver = {
+      solve: (lp, options) => {
+        const result = highs.solve(lp, options)
+        calls += 1
+        if (calls < 3) return result
+        const Columns = Object.fromEntries(
+          Object.entries(result.Columns).map(([name, column]) => [name, { ...column, Primal: 0 }]),
+        )
+        return { Status: 'Time limit reached', ObjectiveValue: Infinity, Columns, Rows: [] }
+      },
+    }
+    const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
+    expect(validateRoster(input, solve(input, empty, TEST_META))).toEqual([])
+  })
+
   it('fails loudly when the first stage finds nothing', () => {
     const broken: LpSolver = {
       solve: () => ({ Status: 'Time limit reached', ObjectiveValue: 0, Columns: {}, Rows: [] }),

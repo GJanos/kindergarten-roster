@@ -64,7 +64,7 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
     }
     // Out of time: every rule is a constraint, so the best roster found so far is valid.
     if (result.Status === 'Time limit reached') {
-      if (hasSolution(result.Columns)) columns = result.Columns
+      if (hasSolution(result)) columns = result.Columns
       if (columns) break
     }
     throw new SolveError(stage, result.Status)
@@ -72,8 +72,9 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
   return decode(input, model, columns ?? {}, meta)
 }
 
-function hasSolution(columns: Columns | undefined): columns is Columns {
-  return columns !== undefined && Object.values(columns).some((c) => typeof c.Primal === 'number')
+/** Stopped before finding any roster, HiGHS reports an infinite objective yet fills every column. */
+function hasSolution(result: { ObjectiveValue: number; Columns: Columns }): boolean {
+  return Number.isFinite(result.ObjectiveValue) && Object.keys(result.Columns).length > 0
 }
 
 function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: RosterMeta): Roster {
