@@ -2100,11 +2100,11 @@ git commit -m "feat(core): keep people in their group and avoid turnarounds"
 - Modify: `src/core/solve.ts`
 - Test: `tests/core/solve.test.ts`
 
-Improvement 3. Each stage gets `time_limit: 4` seconds. If a stage stops on its limit, the best solution found so far is kept (checked by `hasSolution`) and the later stages are skipped. The only failure left is a first stage with no solution at all, which throws `SolveError`. Use only `time_limit`: highs 1.15.3's status map has no name for the node-limit status, so don't use node limits. HiGHS runs with `random_seed: 0`, which makes the roster reproducible.
+Improvement 3. Each stage gets `time_limit: 4` seconds. If a stage stops on its limit with a roster in hand, that roster is kept and the later stages are skipped; otherwise the previous stage's roster stands. Check the objective, not the columns: a stage stopped before finding any roster reports an infinite objective, yet HiGHS still puts a number in every column. A 300-seed property run caught that on a loaded machine. The only failure left is a first stage with no solution at all, which throws `SolveError`. Use only `time_limit`: highs 1.15.3's status map has no name for the node-limit status, so don't use node limits. HiGHS runs with `random_seed: 0`, which makes the roster reproducible.
 
 - [ ] **Step 1: Write the failing test**
 
-`tests/core/solve.test.ts`. The two stubs stand in for a slow and a broken solver.
+`tests/core/solve.test.ts`. The stubs stand in for a slow solver, one that stops before finding anything (as real HiGHS reports it), and a broken one.
 
 ```ts
 import loadHighs from 'highs'
@@ -2150,6 +2150,24 @@ describe('solve', () => {
     expect(validateRoster(input, roster)).toEqual([])
   })
 
+  it('ignores a stage that ran out of time before finding any roster', () => {
+    // Real HiGHS then reports an infinite objective, yet still puts a number in every column.
+    let calls = 0
+    const empty: LpSolver = {
+      solve: (lp, options) => {
+        const result = highs.solve(lp, options)
+        calls += 1
+        if (calls < 3) return result
+        const Columns = Object.fromEntries(
+          Object.entries(result.Columns).map(([name, column]) => [name, { ...column, Primal: 0 }]),
+        )
+        return { Status: 'Time limit reached', ObjectiveValue: Infinity, Columns, Rows: [] }
+      },
+    }
+    const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
+    expect(validateRoster(input, solve(input, empty, TEST_META))).toEqual([])
+  })
+
   it('fails loudly when the first stage finds nothing', () => {
     const broken: LpSolver = {
       solve: () => ({ Status: 'Time limit reached', ObjectiveValue: 0, Columns: {}, Rows: [] }),
@@ -2165,7 +2183,7 @@ describe('solve', () => {
 
 Run: `npx vitest run tests/core/solve.test.ts`
 
-Expected: FAIL in "keeps the best roster so far when a later stage runs out of time" — `SolveError: Solver stage "totalGap" ended with status "Time limit reached"`. The other three tests pass already.
+Expected: FAIL in the two timeout tests — `SolveError: Solver stage "totalGap" ended with status "Time limit reached"`. The other three tests pass already.
 
 - [ ] **Step 3: Add the budget and the fallback**
 
@@ -2189,7 +2207,7 @@ In `src/core/solve.ts`, replace everything from the line `const result = highs.s
     }
     // Out of time: every rule is a constraint, so the best roster found so far is valid.
     if (result.Status === 'Time limit reached') {
-      if (hasSolution(result.Columns)) columns = result.Columns
+      if (hasSolution(result)) columns = result.Columns
       if (columns) break
     }
     throw new SolveError(stage, result.Status)
@@ -2198,8 +2216,9 @@ In `src/core/solve.ts`, replace everything from the line `const result = highs.s
 In `src/core/solve.ts`, add above the line `function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: RosterMeta): Roster {`:
 
 ```ts
-function hasSolution(columns: Columns | undefined): columns is Columns {
-  return columns !== undefined && Object.values(columns).some((c) => typeof c.Primal === 'number')
+/** Stopped before finding any roster, HiGHS reports an infinite objective yet fills every column. */
+function hasSolution(result: { ObjectiveValue: number; Columns: Columns }): boolean {
+  return Number.isFinite(result.ObjectiveValue) && Object.keys(result.Columns).length > 0
 }
 ```
 
@@ -2207,7 +2226,7 @@ function hasSolution(columns: Columns | undefined): columns is Columns {
 
 Run: `npm test && npm run typecheck`
 
-Expected: PASS (67 tests).
+Expected: PASS (68 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -3112,7 +3131,7 @@ Open `scripts/beosztas-2026-08-24.xlsx` in Excel or LibreOffice. Check for two s
 
 Run: `npm test && npm run typecheck && npm run format:check`
 
-Expected: PASS (78 tests), and `All matched files use Prettier code style!`.
+Expected: PASS (79 tests), and `All matched files use Prettier code style!`.
 
 ```bash
 git add scripts/slice.ts
