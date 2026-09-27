@@ -90,6 +90,14 @@ export function sinceText(days: number): string {
 
 // ── Screens ──────────────────────────────────────────────────────────────────
 
+/** The strict rules a swap can break (validate.ts rule names), most telling first. */
+const SWAP_REASONS: [rule: string, reason: string][] = [
+  ['nannyInTeacherSeat', 'dajka nem ülhet óvónői helyre'],
+  ['keyNotNanny', 'nyitni és zárni csak dajka tud'],
+  ['openerEveryDay', 'így valaki minden nap nyitna'],
+  ['closerEveryDay', 'így valaki minden nap zárna'],
+]
+
 export const ui = {
   appName: 'Óvodai beosztás',
   loading: 'Betöltés…',
@@ -185,7 +193,8 @@ export const ui = {
       'Kattints egy napra, ha ott más csoportszám kell, vagy zárva van. „kézi” = ezen a napon kézzel állított csoportszám.',
     tableHint:
       'DE = délelőtt, DU = délután. nyit / zár = ő nyitja vagy zárja az óvodát (vastag betű). ' +
-      'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő.',
+      'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő. ' +
+      'Két nevet egymás után kattintva (ugyanazon a napon) a két ember helyet cserél.',
     undo: '↶ Visszavonás',
     undoHint: 'Visszaállítja, ami a módosítás előtt volt — a beosztással együtt.',
     accept: 'Rendben',
@@ -194,6 +203,16 @@ export const ui = {
       `${capitalize(onDay(date))} ${groups} csoport beállítva.`,
     didCallIn: (name: string, date: string) => `${name} mégis jön ${onDay(date)}.`,
     didSolve: 'Újraszámolva.',
+    didSwap: (a: string, b: string, date: string) => `Csere: ${a} ↔ ${b}, ${dayName(date)}.`,
+    picked: (name: string, date: string) =>
+      `${name} kiválasztva (${dayName(date)}) — kattints arra, akivel cserél.`,
+    cancel: 'Mégse',
+    swapRefused: (rules: string[]) =>
+      `Ez a csere nem lehetséges: ${
+        SWAP_REASONS.find(([rule]) => rules.includes(rule))?.[1] ?? 'megszegne egy szabályt'
+      }.`,
+    editedBadge: 'kézzel módosítva',
+    confirmDropEdits: 'A kézi cserék elvesznek. Újraszámolod?',
     changedCount: (count: number) =>
       count === 0
         ? 'A beosztás nem változott.'
