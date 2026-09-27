@@ -94,6 +94,13 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
   return { days, rows }
 }
 
+/** Red and orange warnings print as footnotes; grey ones stay on screen (spec §7). */
+export function footnotes(roster: Roster): string[] {
+  return roster.warnings
+    .filter((w) => w.severity !== 'grey')
+    .map((w) => `* ${w.text}${w.action ? ` ${w.action}` : ''}`)
+}
+
 /** One row per person (teachers, then nannies): 'DE · 1. cs.', 'DU · tartalék', 'távol'. */
 export function personView(roster: Roster, staff: Staff[], absences: Absence[]): PersonView {
   const days = roster.period.days
