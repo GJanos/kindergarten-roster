@@ -29,8 +29,12 @@ describe('warning texts', () => {
     expect(t.groupsReduced(WED, 4, 5, 8, 4)).toBe(
       'Szerdán 4 csoport indul 5 helyett (8 óvónő, 4 dajka). Az 5. cs. összevonva a többivel.',
     )
-    expect(t.groupSwitch('Dalma', '2026-10-29', 2)).toBe('Dalma csütörtöktől a 2. csoportban.')
-    expect(t.groupSwitch('Dalma', '2026-10-29', 1)).toBe('Dalma csütörtöktől az 1. csoportban.')
+    expect(t.groupSwitch('Dalma', '2026-10-29', 1, 2)).toBe(
+      'Dalma csütörtökön az 1. csoportból a 2. csoportba kerül.',
+    )
+    expect(t.groupSwitch('Dalma', '2026-10-29', 5, 1)).toBe(
+      'Dalma csütörtökön az 5. csoportból az 1. csoportba kerül.',
+    )
   })
 
   it('adds the year so far when it is a whole day or more either way', () => {

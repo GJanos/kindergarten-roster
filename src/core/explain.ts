@@ -104,7 +104,7 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
   }
 
   for (const s of groupSwitches(input, roster)) {
-    add('GROUP_SWITCH', s.to, t.groupSwitch(name(s.staffId), s.to, s.toGroup), {
+    add('GROUP_SWITCH', s.to, t.groupSwitch(name(s.staffId), s.to, s.fromGroup, s.toGroup), {
       cells: [
         { staffId: s.staffId, date: s.from, group: s.fromGroup },
         { staffId: s.staffId, date: s.to, group: s.toGroup },

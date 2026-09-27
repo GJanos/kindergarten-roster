@@ -151,7 +151,7 @@ describe('explain — comfort and fairness', () => {
       ]),
     )
     expect(warnings.find((w) => w.code === 'GROUP_SWITCH')?.text).toBe(
-      'T1 keddtől a 2. csoportban.',
+      'T1 kedden az 1. csoportból a 2. csoportba kerül.',
     )
   })
 

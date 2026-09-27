@@ -289,7 +289,7 @@ footnotes (the wall shows a forced choice, not a bug); grey stays on screen.
 | `GROUPS_OVERRIDDEN` | orange | she set the day by hand | *Szerda: 1 csoport (kézi beállítás).* | — |
 | `SUBSTITUTION` | orange | teacher in a nanny seat | *Szerda, 1. cs.: dajka helyett óvónő — Cili.* | — |
 | `CLOSED_DAY` | orange | 0 groups | *Szerdán zárva.* | — |
-| `GROUP_SWITCH` | grey | a switch survived stage 5 | *Dalma csütörtöktől a 2. csoportban.* | — |
+| `GROUP_SWITCH` | grey | a switch survived stage 5 | *Dalma csütörtökön az 1. csoportból a 2. csoportba kerül.* | — |
 | `TURNAROUND` | grey | nanny afternoon → morning | *Nóra kedden 18:00-ig, szerdán 6:00-tól.* | — |
 | `UNEVEN` | grey | someone's gap ≥ 1 after stage 4 | *Egyenlő elosztás nem volt lehetséges: Nóra 3 délutános műszak az 5-ből.* | — ; adds *"Idén eddig 2 délutánnal több jutott neki."* when the year is ≥ 1 day off |
 

@@ -347,8 +347,8 @@ export const warningText = {
   substitution: (date: string, group: number, name: string) =>
     `${capitalize(dayName(date))}, ${groupShort(group)}: dajka helyett óvónő — ${name}.`,
   closedDay: (date: string) => `${capitalize(onDay(date))} zárva.`,
-  groupSwitch: (name: string, date: string, group: number) =>
-    `${name} ${fromDay(date)} ${article(group)} ${group}. csoportban.`,
+  groupSwitch: (name: string, date: string, from: number, to: number) =>
+    `${name} ${onDay(date)} ${article(from)} ${from}. csoportból ${article(to)} ${to}. csoportba kerül.`,
   turnaround: (name: string, late: string, early: string) =>
     `${name} ${onDay(late)} 18:00-ig, ${onDay(early)} 6:00-tól.`,
   uneven: (name: string, detail: UnevenDetail, yearly?: number) => {
