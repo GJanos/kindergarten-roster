@@ -59,7 +59,7 @@ The spec is frozen, so none of these adds scope. They are decisions the spec lef
 package.json · tsconfig.json · vitest.config.ts · .prettierrc.json · .prettierignore
 src/core/types.ts         domain types (spec §5) plus SolveInput and RosterMeta
 src/core/calendar.ts      ISO-date arithmetic (Phase 1 adds the Hungarian calendar)
-src/core/fixtures.ts      test builders: makeInput, randomInput (seeded), TEST_META
+tests/core/fixtures.ts    test builders: makeInput, randomInput (seeded), TEST_META
 src/core/capacity.ts      per-day headcount, g_max, effective group count (§6.6)
 src/core/lp.ts            Lin/Milp model builder and CPLEX LP writer
 src/core/validate.ts      validateRoster: every strict rule, independent of the model
@@ -75,7 +75,7 @@ scripts/slice.ts          npm run slice
 scripts/slice-example.json  an invented example week
 ```
 
-Tests sit next to their modules as `*.test.ts`. `src/core/` must stay free of React and browser APIs, because it runs unchanged in Node (slice, tests) and in the Web Worker.
+Tests live in `tests/`, which mirrors `src/` and `scripts/` (`src/core/lp.ts` → `tests/core/lp.test.ts`), with the test-only fixtures in `tests/core/fixtures.ts`. `src/core/` must stay free of React and browser APIs, because it runs unchanged in Node (slice, tests) and in the Web Worker.
 
 ---
 
@@ -132,7 +132,7 @@ Tests sit next to their modules as `*.test.ts`. `src/core/` must stay free of Re
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src", "scripts", "vite.config.ts"]
+  "include": ["src", "tests", "scripts", "vite.config.ts"]
 }
 ```
 
@@ -191,7 +191,7 @@ git commit -m "chore: scaffold TypeScript, vitest and prettier"
 
 **Files:**
 - Create: `src/core/types.ts`, `src/core/calendar.ts`
-- Test: `src/core/calendar.test.ts`
+- Test: `tests/core/calendar.test.ts`
 
 Dates are ISO strings (`'2026-10-26'`) throughout. Arithmetic goes through UTC, so the October clock change can never shift a day.
 
@@ -282,11 +282,11 @@ export type RosterMeta = { solvedAt: string; appVersion: string }
 
 - [ ] **Step 2: Write the failing test**
 
-`src/core/calendar.test.ts`:
+`tests/core/calendar.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { addDays, weekday } from './calendar'
+import { addDays, weekday } from '../../src/core/calendar'
 
 describe('addDays and weekday', () => {
   it('moves across month and year ends and the October clock change', () => {
@@ -306,9 +306,9 @@ describe('addDays and weekday', () => {
 
 - [ ] **Step 3: Run it to verify it fails**
 
-Run: `npx vitest run src/core/calendar.test.ts`
+Run: `npx vitest run tests/core/calendar.test.ts`
 
-Expected: FAIL — `Cannot find module './calendar'`.
+Expected: FAIL — `Cannot find module '../../src/core/calendar'`.
 
 - [ ] **Step 4: Implement**
 
@@ -334,14 +334,14 @@ export function weekday(date: string): number {
 
 - [ ] **Step 5: Run it to verify it passes**
 
-Run: `npx vitest run src/core/calendar.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/calendar.test.ts && npm run typecheck`
 
 Expected: PASS (2 tests), and typecheck prints nothing.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/core/types.ts src/core/calendar.ts src/core/calendar.test.ts
+git add src/core/types.ts src/core/calendar.ts tests/core/calendar.test.ts
 git commit -m "feat(core): add domain types and ISO date arithmetic"
 ```
 
@@ -350,18 +350,18 @@ git commit -m "feat(core): add domain types and ISO date arithmetic"
 ### Task 3: Test fixtures and capacity
 
 **Files:**
-- Create: `src/core/fixtures.ts`, `src/core/capacity.ts`
-- Test: `src/core/capacity.test.ts`
+- Create: `tests/core/fixtures.ts`, `src/core/capacity.ts`
+- Test: `tests/core/capacity.test.ts`
 
 `g_max = min(T, ⌊(T + N) / 2⌋)`: every group needs its own teacher, and every nanny seat needs a nanny or a spare teacher. The effective group count is the day's override if she set one, otherwise the requested count, and it never exceeds `g_max`. The fixtures build inputs with staff `t1…tN` (teachers) and `n1…nM` (nannies), with display names `T1`, `N1`.
 
 - [ ] **Step 1: Write the fixtures**
 
-`src/core/fixtures.ts`. `randomInput` is seeded (mulberry32), so a failing random case can be reproduced from its seed.
+`tests/core/fixtures.ts`. `randomInput` is seeded (mulberry32), so a failing random case can be reproduced from its seed.
 
 ```ts
-import { addDays } from './calendar'
-import type { Absence, DayPlan, RosterMeta, SolveInput, Staff } from './types'
+import { addDays } from '../../src/core/calendar'
+import type { Absence, DayPlan, RosterMeta, SolveInput, Staff } from '../../src/core/types'
 
 /** Builders for tests. Nothing here reaches the app bundle. */
 
@@ -447,11 +447,11 @@ export function randomInput(seed: number): SolveInput {
 
 - [ ] **Step 2: Write the failing test**
 
-`src/core/capacity.test.ts`:
+`tests/core/capacity.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { dayCapacities, gMax } from './capacity'
+import { dayCapacities, gMax } from '../../src/core/capacity'
 import { makeInput } from './fixtures'
 
 const D = '2026-10-26'
@@ -530,9 +530,9 @@ describe('dayCapacities', () => {
 
 - [ ] **Step 3: Run it to verify it fails**
 
-Run: `npx vitest run src/core/capacity.test.ts`
+Run: `npx vitest run tests/core/capacity.test.ts`
 
-Expected: FAIL — `Cannot find module './capacity'`.
+Expected: FAIL — `Cannot find module '../../src/core/capacity'`.
 
 - [ ] **Step 4: Implement**
 
@@ -583,14 +583,14 @@ export function dayCapacities(input: SolveInput): DayCapacity[] {
 
 - [ ] **Step 5: Run it to verify it passes**
 
-Run: `npx vitest run src/core/capacity.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/capacity.test.ts && npm run typecheck`
 
 Expected: PASS (15 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/core/fixtures.ts src/core/capacity.ts src/core/capacity.test.ts
+git add tests/core/fixtures.ts src/core/capacity.ts tests/core/capacity.test.ts
 git commit -m "feat(core): add test fixtures and day capacity (g_max)"
 ```
 
@@ -600,18 +600,18 @@ git commit -m "feat(core): add test fixtures and day capacity (g_max)"
 
 **Files:**
 - Create: `src/core/lp.ts`
-- Test: `src/core/lp.test.ts`
+- Test: `tests/core/lp.test.ts`
 
 HiGHS reads models as CPLEX LP text. `Lin` is a sparse linear expression; `Milp` collects the variables and rows; `toLpText` writes a model with one objective and extra rows. The staged solve adds each stage's optimum as an extra row. Rows are wrapped at 8 terms, because very long lines are hard to debug.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/lp.test.ts`. The last test really solves with HiGHS, so the format is proven, not just snapshotted.
+`tests/core/lp.test.ts`. The last test really solves with HiGHS, so the format is proven, not just snapshotted.
 
 ```ts
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { Lin, Milp, toLpText, toRow } from './lp'
+import { Lin, Milp, toLpText, toRow } from '../../src/core/lp'
 
 const highs = await loadHighs()
 
@@ -688,9 +688,9 @@ describe('Milp and toLpText', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/lp.test.ts`
+Run: `npx vitest run tests/core/lp.test.ts`
 
-Expected: FAIL — `Cannot find module './lp'`.
+Expected: FAIL — `Cannot find module '../../src/core/lp'`.
 
 - [ ] **Step 3: Implement**
 
@@ -814,14 +814,14 @@ function chunks<T>(items: T[], size: number): T[][] {
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run src/core/lp.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/lp.test.ts && npm run typecheck`
 
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/core/lp.ts src/core/lp.test.ts
+git add src/core/lp.ts tests/core/lp.test.ts
 git commit -m "feat(core): add sparse LP builder and CPLEX LP writer"
 ```
 
@@ -831,19 +831,19 @@ git commit -m "feat(core): add sparse LP builder and CPLEX LP writer"
 
 **Files:**
 - Create: `src/core/validate.ts`
-- Test: `src/core/validate.test.ts`
+- Test: `tests/core/validate.test.ts`
 
 Spec §11.1: every strict rule is re-checked on the finished roster, without reading any solver internals, and a hit is a bug. It is written before the model so that every model test can use it. The test starts from one hand-built valid roster and breaks one rule at a time.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/validate.test.ts`:
+`tests/core/validate.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput } from './fixtures'
-import type { Assignment, Roster, SolveInput } from './types'
-import { validateRoster } from './validate'
+import type { Assignment, Roster, SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const D = '2026-10-26'
 const E = '2026-10-27'
@@ -993,9 +993,9 @@ describe('validateRoster', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/validate.test.ts`
+Run: `npx vitest run tests/core/validate.test.ts`
 
-Expected: FAIL — `Cannot find module './validate'`.
+Expected: FAIL — `Cannot find module '../../src/core/validate'`.
 
 - [ ] **Step 3: Implement**
 
@@ -1105,14 +1105,14 @@ export function validateRoster(input: SolveInput, roster: Roster): Violation[] {
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run src/core/validate.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/validate.test.ts && npm run typecheck`
 
 Expected: PASS (14 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/core/validate.ts src/core/validate.test.ts
+git add src/core/validate.ts tests/core/validate.test.ts
 git commit -m "feat(core): add validateRoster for every strict rule"
 ```
 
@@ -1122,7 +1122,7 @@ git commit -m "feat(core): add validateRoster for every strict rule"
 
 **Files:**
 - Create: `src/core/model.ts`, `src/core/solve.ts`
-- Test: `src/core/model.test.ts`
+- Test: `tests/core/model.test.ts`
 
 The variables are spec §6.1 (all 0/1, named compactly: `s_p_d_m` means person p works the morning shift on day d). `p` indexes the active people, and `d` indexes the open days. The strict rules are spec §6.2 line by line; each `milp.constrain` carries the spec's wording as a comment.
 
@@ -1130,15 +1130,15 @@ The variables are spec §6.1 (all 0/1, named compactly: `s_p_d_m` means person p
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/model.test.ts`:
+`tests/core/model.test.ts`:
 
 ```ts
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { solve } from './solve'
-import type { SolveInput } from './types'
-import { validateRoster } from './validate'
+import { solve } from '../../src/core/solve'
+import type { SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const D = '2026-10-26'
@@ -1222,9 +1222,9 @@ describe('strict rules', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/model.test.ts`
+Run: `npx vitest run tests/core/model.test.ts`
 
-Expected: FAIL — `Cannot find module './solve'`.
+Expected: FAIL — `Cannot find module '../../src/core/solve'`.
 
 - [ ] **Step 3: Implement the model**
 
@@ -1506,14 +1506,14 @@ function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: R
 
 - [ ] **Step 5: Run it to verify it passes**
 
-Run: `npx vitest run src/core/model.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/model.test.ts && npm run typecheck`
 
 Expected: PASS (9 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/core/model.ts src/core/solve.ts src/core/model.test.ts
+git add src/core/model.ts src/core/solve.ts tests/core/model.test.ts
 git commit -m "feat(core): model the strict rules and solve in stages with HiGHS"
 ```
 
@@ -1524,7 +1524,7 @@ git commit -m "feat(core): model the strict rules and solve in stages with HiGHS
 **Files:**
 - Create: `src/core/fairness.ts`
 - Modify: `src/core/model.ts`
-- Test: `src/core/fairness.test.ts`
+- Test: `tests/core/fairness.test.ts`
 
 Spec §6.3 balances four counts per person: morning shifts, opener days, closer days and reserve days. Each count has a fair share scaled by the days that person actually works (Improvement 1):
 
@@ -1536,15 +1536,15 @@ The model adds `den · gap ≥ ±(den · count − num)`, a whole-number floor p
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/fairness.test.ts`:
+`tests/core/fairness.test.ts`:
 
 ```ts
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { apportionmentFloor, fairShares, gapOf, worstGapFloor } from './fairness'
+import { apportionmentFloor, fairShares, gapOf, worstGapFloor } from '../../src/core/fairness'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { solve } from './solve'
-import { validateRoster } from './validate'
+import { solve } from '../../src/core/solve'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const WEEK = consecutiveDays('2026-10-26', 5)
@@ -1617,9 +1617,9 @@ describe('the solver balances', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/fairness.test.ts`
+Run: `npx vitest run tests/core/fairness.test.ts`
 
-Expected: FAIL — `Cannot find module './fairness'`.
+Expected: FAIL — `Cannot find module '../../src/core/fairness'`.
 
 - [ ] **Step 3: Implement the shares and floors**
 
@@ -1820,14 +1820,14 @@ In `src/core/model.ts`, add above the line `return { milp, objectives, people, d
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `npx vitest run src/core/fairness.test.ts src/core/model.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/fairness.test.ts tests/core/model.test.ts && npm run typecheck`
 
 Expected: PASS (15 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/core/fairness.ts src/core/fairness.test.ts src/core/model.ts
+git add src/core/fairness.ts tests/core/fairness.test.ts src/core/model.ts
 git commit -m "feat(core): balance mornings, keys and reserve days by fair shares"
 ```
 
@@ -1838,22 +1838,22 @@ git commit -m "feat(core): balance mornings, keys and reserve days by fair share
 **Files:**
 - Create: `src/core/metrics.ts`
 - Modify: `src/core/model.ts`
-- Test: `src/core/switches.test.ts`
+- Test: `tests/core/switches.test.ts`
 
 Spec §6.4. A **switch**: someone seated in group g today and in another group on the next open day. `sw ≥ inGroup_g(today) + seated(tomorrow) − inGroup_g(tomorrow) − 1` for each g. A reserve day breaks the chain, so the model never rewards parking people in reserve. A **turnaround**: a nanny on the afternoon shift (until 18:00), then on the morning shift the next calendar day (from 6:00). `sw` and `tu` are continuous and ≥ 0; minimisation pins them to 0 or 1. `metrics.ts` counts both on a finished roster. `explain` (Phase 1) reuses it, and so does the slice summary.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/switches.test.ts`:
+`tests/core/switches.test.ts`:
 
 ```ts
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
-import { groupSwitches, turnarounds } from './metrics'
-import { solve } from './solve'
-import type { Assignment, Roster, Seat, SolveInput } from './types'
-import { validateRoster } from './validate'
+import { groupSwitches, turnarounds } from '../../src/core/metrics'
+import { solve } from '../../src/core/solve'
+import type { Assignment, Roster, Seat, SolveInput } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const [MON, TUE, WED] = consecutiveDays('2026-10-26', 3)
@@ -1954,9 +1954,9 @@ describe('the solver keeps people in place', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/switches.test.ts`
+Run: `npx vitest run tests/core/switches.test.ts`
 
-Expected: FAIL — `Cannot find module './metrics'`.
+Expected: FAIL — `Cannot find module '../../src/core/metrics'`.
 
 - [ ] **Step 3: Implement the metrics**
 
@@ -2081,14 +2081,14 @@ In `src/core/model.ts`, add above the line `return { milp, objectives, people, d
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `npx vitest run src/core/switches.test.ts src/core/fairness.test.ts src/core/model.test.ts && npm run typecheck`
+Run: `npx vitest run tests/core/switches.test.ts tests/core/fairness.test.ts tests/core/model.test.ts && npm run typecheck`
 
 Expected: PASS (26 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/core/metrics.ts src/core/switches.test.ts src/core/model.ts
+git add src/core/metrics.ts tests/core/switches.test.ts src/core/model.ts
 git commit -m "feat(core): keep people in their group and avoid turnarounds"
 ```
 
@@ -2098,20 +2098,20 @@ git commit -m "feat(core): keep people in their group and avoid turnarounds"
 
 **Files:**
 - Modify: `src/core/solve.ts`
-- Test: `src/core/solve.test.ts`
+- Test: `tests/core/solve.test.ts`
 
 Improvement 3. Each stage gets `time_limit: 4` seconds. If a stage stops on its limit, the best solution found so far is kept (checked by `hasSolution`) and the later stages are skipped. The only failure left is a first stage with no solution at all, which throws `SolveError`. Use only `time_limit`: highs 1.15.3's status map has no name for the node-limit status, so don't use node limits. HiGHS runs with `random_seed: 0`, which makes the roster reproducible.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/core/solve.test.ts`. The two stubs stand in for a slow and a broken solver.
+`tests/core/solve.test.ts`. The two stubs stand in for a slow and a broken solver.
 
 ```ts
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput, randomInput } from './fixtures'
-import { SolveError, solve, type LpSolver } from './solve'
-import { validateRoster } from './validate'
+import { SolveError, solve, type LpSolver } from '../../src/core/solve'
+import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 
@@ -2163,7 +2163,7 @@ describe('solve', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/core/solve.test.ts`
+Run: `npx vitest run tests/core/solve.test.ts`
 
 Expected: FAIL in "keeps the best roster so far when a later stage runs out of time" — `SolveError: Solver stage "totalGap" ended with status "Time limit reached"`. The other three tests pass already.
 
@@ -2212,7 +2212,7 @@ Expected: PASS (67 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/core/solve.ts src/core/solve.test.ts
+git add src/core/solve.ts tests/core/solve.test.ts
 git commit -m "feat(core): budget each solver stage and keep the best roster on timeout"
 ```
 
@@ -2222,17 +2222,25 @@ git commit -m "feat(core): budget each solver stage and keep the best roster on 
 
 **Files:**
 - Create: `src/i18n/hu.ts`
-- Test: `src/i18n/hu.test.ts`
+- Test: `tests/i18n/hu.test.ts`
 
 Every Hungarian string lives in this one file (spec §8). Day names come in three forms, because the warnings (Phase 1) need them: *szerda* (the name), *szerdán* (on Wednesday), *szerdától* (from Wednesday). The legend states the shift times once, as spec §8.4 asks.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/i18n/hu.test.ts`:
+`tests/i18n/hu.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { dayHeader, dayName, formatDate, formatPeriod, fromDay, groupName, onDay } from './hu'
+import {
+  dayHeader,
+  dayName,
+  formatDate,
+  formatPeriod,
+  fromDay,
+  groupName,
+  onDay,
+} from '../../src/i18n/hu'
 
 describe('Hungarian dates', () => {
   it('names days in the forms the warnings need', () => {
@@ -2257,9 +2265,9 @@ describe('Hungarian dates', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/i18n/hu.test.ts`
+Run: `npx vitest run tests/i18n/hu.test.ts`
 
-Expected: FAIL — `Cannot find module './hu'`.
+Expected: FAIL — `Cannot find module '../../src/i18n/hu'`.
 
 - [ ] **Step 3: Implement**
 
@@ -2350,14 +2358,14 @@ export const LEGEND = [
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run src/i18n/hu.test.ts && npm run typecheck`
+Run: `npx vitest run tests/i18n/hu.test.ts && npm run typecheck`
 
 Expected: PASS (2 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/i18n/hu.ts src/i18n/hu.test.ts
+git add src/i18n/hu.ts tests/i18n/hu.test.ts
 git commit -m "feat(i18n): add Hungarian day, date and group names"
 ```
 
@@ -2367,7 +2375,7 @@ git commit -m "feat(i18n): add Hungarian day, date and group names"
 
 **Files:**
 - Create: `src/export/views.ts`
-- Test: `src/export/views.test.ts`
+- Test: `tests/export/views.test.ts`
 
 Spec §8.4 describes two A4 landscape pages. Both become plain data here, so that Excel (this plan) and the print view (Phase 2) show the same thing:
 
@@ -2378,13 +2386,13 @@ Optional properties are left out rather than set to `false`, so the objects comp
 
 - [ ] **Step 1: Write the failing test**
 
-`src/export/views.test.ts`:
+`tests/export/views.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeStaff } from '../core/fixtures'
-import type { Roster } from '../core/types'
-import { groupView, personView } from './views'
+import type { Roster } from '../../src/core/types'
+import { groupView, personView } from '../../src/export/views'
 
 const [MON, TUE, WED] = ['2026-10-26', '2026-10-27', '2026-10-28']
 const staff = makeStaff(3, 2)
@@ -2497,9 +2505,9 @@ describe('personView', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/export/views.test.ts`
+Run: `npx vitest run tests/export/views.test.ts`
 
-Expected: FAIL — `Cannot find module './views'`.
+Expected: FAIL — `Cannot find module '../../src/export/views'`.
 
 - [ ] **Step 3: Implement**
 
@@ -2656,14 +2664,14 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run src/export/views.test.ts && npm run typecheck`
+Run: `npx vitest run tests/export/views.test.ts && npm run typecheck`
 
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/export/views.ts src/export/views.test.ts
+git add src/export/views.ts tests/export/views.test.ts
 git commit -m "feat(export): describe the group and person tables as data"
 ```
 
@@ -2673,21 +2681,21 @@ git commit -m "feat(export): describe the group and person tables as data"
 
 **Files:**
 - Create: `src/export/xlsx.ts`
-- Test: `src/export/xlsx.test.ts`
+- Test: `tests/export/xlsx.test.ts`
 
 The workbook has sheets *Csoportok* (the group view) and *Munkatársak* (the person view), set up for A4 landscape and fitted to the page width, with the legend under each table. ExcelJS is loaded with `await import('exceljs')`: it makes up most of the browser bundle, and only the export needs it. Spec §11.5 asks for a smoke test: the file opens and contains every display name.
 
 - [ ] **Step 1: Write the failing test**
 
-`src/export/xlsx.test.ts`:
+`tests/export/xlsx.test.ts`:
 
 ```ts
 import ExcelJS from 'exceljs'
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput } from '../core/fixtures'
-import { solve } from '../core/solve'
-import { rosterFileName, rosterWorkbook, workbookBytes } from './xlsx'
+import { solve } from '../../src/core/solve'
+import { rosterFileName, rosterWorkbook, workbookBytes } from '../../src/export/xlsx'
 
 const highs = await loadHighs()
 
@@ -2724,9 +2732,9 @@ describe('Excel export', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run src/export/xlsx.test.ts`
+Run: `npx vitest run tests/export/xlsx.test.ts`
 
-Expected: FAIL — `Cannot find module './xlsx'`.
+Expected: FAIL — `Cannot find module '../../src/export/xlsx'`.
 
 - [ ] **Step 3: Implement**
 
@@ -2853,14 +2861,14 @@ function addPersonSheet(
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run src/export/xlsx.test.ts && npm run typecheck`
+Run: `npx vitest run tests/export/xlsx.test.ts && npm run typecheck`
 
 Expected: PASS (1 test).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/export/xlsx.ts src/export/xlsx.test.ts
+git add src/export/xlsx.ts tests/export/xlsx.test.ts
 git commit -m "feat(export): write the roster as an A4 landscape Excel workbook"
 ```
 
@@ -2870,18 +2878,18 @@ git commit -m "feat(export): write the roster as an A4 landscape Excel workbook"
 
 **Files:**
 - Create: `scripts/slice-input.ts`, `scripts/slice-example.json`
-- Test: `scripts/slice-input.test.ts`
+- Test: `tests/scripts/slice-input.test.ts`
 
 The slice reads a week transcribed from her sheet. Names stand in for ids, because this file is typed by hand. Per spec §12, "absent" means on the staff list but missing that day. The committed example uses invented people only (spec §14).
 
 - [ ] **Step 1: Write the failing test**
 
-`scripts/slice-input.test.ts`:
+`tests/scripts/slice-input.test.ts`:
 
 ```ts
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { sliceInput, type SliceFile } from './slice-input'
+import { sliceInput, type SliceFile } from '../../scripts/slice-input'
 
 const file: SliceFile = {
   groups: 2,
@@ -2929,9 +2937,9 @@ describe('sliceInput', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run scripts/slice-input.test.ts`
+Run: `npx vitest run tests/scripts/slice-input.test.ts`
 
-Expected: FAIL — `Cannot find module './slice-input'`.
+Expected: FAIL — `Cannot find module '../../scripts/slice-input'`.
 
 - [ ] **Step 3: Implement the format and the example**
 
@@ -3013,14 +3021,14 @@ export function sliceInput(file: SliceFile): SolveInput {
 
 - [ ] **Step 4: Run it to verify it passes**
 
-Run: `npx vitest run scripts/slice-input.test.ts && npm run typecheck`
+Run: `npx vitest run tests/scripts/slice-input.test.ts && npm run typecheck`
 
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/slice-input.ts scripts/slice-input.test.ts scripts/slice-example.json
+git add scripts/slice-input.ts tests/scripts/slice-input.test.ts scripts/slice-example.json
 git commit -m "feat(slice): read a hand-transcribed week"
 ```
 
