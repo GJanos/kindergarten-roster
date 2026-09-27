@@ -73,6 +73,101 @@ export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU
 
 export const HOLE = 'BETÖLTETLEN'
 
+/** 'H', 'K', 'Sze', … for the absence grid header. */
+export const weekdayInitial = (date: string) =>
+  ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo'][weekday(date)]
+
+/** '2026. október' from '2026-10'. */
+export function monthLabel(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return `${y}. ${MONTHS[m - 1]}`
+}
+
+/** 'ma', 'tegnap', '3 napja' */
+export function sinceText(days: number): string {
+  return days <= 0 ? 'ma' : days === 1 ? 'tegnap' : `${days} napja`
+}
+
+// ── Screens ──────────────────────────────────────────────────────────────────
+
+export const ui = {
+  appName: 'Óvodai beosztás',
+  loading: 'Betöltés…',
+  tabs: { staff: 'Munkatársak', absences: 'Távollétek', roster: 'Beosztás' },
+  firstLaunch: {
+    intro: 'Hogyan kezdjük?',
+    start: 'Új kezdés',
+    restore: 'Visszatöltés fájlból',
+    demo: 'Bemutató adatok',
+    storageError: 'A tárolt adatok nem olvashatók. Töltsd vissza a legutóbbi mentést.',
+  },
+  demoBanner: 'Bemutató adatok — nem valódi személyek',
+  leaveDemo: 'Kilépés a bemutatóból',
+  footer: {
+    lastBackup: 'Utolsó mentés:',
+    never: 'még nem volt',
+    backup: 'Mentés fájlba',
+    restore: 'Visszatöltés fájlból',
+    notPersisted: 'A böngésző nem garantálja a tárolást — ments gyakrabban fájlba.',
+    saveFailed: 'Nem sikerült menteni a böngészőbe — ments fájlba!',
+  },
+  confirmRestore: 'Ez felülírja a jelenlegi adatokat. Folytatod?',
+  restoreFailed: 'A fájl nem olvasható. Semmi sem változott.',
+  staff: {
+    fullName: 'Teljes név',
+    displayName: 'Megjelenő név',
+    role: 'Munkakör',
+    active: 'Aktív',
+    teacher: 'Óvónő',
+    nanny: 'Dajka',
+    add: '+ Új munkatárs',
+    remove: 'Törlés',
+    confirmRemove: (name: string) => `Biztosan törlöd: ${name}?`,
+    duplicate: 'Ez a név kétszer szerepel.',
+    empty: 'Még nincs munkatárs. Kattints az „Új munkatárs” gombra.',
+  },
+  absences: {
+    hint: 'Kattints egy napra, vagy húzd végig az egeret a soron.',
+    previous: 'Előző hónap',
+    next: 'Következő hónap',
+    noStaff: 'Előbb vedd fel a munkatársakat.',
+  },
+  roster: {
+    groups: 'Csoportok:',
+    previousWeek: 'Előző hét',
+    nextWeek: 'Következő hét',
+    saved: 'van mentett beosztás',
+    solve: 'Számol',
+    solving: 'Számolok… ez eltarthat néhány másodpercig.',
+    print: 'Nyomtatás',
+    excel: 'Excel letöltés',
+    warnings: 'Figyelmeztetések',
+    allGood: 'Nincs figyelmeztetés.',
+    noDays: 'Ezen a héten nincs munkanap.',
+    noStaff: 'Előbb vedd fel a munkatársakat.',
+    notSolved: 'Erre a hétre még nincs beosztás. Kattints a Számol gombra.',
+    stale:
+      'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta. Kattints a Számol gombra.',
+    errorGeneric: 'Hiba történt — frissítsd az oldalt.',
+    errorInvalid: 'Hiba történt a beosztás készítésekor.',
+    groupLabel: (group: number) => `${groupName(group)} neve (nem kötelező)`,
+    dayGroups: 'Csoportok ezen a napon:',
+    closeDay: 'Zárva',
+    resetDay: 'Mint a többi nap',
+    done: 'Kész',
+    closed: 'zárva',
+    fewTeachers: (have: number, groups: number, need: number) =>
+      `csak ${have} óvónő — ${groups} csoporthoz ${need} kell`,
+    fewNannies: (have: number, need: number) => `csak ${have} dajka — ${need} kell`,
+    manual: (groups: number) => `kézi: ${groups} cs.`,
+    fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
+  },
+  print: {
+    groupTitle: (period: string) => `Beosztás — ${period}`,
+    personTitle: (period: string) => `Beosztás munkatársanként — ${period}`,
+  },
+}
+
 // ── Warnings (spec §7) ───────────────────────────────────────────────────────
 
 /** 'a' or 'az' before a written number: az 1., az 5., a 2. */
