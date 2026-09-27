@@ -266,6 +266,15 @@ export type UnevenDetail =
   | { kind: 'morning' | 'afternoon'; count: number; of: number }
   | { kind: 'opener' | 'closer' | 'reserve'; count: number; of: number }
 
+/** "2 délutánnal több": the instrumental of each count, after a number. */
+const yearNoun: Record<UnevenDetail['kind'], string> = {
+  morning: 'délelőttel',
+  afternoon: 'délutánnal',
+  opener: 'nyitással',
+  closer: 'zárással',
+  reserve: 'tartaléknappal',
+}
+
 export const warningText = {
   noTeacher: (date: string) =>
     `${capitalize(onDay(date))} nincs óvónő — egy csoport sem indítható.`,
@@ -305,7 +314,7 @@ export const warningText = {
     `${name} ${fromDay(date)} ${article(group)} ${group}. csoportban.`,
   turnaround: (name: string, late: string, early: string) =>
     `${name} ${onDay(late)} 18:00-ig, ${onDay(early)} 6:00-tól.`,
-  uneven: (name: string, detail: UnevenDetail) => {
+  uneven: (name: string, detail: UnevenDetail, yearly?: number) => {
     const what = {
       morning: `${detail.count} délelőttös műszak`,
       afternoon: `${detail.count} délutános műszak`,
@@ -313,7 +322,10 @@ export const warningText = {
       closer: `${detail.count} napon zár`,
       reserve: `${detail.count} napon tartalék`,
     }[detail.kind]
-    return `Egyenlő elosztás nem volt lehetséges: ${name} ${what} ${outOf(detail.of)}.`
+    const text = `Egyenlő elosztás nem volt lehetséges: ${name} ${what} ${outOf(detail.of)}.`
+    if (yearly === undefined || Math.abs(yearly) < 1) return text
+    const days = Math.round(Math.abs(yearly))
+    return `${text} Idén eddig ${days} ${yearNoun[detail.kind]} ${yearly > 0 ? 'több' : 'kevesebb'} jutott neki.`
   },
 }
 

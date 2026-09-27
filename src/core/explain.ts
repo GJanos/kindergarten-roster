@@ -129,7 +129,15 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
       share.kind === 'morning' && count < fair
         ? { kind: 'afternoon' as const, count: of - count, of }
         : { kind: share.kind, count, of }
-    add('UNEVEN', share.days[0], t.uneven(name(share.staffId), detail), {
+    // Afternoons are the other side of mornings: a year's +2 mornings is −2 afternoons.
+    const year = input.history?.[share.staffId]
+    const yearly =
+      year === undefined
+        ? undefined
+        : detail.kind === 'afternoon'
+          ? -(year.morning ?? 0)
+          : (year[detail.kind] ?? 0)
+    add('UNEVEN', share.days[0], t.uneven(name(share.staffId), detail, yearly), {
       cells: share.days.map((date) => ({ staffId: share.staffId, date })),
     })
   }

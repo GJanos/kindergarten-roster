@@ -155,6 +155,20 @@ describe('explain — comfort and fairness', () => {
     )
   })
 
+  it('adds how the year stands to an uneven share', () => {
+    // Two afternoons of two; t1 has had 2 mornings fewer this year, i.e. 2 afternoons more.
+    const warnings = explain(
+      { ...input, history: { t1: { morning: -2 } } },
+      roster([
+        { staffId: 't1', date: MON, shift: 'afternoon' },
+        { staffId: 't1', date: TUE, shift: 'afternoon' },
+      ]),
+    )
+    expect(warnings.find((w) => w.code === 'UNEVEN' && w.cells[0].staffId === 't1')?.text).toBe(
+      'Egyenlő elosztás nem volt lehetséges: T1 2 délutános műszak a 2-ből. Idén eddig 2 délutánnal több jutott neki.',
+    )
+  })
+
   it('reports a share missed by a whole day', () => {
     const warnings = explain(
       input,

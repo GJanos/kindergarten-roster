@@ -33,6 +33,18 @@ describe('warning texts', () => {
     expect(t.groupSwitch('Dalma', '2026-10-29', 1)).toBe('Dalma csütörtöktől az 1. csoportban.')
   })
 
+  it('adds the year so far when it is a whole day or more either way', () => {
+    expect(t.uneven('Nóra', { kind: 'afternoon', count: 3, of: 5 }, 2)).toBe(
+      'Egyenlő elosztás nem volt lehetséges: Nóra 3 délutános műszak az 5-ből. Idén eddig 2 délutánnal több jutott neki.',
+    )
+    expect(t.uneven('Kati', { kind: 'opener', count: 2, of: 3 }, -1.5)).toBe(
+      'Egyenlő elosztás nem volt lehetséges: Kati 2 napon nyit a 3-ból. Idén eddig 2 nyitással kevesebb jutott neki.',
+    )
+    expect(t.uneven('Bea', { kind: 'reserve', count: 3, of: 4 }, 0.5)).toBe(
+      'Egyenlő elosztás nem volt lehetséges: Bea 3 napon tartalék a 4-ből.',
+    )
+  })
+
   it('counts out of the period with the right suffix', () => {
     expect(t.uneven('Nóra', { kind: 'afternoon', count: 3, of: 5 })).toBe(
       'Egyenlő elosztás nem volt lehetséges: Nóra 3 délutános műszak az 5-ből.',
