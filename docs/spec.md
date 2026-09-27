@@ -301,10 +301,15 @@ First launch: **Új kezdés · Visszatöltés fájlból · Bemutató adatok**; d
 
 ### 8.1 Munkatársak
 
-Table: full name, display name (defaults to the full name; she may shorten it; warn on
-duplicates), **Óvónő / Dajka** toggle, active. **+ Új munkatárs**. Inline edit.
-**Deactivate, don't delete:** past rosters reference the person, a misclick can't be undone, long
-leave comes back. Hard delete only for someone who never appeared in a roster.
+Two columns side by side, **Óvónők** and **Dajkák** (stacked on a narrow screen), each with its own
+**+ Új óvónő / + Új dajka**. Row: full name, display name (defaults to the full name; she may
+shorten it; warn on duplicates), active, a **→ Dajka / → Óvónő** move button, **Törlés**. Inline
+edit; inactive people sink to the bottom, greyed. A collapsed **ⓘ Tudnivalók** legend explains
+Aktív, Törlés and the display name.
+**Deactivation is advised, deletion allowed:** long leave comes back, so the confirm dialog for
+someone already rostered recommends unticking Aktív instead. Deleting them anyway hides them
+(`deleted: true`, inactive) but keeps the record, so past rosters keep the name. Someone never
+rostered is deleted outright.
 
 ### 8.2 Távollétek
 

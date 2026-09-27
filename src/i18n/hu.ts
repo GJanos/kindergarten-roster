@@ -120,11 +120,30 @@ export const ui = {
     active: 'Aktív',
     teacher: 'Óvónő',
     nanny: 'Dajka',
-    add: '+ Új munkatárs',
+    teachers: 'Óvónők',
+    nannies: 'Dajkák',
+    add: { teacher: '+ Új óvónő', nanny: '+ Új dajka' },
+    move: { teacher: '→ Óvónő', nanny: '→ Dajka' },
+    moveHint: { teacher: 'Áthelyezés az óvónők közé', nanny: 'Áthelyezés a dajkák közé' },
     remove: 'Törlés',
+    removeHint:
+      'Végleges. Ha valaki csak egy ideig nem dolgozik, inkább vedd ki az Aktív jelölést.',
+    activeHint:
+      'Aki nem aktív, az nem kerül a beosztásba és a távolléti táblába. Bármikor visszakapcsolható.',
     confirmRemove: (name: string) => `Biztosan törlöd: ${name}?`,
+    confirmRemoveRostered: (name: string) =>
+      `${name} már szerepelt beosztásban. Ha csak egy ideig nem dolgozik, inkább vedd ki az ` +
+      `Aktív jelölést — úgy bármikor visszajöhet.\n\n` +
+      `Biztosan törlöd? A korábbi heteken a neve megmarad.`,
     duplicate: 'Ez a név kétszer szerepel.',
-    empty: 'Még nincs munkatárs. Kattints az „Új munkatárs” gombra.',
+    empty: 'Még nincs munkatárs. Kattints az „Új óvónő” vagy az „Új dajka” gombra.',
+    legendTitle: 'ⓘ Tudnivalók',
+    legend: [
+      'Aktív: csak az aktív munkatársak kerülnek a beosztásba. Aki egy ideig nem dolgozik (például tartós szabadság), annál vedd ki a jelölést. A nem aktívak a lista alján, szürkén látszanak.',
+      'Törlés: végleges. Aki már szerepelt beosztásban, annak a neve a korábbi heteken megmarad.',
+      'Megjelenő név: ez szerepel a beosztásban és a nyomtatásban. Legyen rövid, és ne legyen két egyforma.',
+      'A → Dajka és → Óvónő gombbal lehet valakit a másik oszlopba tenni.',
+    ],
   },
   absences: {
     hint: 'Kattints egy napra, vagy húzd végig az egeret a soron.',
@@ -146,8 +165,24 @@ export const ui = {
     noDays: 'Ezen a héten nincs munkanap.',
     noStaff: 'Előbb vedd fel a munkatársakat.',
     notSolved: 'Erre a hétre még nincs beosztás. Kattints a Számol gombra.',
-    stale:
-      'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta. Kattints a Számol gombra.',
+    staleTitle: 'Ez a beosztás elavult.',
+    stale: 'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta.',
+    resolve: 'Újraszámol',
+    warningsHint:
+      'Napok szerint csoportosítva. A gombok egy kattintással módosítanak és újraszámolnak. ' +
+      'Ha az egeret egy sorra viszed, a táblázatban kiemelődnek az érintett cellák.',
+    daysHint:
+      'Kattints egy napra, ha ott más csoportszám kell, vagy zárva van. „kézi” = ezen a napon kézzel állított csoportszám.',
+    tableHint:
+      'DE = délelőtt, DU = délután. nyit / zár = ő nyitja vagy zárja az óvodát (vastag betű). ' +
+      'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő.',
+    holes: (count: number) => `${count} hiány`,
+    otherNotes: (count: number) => `Egyéb megjegyzések (${count})`,
+    callIn: (name: string) => `${name} mégis jön`,
+    callInHint: (name: string, date: string) =>
+      `Törli ${name} távollétét ${onDay(date)}, és újraszámol.`,
+    fixHint: (date: string, groups: number) =>
+      `${capitalize(onDay(date))} ${groups} csoport indul, így nem marad üres óvónői hely. Újraszámol.`,
     errorGeneric: 'Hiba történt — frissítsd az oldalt.',
     errorInvalid: 'Hiba történt a beosztás készítésekor.',
     groupLabel: (group: number) => `${groupName(group)} neve (nem kötelező)`,

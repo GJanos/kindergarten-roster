@@ -8,6 +8,7 @@ export type Staff = {
   displayName: string
   role: Role
   active: boolean
+  deleted?: true // deleted after appearing in a roster: hidden, kept so old weeks keep the name
 }
 export type Absence = { staffId: string; date: string } // ISO date, one row per absent day
 

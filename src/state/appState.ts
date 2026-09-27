@@ -1,5 +1,5 @@
 import { periodForWeek } from '../core/calendar'
-import type { Absence, DayPlan, Roster, Staff } from '../core/types'
+import type { Absence, DayPlan, Role, Roster, Staff } from '../core/types'
 
 export const SCHEMA_VERSION = 1
 export const DEFAULT_GROUPS = 2
@@ -27,7 +27,7 @@ export function emptyState(): AppState {
 }
 
 export type Action =
-  | { type: 'addStaff'; id: string }
+  | { type: 'addStaff'; id: string; role?: Role }
   | { type: 'updateStaff'; id: string; patch: Partial<Omit<Staff, 'id'>> }
   | { type: 'deleteStaff'; id: string }
   | { type: 'setAbsent'; staffId: string; dates: string[]; absent: boolean }
@@ -44,7 +44,7 @@ export function reducer(state: AppState, action: Action): AppState {
         id: action.id,
         fullName: '',
         displayName: '',
-        role: 'teacher',
+        role: action.role ?? 'teacher',
         active: true,
       }
       return { ...state, staff: [...state.staff, person] }
@@ -55,8 +55,15 @@ export function reducer(state: AppState, action: Action): AppState {
         staff: state.staff.map((s) => (s.id === action.id ? patchStaff(s, action.patch) : s)),
       }
     case 'deleteStaff':
-      // Deactivate, don't delete: only someone never rostered can go.
-      if (isRostered(state, action.id)) return state
+      // Someone a saved roster mentions stays behind the scenes, so old weeks keep the name.
+      if (isRostered(state, action.id)) {
+        return {
+          ...state,
+          staff: state.staff.map((s) =>
+            s.id === action.id ? { ...s, active: false, deleted: true as const } : s,
+          ),
+        }
+      }
       return {
         ...state,
         staff: state.staff.filter((s) => s.id !== action.id),

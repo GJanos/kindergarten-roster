@@ -1,6 +1,7 @@
 import type { Roster, Staff, Warning } from '../core/types'
 import { groupView, type Line } from '../export/views'
-import { dayHeader } from '../i18n/hu'
+import { dayHeader, ui } from '../i18n/hu'
+import { Info } from './Info'
 import { highlightedCells } from './highlight'
 
 export function lineClass(line: Line): string | undefined {
@@ -20,7 +21,9 @@ export function RosterTable(props: {
     <table className="roster-table">
       <thead>
         <tr>
-          <th />
+          <th>
+            <Info text={ui.roster.tableHint} />
+          </th>
           {view.days.map((date) => (
             <th key={date}>{dayHeader(date)}</th>
           ))}

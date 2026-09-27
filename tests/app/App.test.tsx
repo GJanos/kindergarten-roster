@@ -32,7 +32,7 @@ describe('App', () => {
   it('keeps her data after the page is closed', async () => {
     render(<App />)
     fireEvent.click(await screen.findByText('Új kezdés'))
-    fireEvent.click(screen.getByText('+ Új munkatárs'))
+    fireEvent.click(screen.getByText('+ Új óvónő'))
     await waitFor(async () => expect((await loadState())?.staff).toHaveLength(1))
     cleanup()
     render(<App />)

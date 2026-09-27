@@ -118,7 +118,7 @@ describe('RosterScreen', () => {
     expect(screenTable().getByText('Dajka: N1 (DE, nyit)').className).toBe('bold')
     const empty = screenTable().getByText('DU: BETÖLTETLEN')
     expect(empty.className).toBe('hole')
-    fireEvent.mouseEnter(screen.getByText(hole.text).closest('li')!)
+    fireEvent.mouseEnter(screen.getByText('2. cs.: nincs délutános óvónő (10:30–17:00).'))
     expect(empty.closest('td')?.className).toBe('highlight')
   })
 
@@ -133,9 +133,51 @@ describe('RosterScreen', () => {
     await waitFor(() => expect(solveInWorker).toHaveBeenCalledWith(reduced, expect.anything()))
   })
 
-  it('says when the roster is out of date', () => {
+  it('offers calling in someone absent that day, then solves again', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(roster)
+    const state = withRoster(
+      reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true }),
+    )
+    const dispatch = renderScreen(state)
+    fireEvent.click(screen.getByText('T4 mégis jön'))
+    const action: Action = { type: 'setAbsent', staffId: 't4', dates: [WED], absent: false }
+    expect(dispatch).toHaveBeenCalledWith(action)
+    const back = solveInputFor(reducer(state, action), WEEK)
+    await waitFor(() => expect(solveInWorker).toHaveBeenCalledWith(back, expect.anything()))
+  })
+
+  it('groups the warnings by day and folds the grey notes away', () => {
+    const note: Warning = {
+      code: 'UNEVEN',
+      severity: 'grey',
+      date: WED,
+      text: 'Egyenlő elosztás nem volt lehetséges: T1 2 délelőttös műszak az 5-ből.',
+      cells: [{ date: WED }],
+    }
+    const state = reducer(base, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: { ...roster, warnings: [hole, note] },
+      inputKey: inputKey(solveInputFor(base, WEEK)),
+    })
+    renderScreen(state)
+    const card = within(screen.getByRole('region', { name: /Szerda 10\.28\./ }))
+    expect(card.getByText('1 hiány')).toBeTruthy()
+    expect(card.getByText('2. cs.: nincs délutános óvónő (10:30–17:00).')).toBeTruthy()
+    const notes = screen.getByText('Egyéb megjegyzések (1)').closest('details')!
+    expect(notes.open).toBe(false)
+    expect(within(notes).getByText(note.text)).toBeTruthy()
+  })
+
+  it('greys out an outdated roster and offers solving again right there', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(roster)
     renderScreen(withRoster(base, 'old'))
-    expect(screen.getByText(/változott a számolás óta/)).toBeTruthy()
+    const banner = within(screen.getByRole('status'))
+    expect(banner.getByText(/változott a számolás óta/)).toBeTruthy()
+    expect(document.querySelector('.result')?.className).toBe('result outdated')
+    expect(screen.getByText('Számol').className).toContain('attention')
+    fireEvent.click(banner.getByText('Újraszámol'))
+    await waitFor(() => expect(solveInWorker).toHaveBeenCalled())
   })
 
   it('reports a failed solve in words', async () => {

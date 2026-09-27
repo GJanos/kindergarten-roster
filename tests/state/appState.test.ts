@@ -47,7 +47,7 @@ describe('staff', () => {
     expect(state.absences).toEqual([])
   })
 
-  it('refuses to delete someone a saved roster mentions', () => {
+  it('hides someone a saved roster mentions but keeps their name for the old weeks', () => {
     const roster: Roster = {
       period: { start: WEEK, days: [WEEK] },
       groupsPerDay: { [WEEK]: 0 },
@@ -56,9 +56,20 @@ describe('staff', () => {
       warnings: [],
       ...TEST_META,
     }
-    const state = run(withAnna(), { type: 'saveRoster', week: WEEK, roster, inputKey: 'k' })
+    const state = run(
+      withAnna(),
+      { type: 'setAbsent', staffId: 'a', dates: ['2026-10-27'], absent: true },
+      { type: 'saveRoster', week: WEEK, roster, inputKey: 'k' },
+    )
     expect(isRostered(state, 'a')).toBe(true)
-    expect(run(state, { type: 'deleteStaff', id: 'a' }).staff).toHaveLength(1)
+    const deleted = run(state, { type: 'deleteStaff', id: 'a' })
+    expect(deleted.staff).toEqual([{ ...state.staff[0], active: false, deleted: true }])
+    expect(deleted.absences).toEqual(state.absences)
+  })
+
+  it('adds a nanny when asked for one', () => {
+    const state = run(emptyState(), { type: 'addStaff', id: 'n', role: 'nanny' })
+    expect(state.staff[0].role).toBe('nanny')
   })
 })
 

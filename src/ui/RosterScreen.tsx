@@ -12,7 +12,9 @@ import { SolveFailure, solveInWorker } from '../worker/client'
 import { XLSX_TYPE, download } from './download'
 import { PrintView } from './PrintView'
 import { RosterTable } from './RosterTable'
+import { Info } from './Info'
 import { WarningsPanel } from './WarningsPanel'
+import type { DayFix } from './warningDays'
 
 type Props = {
   state: AppState
@@ -72,15 +74,12 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
     }
   }
 
-  // One click: reduce the day, then solve again.
-  const fix = (warning: Warning) => {
-    if (!warning.fix) return
-    const action: Action = {
-      type: 'setOverride',
-      week,
-      date: warning.fix.date,
-      groups: warning.fix.groups,
-    }
+  // One click: reduce the day or call someone in, then solve again.
+  const fix = (dayFix: DayFix) => {
+    const action: Action =
+      dayFix.kind === 'setGroups'
+        ? { type: 'setOverride', week, date: dayFix.date, groups: dayFix.groups }
+        : { type: 'setAbsent', staffId: dayFix.staffId, dates: [dayFix.date], absent: false }
     dispatch(action)
     void solve(reducer(state, action))
   }
@@ -148,6 +147,7 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
                 </button>
               )
             })}
+            <Info text={ui.roster.daysHint} />
           </div>
         )}
 
@@ -210,23 +210,43 @@ export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
         )}
 
         {days.length > 0 && input.staff.length > 0 && (
-          <button className="primary big" disabled={solving} onClick={() => void solve(state)}>
+          <button
+            className={stale && !solving ? 'primary big attention' : 'primary big'}
+            disabled={solving}
+            onClick={() => void solve(state)}
+          >
             {solving ? ui.roster.solving : ui.roster.solve}
           </button>
         )}
         {error && <p className="error">{error}</p>}
-        {stale && <p className="stale">{ui.roster.stale}</p>}
         {!roster && days.length > 0 && input.staff.length > 0 && <p>{ui.roster.notSolved}</p>}
 
         {roster && (
           <>
-            <WarningsPanel warnings={roster.warnings} onHover={setHovered} onFix={fix} />
-            <RosterTable
-              roster={roster}
-              staff={state.staff}
-              labels={period.groupLabels}
-              highlight={hovered}
-            />
+            {stale && (
+              <div className="stale" role="status">
+                <span>
+                  <strong>{ui.roster.staleTitle}</strong> {ui.roster.stale}
+                </span>
+                <button className="primary" disabled={solving} onClick={() => void solve(state)}>
+                  {ui.roster.resolve}
+                </button>
+              </div>
+            )}
+            <div className={stale ? 'result outdated' : 'result'}>
+              <WarningsPanel
+                warnings={roster.warnings}
+                input={input}
+                onHover={setHovered}
+                onFix={fix}
+              />
+              <RosterTable
+                roster={roster}
+                staff={state.staff}
+                labels={period.groupLabels}
+                highlight={hovered}
+              />
+            </div>
             <div className="actions">
               <button className="big" onClick={() => window.print()}>
                 {ui.roster.print}

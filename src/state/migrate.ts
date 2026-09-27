@@ -17,7 +17,8 @@ const isStaff = (value: unknown) =>
   typeof value.fullName === 'string' &&
   typeof value.displayName === 'string' &&
   (value.role === 'teacher' || value.role === 'nanny') &&
-  typeof value.active === 'boolean'
+  typeof value.active === 'boolean' &&
+  (value.deleted === undefined || value.deleted === true)
 
 const isAbsence = (value: unknown) =>
   isObject(value) && typeof value.staffId === 'string' && typeof value.date === 'string'
