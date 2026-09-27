@@ -354,7 +354,7 @@ updated yearly by a push. **One absence type in v1.**
   with its two cells marked; the roster is marked *kézzel módosítva*, and Számol or a quick fix asks
   before dropping hand edits. Same-day only; filling a hole stays with the call-in button.
 - Every period's roster is saved (the yearly balance's history in v2).
-- **A week that is over is archived** (its Sunday is behind us): an *Archív* badge, the saved
+- **A week that is over is archived** (the day after its last working day): an *Archív* badge, the saved
   roster and warnings read-only, print and Excel kept; no Számol, fixes, group counts or outdated
   banner, since re-solving history with today's staff would rewrite what happened. The week in
   progress stays open.
