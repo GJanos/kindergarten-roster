@@ -357,8 +357,23 @@ td {
 .absence-grid .bar-mark {
   position: absolute;
   inset: 6px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
+  color: var(--on-accent);
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+/* The kind in colour and in a letter, so colour never carries it alone. */
+.absence-grid .leave .bar-mark {
   background: var(--green);
+}
+.absence-grid .sick .bar-mark {
+  background: var(--orange);
+}
+.absence-grid .other .bar-mark {
+  background: var(--grey);
 }
 .absence-grid .join-left .bar-mark {
   left: -1px;
@@ -604,4 +619,38 @@ td {
   color: var(--green);
   font-size: 0.8rem;
   vertical-align: middle;
+}
+
+/* Absence kinds and the leave balance. */
+.kinds {
+  margin-left: 16px;
+}
+.kinds .kind-sick.on {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+.kinds .kind-other.on {
+  background: var(--grey);
+  border-color: var(--grey);
+}
+.leave-balance {
+  min-height: 24px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-width: 1px;
+  font-size: 0.75rem;
+}
+.leave-balance.over {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.leave-editor {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 8px;
+}
+.leave-editor input,
+.staff input.allowance {
+  width: 70px;
 }

@@ -325,12 +325,22 @@ rostered is deleted outright.
 afternoons, openings, closings and reserve days from the saved rosters, each with its difference
 from an equal share, e.g. *12 (+1,5)*.
 
+**Szabadság/év** — optional yearly leave allowance in days (empty = not tracked).
+
 ### 8.2 Távollétek
 
 Month grid, people × days (teachers, then nannies), ◀ ▶ between months. Click a cell, or drag
 along a row, to mark an absence. Weekends and holidays greyed and not clickable; a working Saturday
 shows as a working day. Holidays and working Saturdays are a hard-coded list per kindergarten year,
-updated yearly by a push. **One absence type in v1.**
+updated yearly by a push.
+
+**Three kinds** — *Szabadság, Beteg, Egyéb* — picked above the grid; clicking or dragging paints
+the chosen kind, clicking a day of that kind clears it, another kind is repainted. Bars carry the
+kind in colour (green, orange, grey) and a letter (*Sz, B, E*). For people with an allowance, the
+name shows *"kivett / keret"* for the shown month's calendar year (allowance + carry-over, orange
+when over); clicking it opens the year's *Áthozott napok* field. The solver ignores the kind.
+Call-in suggestions list people on leave first and the sick last, marked *(beteg)*. The person view
+of the printout says *szabadság / beteg / távol*.
 
 ### 8.3 Beosztás
 
@@ -388,13 +398,15 @@ Red and orange warnings as footnotes.
 
 ```ts
 type AppState = {
-  schemaVersion: 1
+  schemaVersion: 2
   staff: Staff[]
   absences: Absence[]
   periods: Record<string, { dayPlans: DayPlan[]; groupLabels?: string[]; roster?: Roster }>
   lastBackupAt?: string
 }
 ```
+
+v1 data migrates to v2 with every absence as leave.
 
 - The whole state lives under **one IndexedDB key** — a few hundred KB after years; every save
   writes all of it, so there are no half-saved states.
@@ -452,8 +464,6 @@ later; her demo feedback will add to this list.
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
   fixed by pen — re-clicking Számol in v1 re-solves from scratch.
-- **Richer absences** — types (szabadság / beteg / egyéb), yearly leave allowance (~50 days),
-  balance *32 / 50 nap*, carry-over; call-in suggestions prefer people on leave over the sick.
 - Month overview polish.
 
 ## 14. Privacy and portfolio rules
