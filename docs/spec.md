@@ -292,6 +292,10 @@ The panel sits above the result, ordered by day then severity; the Beosztás tab
 badge; hovering a warning highlights its cells. Warnings are saved with the roster. Wording is
 tested with her at the demo.
 
+Names inside warning texts are stored as references (the staff id between `` and ``)
+and resolved to the current display name on screen, in print and in the Excel footnotes, so a
+rename reaches rosters saved before it. Texts saved before v2 hold plain names and show as they are.
+
 ## 8. UI — Hungarian, large
 
 Base text 16 px, buttons ≥ 38 px (the main actions 46 px); light and dark theme, following the
@@ -436,10 +440,6 @@ later; her demo feedback will add to this list.
 - **Hand editing: swap two people** — click two cells to swap them; `explain` and
   `validateRoster` rerun, so a swap can't sneak in a broken strict rule. Not a full editor. Edits
   stay in the app so it never goes stale; undo and the changed-cell marks apply.
-- **Warning texts follow renames** — texts are written at solve time with the names in them, so a
-  renamed person keeps the old name in that roster's warnings (the table shows the new one). Fix:
-  store staff ids in the text and resolve names on display (print and Excel too), or rerun
-  `explain` for rosters that are still current.
 - **Yearly balance** — derived from the saved rosters (what was actually worked), resets Sep 1;
   enters stage 6; `UNEVEN` names who had it better.
 - **Richer absences** — types (szabadság / beteg / egyéb), yearly leave allowance (~50 days),
