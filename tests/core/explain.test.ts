@@ -1,9 +1,19 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { explain } from '../../src/core/explain'
+import { explain as explainRaw } from '../../src/core/explain'
+import { nameRef, resolveNames } from '../../src/core/names'
 import { TEST_META, consecutiveDays, makeInput } from './fixtures'
 import { solve } from '../../src/core/solve'
 import type { Assignment, Roster, SolveInput } from '../../src/core/types'
+
+/** What she sees: the warnings with every name reference resolved. */
+function explain(input: SolveInput, roster: Roster) {
+  return explainRaw(input, roster).map((w) => ({
+    ...w,
+    text: resolveNames(w.text, input.staff),
+    ...(w.action ? { action: resolveNames(w.action, input.staff) } : {}),
+  }))
+}
 
 const highs = await loadHighs()
 const [MON, TUE, WED] = consecutiveDays('2026-10-26', 3)
@@ -32,6 +42,18 @@ describe('explain — day level', () => {
       text: 'Szerdán nincs óvónő — egy csoport sem indítható.',
       action: 'Hívj be valakit: T1, T2 (távol).',
     })
+  })
+
+  it('stores names as references, so a later rename reaches the text', () => {
+    const input = makeInput({
+      teachers: 2,
+      nannies: 2,
+      groups: 1,
+      days: [WED],
+      absent: { t1: [WED], t2: [WED] },
+    })
+    const [warning] = explainRaw(input, solve(input, highs, TEST_META))
+    expect(warning.action).toBe(`Hívj be valakit: ${nameRef('t1')}, ${nameRef('t2')} (távol).`)
   })
 
   it('explains a reduced day', () => {

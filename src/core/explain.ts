@@ -2,6 +2,7 @@ import { warningText as t } from '../i18n/hu'
 import { dayCapacities, groupsWithoutTeacherHoles } from './capacity'
 import { countFor, fairShares } from './fairness'
 import { groupSwitches, turnarounds } from './metrics'
+import { nameRef } from './names'
 import { shiftTimes } from './shifts'
 import type { Roster, Severity, SolveInput, Warning, WarningCode } from './types'
 
@@ -29,7 +30,8 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
   const add = (code: WarningCode, date: string, text: string, rest: Partial<Warning> = {}) =>
     out.push({ code, severity: SEVERITY[code], date, text, cells: [{ date }], ...rest })
   const staff = new Map(input.staff.map((s) => [s.id, s]))
-  const name = (id: string) => staff.get(id)?.displayName ?? '?'
+  // References, not names: resolved on display, so a rename reaches saved rosters too.
+  const name = nameRef
   const capacities = dayCapacities(input)
   const capacityOf = new Map(capacities.map((c) => [c.date, c]))
 
