@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { defaultWeek } from '../core/calendar'
 import { ui } from '../i18n/hu'
 import type { AppState } from '../state/appState'
 import { useUndo } from '../state/undo'
 import { useAppState } from '../state/useAppState'
+import { useSingleWindow } from './singleWindow'
 import { AbsenceScreen } from '../ui/AbsenceScreen'
 import { today } from '../ui/dates'
 import { FirstLaunch } from '../ui/FirstLaunch'
 import { Footer } from '../ui/Footer'
 import { RosterScreen } from '../ui/RosterScreen'
 import { StaffScreen } from '../ui/StaffScreen'
+import { OtherWindow } from '../ui/OtherWindow'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { shownWarningCount } from '../ui/warningDays'
 
@@ -28,7 +30,24 @@ export function App() {
   const [chosen, setChosen] = useState<Tab>()
   const [week, setWeek] = useState(() => defaultWeek(today()))
 
-  if (state === undefined) return <p className="loading">{ui.loading}</p>
+  // Back from another window: it may have changed the data, so read it again.
+  const single = useSingleWindow()
+  const { reload } = app
+  const { reset } = history
+  const wasElsewhere = useRef(false)
+  useEffect(() => {
+    if (single.status === 'elsewhere') wasElsewhere.current = true
+    if (single.status === 'active' && wasElsewhere.current) {
+      wasElsewhere.current = false
+      reset()
+      reload()
+    }
+  }, [single.status, reload, reset])
+
+  if (single.status === 'elsewhere') return <OtherWindow onTakeOver={single.takeOver} />
+  if (state === undefined || single.status === 'checking') {
+    return <p className="loading">{ui.loading}</p>
+  }
   if (state === null) return <FirstLaunch onReady={replace} storageError={storageError} />
 
   const tab = chosen ?? (state.staff.length === 0 ? 'staff' : 'roster')

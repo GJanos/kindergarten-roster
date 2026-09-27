@@ -344,6 +344,10 @@ updated yearly by a push. **One absence type in v1.**
   what the change touched — that day's input and the earlier roster — so later edits survive; up
   to 20 steps, in memory only, per week. Rendben keeps the week's changes and clears the marks.
 - Every period's roster is saved (the yearly balance's history in v2).
+- **A week that is over is archived** (its Sunday is behind us): an *Archív* badge, the saved
+  roster and warnings read-only, print and Excel kept; no Számol, fixes, group counts or outdated
+  banner, since re-solving history with today's staff would rewrite what happened. The week in
+  progress stays open.
 
 ### 8.4 Output
 
@@ -375,6 +379,9 @@ type AppState = {
 
 - The whole state lives under **one IndexedDB key** — a few hundred KB after years; every save
   writes all of it, so there are no half-saved states.
+- **One window edits at a time** (Web Locks): a second window shows *"Az alkalmazás egy másik
+  ablakban már nyitva van."* with **Használat ebben az ablakban**, which takes over, stops the
+  first window and reloads the saved state. Without Web Locks the app runs as before.
 - `schemaVersion` + migrations run on every load and every restore, so old backups load in any
   newer version (updates reach her silently).
 - **Mentés fájlba** writes `ovoda-mentes-2026-10-26.json`. **Visszatöltés** accepts that file or
@@ -421,8 +428,13 @@ type AppState = {
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
   fixed by pen — re-clicking Számol in v1 re-solves from scratch.
-- **Hand editing** — design undecided; possibly a simple "swap two people" rather than a full
-  editor. Edits must stay in the app so it never goes stale.
+- **Hand editing: swap two people** — click two cells to swap them; `explain` and
+  `validateRoster` rerun, so a swap can't sneak in a broken strict rule. Not a full editor. Edits
+  stay in the app so it never goes stale; undo and the changed-cell marks apply.
+- **Warning texts follow renames** — texts are written at solve time with the names in them, so a
+  renamed person keeps the old name in that roster's warnings (the table shows the new one). Fix:
+  store staff ids in the text and resolve names on display (print and Excel too), or rerun
+  `explain` for rosters that are still current.
 - **Yearly balance** — derived from the saved rosters (what was actually worked), resets Sep 1;
   enters stage 6; `UNEVEN` names who had it better.
 - **Richer absences** — types (szabadság / beteg / egyéb), yearly leave allowance (~50 days),

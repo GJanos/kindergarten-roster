@@ -11,13 +11,18 @@ export function useAppState() {
   const [persisted, setPersisted] = useState<boolean>()
   const [storageError, setStorageError] = useState(false)
 
-  useEffect(() => {
+  /** Reads the saved state again — after taking over from another window that kept editing. */
+  const reload = useCallback(() => {
     loadState().then(setState, () => {
       setStorageError(true)
       setState(null)
     })
-    void requestPersistence().then(setPersisted)
   }, [])
+
+  useEffect(() => {
+    reload()
+    void requestPersistence().then(setPersisted)
+  }, [reload])
 
   useEffect(() => {
     if (state) saveState(state).catch(() => setStorageError(true))
@@ -32,5 +37,5 @@ export function useAppState() {
     setState(next)
   }, [])
 
-  return { state, dispatch, replace, persisted, storageError }
+  return { state, dispatch, replace, reload, persisted, storageError }
 }

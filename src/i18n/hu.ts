@@ -103,6 +103,11 @@ export const ui = {
   },
   demoBanner: 'Bemutató adatok — nem valódi személyek',
   theme: { light: 'Világos téma', dark: 'Sötét téma' },
+  otherWindow: {
+    title: 'Az alkalmazás egy másik ablakban már nyitva van.',
+    body: 'Egyszerre csak egy ablakban lehet dolgozni, különben a változások felülírnák egymást. Zárd be ezt az ablakot, vagy folytasd itt — akkor a másik ablak áll meg.',
+    takeOver: 'Használat ebben az ablakban',
+  },
   leaveDemo: 'Kilépés a bemutatóból',
   footer: {
     lastBackup: 'Utolsó mentés:',

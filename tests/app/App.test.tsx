@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
+import { useSingleWindow } from '../../src/app/singleWindow'
+import { FakeLocks, asLocks } from './fakeLocks'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearState, loadState, saveState } from '../../src/state/storage'
 import { defaultWeek, periodForWeek } from '../../src/core/calendar'
@@ -70,5 +72,32 @@ describe('App', () => {
     render(<App />)
     const tab = await screen.findByText('Beosztás')
     expect(tab.querySelector('.badge')?.textContent).toBe('1')
+  })
+})
+
+describe('App in a second window', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'locks')
+  })
+
+  it('stops, and on taking over works with what the other window saved', async () => {
+    const locks = new FakeLocks()
+    Object.defineProperty(navigator, 'locks', { value: asLocks(locks), configurable: true })
+    const staffOf = (fullName: string) =>
+      reducer(reducer(emptyState(), { type: 'addStaff', id: 'a' }), {
+        type: 'updateStaff',
+        id: 'a',
+        patch: { fullName },
+      })
+    renderHook(() => useSingleWindow(asLocks(locks))) // the window already open
+    await saveState(staffOf('Kiss Anna'))
+    render(<App />)
+    expect(await screen.findByText(/másik ablakban már nyitva van/)).toBeTruthy()
+
+    await saveState(staffOf('Nagy Bea')) // the other window keeps working
+    fireEvent.click(screen.getByText('Használat ebben az ablakban'))
+    fireEvent.click(await screen.findByText('Munkatársak'))
+    expect(await screen.findAllByDisplayValue('Nagy Bea')).toHaveLength(2) // full and display name
+    expect(screen.queryByDisplayValue('Kiss Anna')).toBeNull()
   })
 })
