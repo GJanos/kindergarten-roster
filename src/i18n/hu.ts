@@ -166,6 +166,10 @@ export const ui = {
     noDays: 'Ezen a héten nincs munkanap.',
     noStaff: 'Előbb vedd fel a munkatársakat.',
     notSolved: 'Erre a hétre még nincs beosztás. Kattints a Számol gombra.',
+    archivedBadge: 'Archív',
+    archived:
+      'Ez a hét már elmúlt — a beosztás archív, nem módosítható. Nyomtatni és letölteni lehet.',
+    archivedEmpty: 'Ehhez a héthez nincs mentett beosztás.',
     staleTitle: 'Ez a beosztás elavult.',
     stale: 'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta.',
     resolve: 'Újraszámol',

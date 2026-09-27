@@ -1,22 +1,27 @@
 import { useState } from 'react'
 import { addDays, periodForWeek } from '../core/calendar'
-import { dayCapacities, zeroHoleNeeds, type DayCapacity } from '../core/capacity'
+import { dayCapacities } from '../core/capacity'
 import type { Warning } from '../core/types'
 import { footnotes } from '../export/views'
 import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
-import { capitalize, dayHeader, formatDate, formatPeriod, groupName, ui } from '../i18n/hu'
+import { ui } from '../i18n/hu'
 import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
 import { backupJson } from '../state/backup'
 import type { UndoHistory } from '../state/undo'
 import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
 import { changedCells } from './changedCells'
+import { DayChips } from './DayChips'
+import { DayEditor } from './DayEditor'
+import { today } from './dates'
 import { XLSX_TYPE, download } from './download'
+import { GroupLabels } from './GroupLabels'
 import { PrintView } from './PrintView'
 import { RosterTable } from './RosterTable'
-import { Info } from './Info'
+import { UndoBar } from './UndoBar'
 import { WarningsPanel } from './WarningsPanel'
 import type { DayFix } from './warningDays'
+import { WeekBar } from './WeekBar'
 
 type Props = {
   state: AppState
@@ -26,21 +31,10 @@ type Props = {
   history: UndoHistory
 }
 
-/** Warns, never blocks: Számol always works. */
-function dayStatus(c: DayCapacity): { ok: boolean; text: string } {
-  if (c.closed) return { ok: true, text: ui.roster.closed }
-  const needs = zeroHoleNeeds(c.groups)
-  const notes: string[] = []
-  if (c.teachers < needs.teachers)
-    notes.push(ui.roster.fewTeachers(c.teachers, c.groups, needs.teachers))
-  if (c.nannies < needs.nannies) notes.push(ui.roster.fewNannies(c.nannies, needs.nannies))
-  if (c.override !== undefined) notes.push(ui.roster.manual(c.groups))
-  return {
-    ok: notes.length === 0 || (notes.length === 1 && c.override !== undefined),
-    text: notes.join(' · '),
-  }
-}
-
+/**
+ * One week: its inputs, Számol, the warnings and the roster. A week that is over is archived —
+ * what happened is shown and printable, but nothing can be solved, fixed or changed.
+ */
 export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) {
   const [solving, setSolving] = useState(false)
   const [error, setError] = useState<string>()
@@ -53,7 +47,9 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const input = solveInputFor(state, week)
   const capacities = days.length > 0 ? dayCapacities(input) : []
   const roster = period.roster
-  const stale = roster !== undefined && period.rosterInputKey !== inputKey(input)
+  const archived = addDays(week, 6) < today() // the whole week, Sunday included, is behind us
+  const open = !archived && days.length > 0
+  const stale = !archived && roster !== undefined && period.rosterInputKey !== inputKey(input)
   const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined
 
   /**
@@ -135,121 +131,55 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     dispatch({ type: 'markBackedUp', at: new Date().toISOString() })
   }
 
-  const editingPlan = period.dayPlans.find((d) => d.date === editing)
+  const editingPlan = open ? period.dayPlans.find((d) => d.date === editing) : undefined
+  const canSolve = open && input.staff.length > 0
 
   return (
     <>
-      <section className="roster-screen screen-only">
-        <div className="bar">
-          <button aria-label={ui.roster.previousWeek} onClick={() => onWeek(addDays(week, -7))}>
-            ◀{hasRoster(addDays(week, -7)) && ' •'}
-          </button>
-          <h2>
-            {days.length > 0 ? formatPeriod(days) : formatDate(week)}
-            {hasRoster(week) && (
-              <span className="dot" title={ui.roster.saved}>
-                {' '}
-                •
-              </span>
-            )}
-          </h2>
-          <button aria-label={ui.roster.nextWeek} onClick={() => onWeek(addDays(week, 7))}>
-            {hasRoster(addDays(week, 7)) && '• '}▶
-          </button>
-          <span className="groups">
-            {ui.roster.groups}
-            <button
-              onClick={() => dispatch({ type: 'setGroups', week, groups: Math.max(1, groups - 1) })}
-            >
-              −
-            </button>
-            <strong>{groups}</strong>
-            <button onClick={() => dispatch({ type: 'setGroups', week, groups: groups + 1 })}>
-              +
-            </button>
-          </span>
-        </div>
+      <section
+        className={archived ? 'roster-screen screen-only archived' : 'roster-screen screen-only'}
+      >
+        <WeekBar
+          week={week}
+          days={days}
+          hasRoster={hasRoster}
+          onWeek={onWeek}
+          archived={archived}
+          groups={
+            archived
+              ? undefined
+              : {
+                  count: groups,
+                  onChange: (count) => dispatch({ type: 'setGroups', week, groups: count }),
+                }
+          }
+        />
 
-        {days.length === 0 && <p>{ui.roster.noDays}</p>}
-        {days.length > 0 && input.staff.length === 0 && <p>{ui.roster.noStaff}</p>}
-
-        {days.length > 0 && (
-          <div className="capacity">
-            {capacities.map((c) => {
-              const status = dayStatus(c)
-              return (
-                <button
-                  key={c.date}
-                  className={status.ok ? 'day ok' : 'day warn'}
-                  onClick={() => setEditing(c.date)}
-                >
-                  <strong>{dayHeader(c.date)}</strong> {status.ok ? '✓' : '⚠'} {status.text}
-                </button>
-              )
-            })}
-            <Info text={ui.roster.daysHint} />
-          </div>
+        {archived && (
+          <p className="archived-note">{roster ? ui.roster.archived : ui.roster.archivedEmpty}</p>
         )}
+        {!archived && days.length === 0 && <p>{ui.roster.noDays}</p>}
+        {open && input.staff.length === 0 && <p>{ui.roster.noStaff}</p>}
 
+        {open && <DayChips capacities={capacities} onEdit={setEditing} />}
         {editingPlan && (
-          <div className="day-editor">
-            <strong>{capitalize(dayHeader(editingPlan.date))}</strong> {ui.roster.dayGroups}
-            <button
-              onClick={() => {
-                const current = editingPlan.override ?? editingPlan.requestedGroups
-                dispatch({
-                  type: 'setOverride',
-                  week,
-                  date: editingPlan.date,
-                  groups: Math.max(0, current - 1),
-                })
-              }}
-            >
-              −
-            </button>
-            <strong>{editingPlan.override ?? editingPlan.requestedGroups}</strong>
-            <button
-              onClick={() => {
-                const current = editingPlan.override ?? editingPlan.requestedGroups
-                dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: current + 1 })
-              }}
-            >
-              +
-            </button>
-            <button
-              onClick={() =>
-                dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: 0 })
-              }
-            >
-              {ui.roster.closeDay}
-            </button>
-            <button onClick={() => dispatch({ type: 'setOverride', week, date: editingPlan.date })}>
-              {ui.roster.resetDay}
-            </button>
-            <button onClick={() => setEditing(undefined)}>{ui.roster.done}</button>
-          </div>
+          <DayEditor
+            plan={editingPlan}
+            onOverride={(count) =>
+              dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: count })
+            }
+            onDone={() => setEditing(undefined)}
+          />
+        )}
+        {open && (
+          <GroupLabels
+            groups={groups}
+            labels={period.groupLabels}
+            onChange={(group, label) => dispatch({ type: 'setGroupLabel', week, group, label })}
+          />
         )}
 
-        {days.length > 0 && (
-          <details className="labels">
-            <summary>
-              {groupName(1)}, {groupName(2)}… — nevek
-            </summary>
-            {Array.from({ length: groups }, (_, i) => (
-              <label key={i}>
-                {ui.roster.groupLabel(i + 1)}
-                <input
-                  value={period.groupLabels?.[i] ?? ''}
-                  onChange={(e) =>
-                    dispatch({ type: 'setGroupLabel', week, group: i + 1, label: e.target.value })
-                  }
-                />
-              </label>
-            ))}
-          </details>
-        )}
-
-        {days.length > 0 && input.staff.length > 0 && (
+        {canSolve && (
           <button
             className={stale && !solving ? 'primary big attention' : 'primary big'}
             disabled={solving}
@@ -259,24 +189,14 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           </button>
         )}
         {error && <p className="error">{error}</p>}
-        {!roster && days.length > 0 && input.staff.length > 0 && <p>{ui.roster.notSolved}</p>}
-        {lastChange && (
-          <div className="undo-bar" aria-live="polite">
-            <span>
-              <strong>{lastChange.label}</strong> {ui.roster.changedCount(changed.size)}
-            </span>
-            <button
-              className="primary"
-              title={ui.roster.undoHint}
-              disabled={solving}
-              onClick={() => history.undo(lastChange)}
-            >
-              {ui.roster.undo}
-            </button>
-            <button title={ui.roster.acceptHint} onClick={() => history.accept(week)}>
-              {ui.roster.accept}
-            </button>
-          </div>
+        {!roster && canSolve && <p>{ui.roster.notSolved}</p>}
+        {lastChange && !archived && (
+          <UndoBar
+            change={lastChange}
+            busy={solving}
+            onUndo={() => history.undo(lastChange)}
+            onAccept={() => history.accept(week)}
+          />
         )}
 
         {roster && (
@@ -296,14 +216,14 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 warnings={roster.warnings}
                 input={input}
                 onHover={setHovered}
-                onFix={fix}
+                onFix={archived ? undefined : fix}
               />
               <RosterTable
                 roster={roster}
                 staff={state.staff}
                 labels={period.groupLabels}
                 highlight={hovered}
-                changed={changed}
+                changed={archived ? undefined : changed}
               />
             </div>
             <div className="actions">

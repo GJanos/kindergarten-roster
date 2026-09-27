@@ -7,7 +7,7 @@ type Props = {
   warnings: Warning[]
   input: SolveInput
   onHover: (warning?: Warning) => void
-  onFix: (fix: DayFix) => void
+  onFix?: (fix: DayFix) => void // absent for an archived week: history has no fixes
 }
 
 /** Above the result, one card per day; hovering a line highlights its cells. */
@@ -48,12 +48,13 @@ export function WarningsPanel({ warnings, input, onHover, onFix }: Props) {
                     {day.holes > 0 && <span className="count">{ui.roster.holes(day.holes)}</span>}
                   </h4>
                   <ul>{day.items.map((w, i) => line(w, day.texts[i], `${w.code}-${i}`))}</ul>
-                  {day.actions.map((action) => (
-                    <p key={action} className="action">
-                      {action}
-                    </p>
-                  ))}
-                  {day.fixes.length > 0 && (
+                  {onFix &&
+                    day.actions.map((action) => (
+                      <p key={action} className="action">
+                        {action}
+                      </p>
+                    ))}
+                  {onFix && day.fixes.length > 0 && (
                     <div className="fixes">
                       {day.fixes.map((fix) =>
                         fix.kind === 'setGroups' ? (

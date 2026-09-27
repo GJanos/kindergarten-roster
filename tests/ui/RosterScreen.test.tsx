@@ -19,8 +19,14 @@ vi.mock(import('../../src/worker/client'), async (importOriginal) => ({
 
 beforeEach(() => {
   vi.mocked(solveInWorker).mockReset()
+  // Before the test week, so it is the upcoming break and not yet archived.
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 9, 5, 12))
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 const WEEK = '2026-10-26'
 const WED = '2026-10-28'
@@ -280,5 +286,35 @@ describe('RosterScreen undo', () => {
     expect(screen.queryByText('↶ Visszavonás')).toBeNull()
     expect(document.querySelectorAll('td.changed')).toHaveLength(0)
     expect(screen.queryByText('Szerdán 1 csoport')).toBeNull()
+  })
+})
+
+describe('RosterScreen archive', () => {
+  it('shows a past week read-only: its roster, but nothing to solve or fix', () => {
+    vi.setSystemTime(new Date(2026, 10, 10, 12))
+    renderScreen(withRoster(base, 'old')) // outdated inputs make no difference once it is over
+    expect(screen.getByText('Archív')).toBeTruthy()
+    expect(screen.getByText(/Ez a hét már elmúlt/)).toBeTruthy()
+    expect(screen.getByText('2. cs.: nincs délutános óvónő (10:30–17:00).')).toBeTruthy()
+    expect(screen.getByText('Nyomtatás')).toBeTruthy()
+    for (const gone of ['Számol', 'Újraszámol', 'Szerdán 1 csoport', 'Csoportok:']) {
+      expect(screen.queryByText(gone)).toBeNull()
+    }
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull()
+    expect(document.querySelector('.capacity')).toBeNull()
+  })
+
+  it('says so when a past week has no saved roster', () => {
+    vi.setSystemTime(new Date(2026, 10, 10, 12))
+    renderScreen(base)
+    expect(screen.getByText('Ehhez a héthez nincs mentett beosztás.')).toBeTruthy()
+    expect(screen.queryByText('Számol')).toBeNull()
+  })
+
+  it('keeps the week in progress open, for a sick call', () => {
+    vi.setSystemTime(new Date(2026, 9, 28, 12))
+    renderScreen(withRoster(base))
+    expect(screen.queryByText('Archív')).toBeNull()
+    expect(screen.getByText('Számol')).toBeTruthy()
   })
 })

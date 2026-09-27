@@ -553,3 +553,23 @@ td {
   outline-offset: -3px;
   background: var(--changed-bg);
 }
+
+/* A week that is over: read-only history, visibly past but not greyed out like an outdated one. */
+.archived-badge {
+  margin-left: 10px;
+  padding: 1px 10px;
+  border-radius: 10px;
+  background: var(--grey);
+  color: var(--on-accent);
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+.archived-note {
+  padding: 8px 12px;
+  border-left: 6px solid var(--grey);
+  background: var(--surface);
+  color: var(--grey);
+}
+.roster-screen.archived .roster-table {
+  filter: saturate(0.4);
+}
