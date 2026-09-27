@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptyState, reducer, type Action } from '../../src/state/appState'
 import { AbsenceScreen } from '../../src/ui/AbsenceScreen'
+import { makeStaff } from '../core/fixtures'
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -177,5 +178,27 @@ describe('AbsenceScreen at a glance', () => {
     expect(header('H26').className).toBe('break') // the autumn break
     expect(header('P23').className).toBe('off break') // a holiday inside the break
     expect(header('K6').className).toBe('')
+  })
+
+  it('counts who is away per role, orange when too few are left for the week’s groups', () => {
+    // 5 teachers, 2 nannies, 2 groups (the default): zero holes needs 4 teachers and 2 nannies.
+    const away = (staffId: string, date: string): Action => ({
+      type: 'setAbsent',
+      staffId,
+      dates: [date],
+      absent: true,
+    })
+    const crew = [
+      away('t1', '2026-10-26'),
+      away('t2', '2026-10-26'),
+      away('t1', '2026-10-27'),
+    ].reduce(reducer, { ...emptyState(), staff: makeStaff(5, 2) })
+    render(<AbsenceScreen state={crew} dispatch={vi.fn()} />)
+    const teachers = (date: string) => screen.getByLabelText(`Távol (óvónő) ${date}`)
+    expect(teachers('2026-10-26').textContent).toBe('2')
+    expect(teachers('2026-10-26').className).toBe('count short') // 3 left, 4 needed
+    expect(teachers('2026-10-27').textContent).toBe('1')
+    expect(teachers('2026-10-27').className).toBe('count') // 4 left
+    expect(screen.getByLabelText('Távol (dajka) 2026-10-26').textContent).toBe('')
   })
 })

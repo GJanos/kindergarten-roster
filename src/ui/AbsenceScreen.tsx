@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { isBreakDay, isWorkingDay } from '../core/calendar'
-import type { AbsenceKind, Staff } from '../core/types'
+import { isBreakDay, isWorkingDay, mondayOf } from '../core/calendar'
+import { zeroHoleNeeds } from '../core/capacity'
+import type { AbsenceKind, Role, Staff } from '../core/types'
 import { monthLabel, ui, weekdayInitial } from '../i18n/hu'
-import type { Action, AppState } from '../state/appState'
+import { groupCount, periodState, type Action, type AppState } from '../state/appState'
 import { leaveBalance } from '../state/leave'
 import { monthDays, shiftMonth, today } from './dates'
 
@@ -58,6 +59,14 @@ export function AbsenceScreen({ state, dispatch }: Props) {
       id: person.id,
       patch: { leaveCarry: Object.keys(carry).length > 0 ? carry : undefined },
     })
+  }
+  // Enough left for the week's groups? The same need as the roster screen's day chips.
+  const coverage = (role: Role, date: string) => {
+    const members = people.filter((p) => p.role === role)
+    const away = members.filter((p) => kindOf.has(`${p.id}|${date}`)).length
+    const needs = zeroHoleNeeds(groupCount(periodState(state, mondayOf(date))))
+    const need = role === 'teacher' ? needs.teachers : needs.nannies
+    return { away, short: members.length - away < need }
   }
 
   return (
@@ -192,6 +201,26 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                         </label>
                         <button onClick={() => setCarryOpen(undefined)}>{ui.roster.done}</button>
                       </td>
+                    </tr>
+                  )}
+                  {(i === people.length - 1 || people[i + 1].role !== s.role) && (
+                    <tr className="away-row">
+                      <th scope="row" className="count" title={ui.absences.shortHint}>
+                        {ui.absences.away[s.role]}
+                      </th>
+                      {days.map((date) => {
+                        if (!isWorkingDay(date)) return <td key={date} className="off" />
+                        const { away, short } = coverage(s.role, date)
+                        return (
+                          <td
+                            key={date}
+                            className={short ? 'count short' : 'count'}
+                            aria-label={`${ui.absences.away[s.role]} ${date}`}
+                          >
+                            {away || ''}
+                          </td>
+                        )
+                      })}
                     </tr>
                   )}
                 </Fragment>

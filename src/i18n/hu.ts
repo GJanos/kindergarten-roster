@@ -1,5 +1,5 @@
 import { weekday } from '../core/calendar'
-import type { AbsenceKind, Shift } from '../core/types'
+import type { AbsenceKind, Role, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -197,6 +197,10 @@ export const ui = {
     balanceHint: (year: string) =>
       `Szabadság ${year}: kivett napok / éves keret és áthozott napok. Kattints az áthozott napokhoz.`,
     carry: (year: string) => `Áthozott napok (${year})`,
+    away: { teacher: 'Távol (óvónő)', nanny: 'Távol (dajka)' } satisfies Record<Role, string>,
+    shortHint:
+      'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka).',
+    today: 'Ma',
   },
   roster: {
     groups: 'Csoportok:',
