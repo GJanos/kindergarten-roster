@@ -1,5 +1,5 @@
 import { periodForWeek } from '../core/calendar'
-import type { Absence, DayPlan, Role, Roster, Staff } from '../core/types'
+import type { Absence, AbsenceKind, DayPlan, Role, Roster, Staff } from '../core/types'
 
 export const SCHEMA_VERSION = 2
 export const DEFAULT_GROUPS = 2
@@ -30,7 +30,13 @@ export type Action =
   | { type: 'addStaff'; id: string; role?: Role }
   | { type: 'updateStaff'; id: string; patch: Partial<Omit<Staff, 'id'>> }
   | { type: 'deleteStaff'; id: string }
-  | { type: 'setAbsent'; staffId: string; dates: string[]; absent: boolean }
+  | {
+      type: 'setAbsent'
+      staffId: string
+      dates: string[]
+      absent: boolean
+      kind?: AbsenceKind // what she painted; leave when not given
+    }
   | { type: 'setGroups'; week: string; groups: number }
   | { type: 'setOverride'; week: string; date: string; groups?: number }
   | { type: 'setGroupLabel'; week: string; group: number; label: string }
@@ -74,7 +80,11 @@ export function reducer(state: AppState, action: Action): AppState {
       const dates = new Set(action.dates)
       const kept = state.absences.filter((a) => a.staffId !== action.staffId || !dates.has(a.date))
       const added = action.absent
-        ? [...dates].map((date) => ({ staffId: action.staffId, date, kind: 'leave' as const }))
+        ? [...dates].map((date) => ({
+            staffId: action.staffId,
+            date,
+            kind: action.kind ?? 'leave',
+          }))
         : []
       return { ...state, absences: [...kept, ...added] }
     }

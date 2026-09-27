@@ -74,6 +74,15 @@ describe('staff', () => {
 })
 
 describe('absences', () => {
+  it('marks a day with a kind, replacing another kind on the same day', () => {
+    const state = run(
+      withAnna(),
+      { type: 'setAbsent', staffId: 'a', dates: ['2026-10-26'], absent: true, kind: 'leave' },
+      { type: 'setAbsent', staffId: 'a', dates: ['2026-10-26'], absent: true, kind: 'sick' },
+    )
+    expect(state.absences).toEqual([{ staffId: 'a', date: '2026-10-26', kind: 'sick' }])
+  })
+
   it('marks and clears days without duplicates', () => {
     const marked = run(
       withAnna(),

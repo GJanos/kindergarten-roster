@@ -151,8 +151,10 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
       label = ui.roster.didSetGroups(date, dayFix.groups)
     } else {
       const { staffId } = dayFix
+      // Undo puts the absence back as it was: leave stays leave, sick stays sick.
+      const kind = state.absences.find((a) => a.staffId === staffId && a.date === date)?.kind
       action = { type: 'setAbsent', staffId, dates: [date], absent: false }
-      inverse = { type: 'setAbsent', staffId, dates: [date], absent: true }
+      inverse = { type: 'setAbsent', staffId, dates: [date], absent: true, kind }
       label = ui.roster.didCallIn(dayFix.name, date)
     }
     dispatch(action)
