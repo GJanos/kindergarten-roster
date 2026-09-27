@@ -201,4 +201,14 @@ describe('AbsenceScreen at a glance', () => {
     expect(teachers('2026-10-27').className).toBe('count') // 4 left
     expect(screen.getByLabelText('Távol (dajka) 2026-10-26').textContent).toBe('')
   })
+
+  it('jumps back to the current month, offered only away from it', () => {
+    render(<AbsenceScreen state={state} dispatch={vi.fn()} />)
+    expect(screen.queryByText('Ma')).toBeNull()
+    fireEvent.click(screen.getByLabelText('Következő hónap'))
+    fireEvent.click(screen.getByLabelText('Következő hónap'))
+    expect(screen.getByText('2026. december')).toBeTruthy()
+    fireEvent.click(screen.getByText('Ma'))
+    expect(screen.getByText('2026. október')).toBeTruthy()
+  })
 })

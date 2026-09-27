@@ -79,6 +79,9 @@ export function AbsenceScreen({ state, dispatch }: Props) {
         <button aria-label={ui.absences.next} onClick={() => setMonth(shiftMonth(month, 1))}>
           ▶
         </button>
+        {month !== now.slice(0, 7) && (
+          <button onClick={() => setMonth(now.slice(0, 7))}>{ui.absences.today}</button>
+        )}
         <div className="toggle kinds" role="group" aria-label={ui.absences.kindsLabel}>
           {KINDS.map((kind) => (
             <button
