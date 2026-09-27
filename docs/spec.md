@@ -342,6 +342,11 @@ when over); clicking it opens the year's *Áthozott napok* field. The solver ign
 Call-in suggestions list people on leave first and the sick last, marked *(beteg)*. The person view
 of the printout says *szabadság / beteg / távol*.
 
+At a glance: today's column is outlined, school-break days have a tinted header, a *Távol* row
+under each role counts who is away (orange when fewer are left than the week's group count needs
+for zero holes), the name column stays put while the grid scrolls, and **Ma** jumps back to the
+current month.
+
 ### 8.3 Beosztás
 
 ```
@@ -456,15 +461,14 @@ v1 data migrates to v2 with every absence as leave.
 ## 13. v2 list
 
 Designed in `docs/specs/2026-09-27-v2-design.md`, one plan each in `docs/plans/2026-09-27-v2-*.md`
-(A warning names · B swap · C yearly balance · D absence kinds · E month overview), built in that
-order. Each plan deletes its bullet here when it lands. The sick-call recalculation is left for
-later; her demo feedback will add to this list.
+(A warning names · B swap · C yearly balance · D absence kinds · E month overview); all five landed
+on 2026-09-27 and are described in the sections above. Left: the sick-call recalculation, and
+whatever her demo feedback adds.
 
 - **Recalculation after a sick call:** past days locked; reserve on the same shift fills first;
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
   fixed by pen — re-clicking Számol in v1 re-solves from scratch.
-- Month overview polish.
 
 ## 14. Privacy and portfolio rules
 
