@@ -102,6 +102,7 @@ export const ui = {
     storageError: 'A tárolt adatok nem olvashatók. Töltsd vissza a legutóbbi mentést.',
   },
   demoBanner: 'Bemutató adatok — nem valódi személyek',
+  theme: { light: 'Világos téma', dark: 'Sötét téma' },
   leaveDemo: 'Kilépés a bemutatóból',
   footer: {
     lastBackup: 'Utolsó mentés:',

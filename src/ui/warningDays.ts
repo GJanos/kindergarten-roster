@@ -17,6 +17,15 @@ export type WarningDay = {
 /** The day chips above already say these. */
 const SHOWN_IN_CHIPS: ReadonlySet<WarningCode> = new Set(['CLOSED_DAY', 'GROUPS_OVERRIDDEN'])
 
+/** The warnings that get a line in a day card. */
+const inCards = (warnings: Warning[]) =>
+  warnings.filter((w) => w.severity !== 'grey' && !SHOWN_IN_CHIPS.has(w.code))
+
+/** The number on the Beosztás tab and above the cards — one count, so they always agree. */
+export function shownWarningCount(warnings: Warning[]): number {
+  return inCards(warnings).length
+}
+
 /**
  * One card per day, since every fix works on a day: three empty seats on Monday share one
  * "Hétfőn 2 csoport" button. Grey notes (fairness, switches) go to a separate collapsed list.
@@ -26,7 +35,7 @@ export function warningDays(
   input: SolveInput,
 ): { days: WarningDay[]; notes: Warning[] } {
   const notes = warnings.filter((w) => w.severity === 'grey')
-  const shown = warnings.filter((w) => w.severity !== 'grey' && !SHOWN_IN_CHIPS.has(w.code))
+  const shown = inCards(warnings)
   const dates = [...new Set(shown.map((w) => w.date))].sort()
   const days = dates.map((date) => {
     const onDay = shown.filter((w) => w.date === date)

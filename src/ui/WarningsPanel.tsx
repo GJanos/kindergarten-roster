@@ -1,7 +1,7 @@
 import type { SolveInput, Warning } from '../core/types'
 import { dayHeader, ui } from '../i18n/hu'
 import { Info } from './Info'
-import { warningDays, type DayFix } from './warningDays'
+import { shownWarningCount, warningDays, type DayFix } from './warningDays'
 
 type Props = {
   warnings: Warning[]
@@ -31,7 +31,7 @@ export function WarningsPanel({ warnings, input, onHover, onFix }: Props) {
       ) : (
         <>
           <h3>
-            {ui.roster.warnings} ({days.reduce((sum, d) => sum + d.items.length, 0)}){' '}
+            {ui.roster.warnings} ({shownWarningCount(warnings)}){' '}
             <Info text={ui.roster.warningsHint} />
           </h3>
           <div className="warning-days">

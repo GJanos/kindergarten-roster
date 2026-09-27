@@ -64,7 +64,17 @@ export function AbsenceScreen({ state, dispatch }: Props) {
             </tr>
           </thead>
           <tbody>
-            {people.map((s) => (
+            {people.flatMap((s, i) => [
+              // One grid, so a day's column still reads straight down across both roles.
+              ...(i === 0 || people[i - 1].role !== s.role
+                ? [
+                    <tr key={s.role}>
+                      <th scope="row" colSpan={days.length + 1} className="section">
+                        {s.role === 'teacher' ? ui.staff.teachers : ui.staff.nannies}
+                      </th>
+                    </tr>,
+                  ]
+                : []),
               <tr key={s.id}>
                 <th className="name">{s.displayName || s.fullName}</th>
                 {days.map((date) => {
@@ -90,8 +100,8 @@ export function AbsenceScreen({ state, dispatch }: Props) {
                     </td>
                   )
                 })}
-              </tr>
-            ))}
+              </tr>,
+            ])}
           </tbody>
         </table>
       </div>

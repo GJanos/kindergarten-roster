@@ -6,25 +6,90 @@
   --morning: #fff6d5;
   --afternoon: #dcebfa;
   --absent: #e3e3e3;
+  --bg: #fafafa;
+  --surface: #fff;
+  --text: #1d1d1d;
+  --on-accent: #fff; /* text on green, red and orange fills */
+  --border: #ccc;
+  --border-strong: #999;
+  --warn-bg: #fff4e5;
+  --banner-bg: #fff3c4;
+  --overdue-bg: #ffe7cc;
+  --off-bg: #eee;
+  --off-text: #aaa;
+  --absent-cell: #b9b9b9;
+  color-scheme: light;
   font-family: system-ui, 'Segoe UI', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.4;
-  color: #1d1d1d;
-  background: #fafafa;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* Dark on screen only: the printout always stays black on white. Follows the system until
+   she picks a theme (data-theme, set by ThemeToggle). */
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --green: #5fb38a;
+    --red: #ff6b6b;
+    --orange: #f0a04b;
+    --grey: #a3a3a3;
+    --morning: #463d1f;
+    --afternoon: #1f3548;
+    --absent: #3a3a3a;
+    --bg: #16181a;
+    --surface: #212427;
+    --text: #e6e6e6;
+    --on-accent: #111;
+    --border: #3b3f44;
+    --border-strong: #5c6268;
+    --warn-bg: #3a2a14;
+    --banner-bg: #4a3f10;
+    --overdue-bg: #4a2f10;
+    --off-bg: #1b1d1f;
+    --off-text: #555;
+    --absent-cell: #5c6268;
+    color-scheme: dark;
+  }
+}
+@media screen {
+  :root[data-theme='dark'] {
+    --green: #5fb38a;
+    --red: #ff6b6b;
+    --orange: #f0a04b;
+    --grey: #a3a3a3;
+    --morning: #463d1f;
+    --afternoon: #1f3548;
+    --absent: #3a3a3a;
+    --bg: #16181a;
+    --surface: #212427;
+    --text: #e6e6e6;
+    --on-accent: #111;
+    --border: #3b3f44;
+    --border-strong: #5c6268;
+    --warn-bg: #3a2a14;
+    --banner-bg: #4a3f10;
+    --overdue-bg: #4a2f10;
+    --off-bg: #1b1d1f;
+    --off-text: #555;
+    --absent-cell: #5c6268;
+    color-scheme: dark;
+  }
 }
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
 button {
   font: inherit;
-  min-height: 48px;
-  min-width: 48px;
-  padding: 0 16px;
-  border: 2px solid var(--green);
-  border-radius: 8px;
-  background: #fff;
+  min-height: 38px;
+  min-width: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--green);
+  border-radius: 6px;
+  background: var(--surface);
   color: var(--green);
   cursor: pointer;
 }
@@ -36,24 +101,33 @@ button.primary,
 button.on,
 .tab.active {
   background: var(--green);
-  color: #fff;
+  color: var(--on-accent);
 }
 button.big {
-  min-height: 64px;
-  font-size: 1.15rem;
-  padding: 0 28px;
+  min-height: 46px;
+  font-size: 1.05rem;
+  padding: 0 20px;
+}
+button.small {
+  min-height: 30px;
+  min-width: 30px;
+  padding: 0 8px;
+  font-size: 0.85rem;
 }
 
 input {
   font: inherit;
-  min-height: 44px;
+  min-height: 34px;
   padding: 0 8px;
-  border: 1px solid #999;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
 }
 input[type='checkbox'] {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--green);
 }
 input.duplicate {
   border-color: var(--orange);
@@ -66,7 +140,7 @@ input.duplicate {
 }
 main {
   flex: 1;
-  padding: 16px 24px;
+  padding: 12px 20px;
 }
 .loading {
   padding: 48px;
@@ -76,42 +150,46 @@ main {
   gap: 16px;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  background: #fff3c4;
+  padding: 6px;
+  background: var(--banner-bg);
   font-weight: bold;
 }
 
 .tabs {
   display: flex;
-  gap: 8px;
-  padding: 12px 24px 0;
+  gap: 6px;
+  align-items: flex-end;
+  padding: 8px 20px 0;
   border-bottom: 2px solid var(--green);
 }
 .tab {
-  border-radius: 8px 8px 0 0;
-  font-size: 1.1rem;
+  border-radius: 6px 6px 0 0;
+}
+.theme-toggle {
+  margin: 0 0 6px auto;
+  font-size: 1rem;
 }
 .badge {
   display: inline-block;
-  margin-left: 8px;
-  padding: 0 8px;
-  border-radius: 12px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 10px;
   background: var(--orange);
-  color: #fff;
-  font-size: 0.9rem;
+  color: var(--on-accent);
+  font-size: 0.8rem;
 }
 
 .footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 12px 24px;
-  border-top: 1px solid #ccc;
-  background: #fff;
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 .footer.overdue {
-  background: #ffe7cc;
+  background: var(--overdue-bg);
 }
 
 .error {
@@ -146,13 +224,13 @@ main {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 8px 16px;
   align-items: center;
-  margin: 12px 0;
-  padding: 12px 16px;
+  margin: 10px 0;
+  padding: 8px 12px;
   border: 2px solid var(--orange);
   border-radius: 8px;
-  background: #fff4e5;
+  background: var(--warn-bg);
 }
 .result.outdated {
   opacity: 0.45;
@@ -163,20 +241,20 @@ button.attention {
 }
 @keyframes attention {
   50% {
-    box-shadow: 0 0 0 8px rgb(212 106 0 / 0.35);
+    box-shadow: 0 0 0 6px rgb(212 106 0 / 0.35);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   button.attention {
     animation: none;
-    box-shadow: 0 0 0 4px var(--orange);
+    box-shadow: 0 0 0 3px var(--orange);
   }
 }
 
 .first-launch {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   padding-top: 10vh;
 }
@@ -184,18 +262,19 @@ button.attention {
 .bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .bar h2 {
   margin: 0;
-  min-width: 320px;
+  min-width: 280px;
+  font-size: 1.3rem;
   text-align: center;
 }
 .groups {
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   margin-left: auto;
 }
@@ -205,8 +284,8 @@ table {
 }
 th,
 td {
-  border: 1px solid #ccc;
-  padding: 6px 8px;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
   text-align: left;
   vertical-align: top;
 }
@@ -215,15 +294,6 @@ td {
 }
 .staff tr.inactive {
   color: var(--grey);
-}
-.toggle {
-  display: flex;
-}
-.toggle button:first-child {
-  border-radius: 8px 0 0 8px;
-}
-.toggle button:last-child {
-  border-radius: 0 8px 8px 0;
 }
 .staff-columns {
   display: flex;
@@ -235,7 +305,7 @@ td {
   margin: 0 0 8px;
 }
 .staff-column > button {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .staff input.full-name {
   width: 190px;
@@ -246,69 +316,72 @@ td {
 .staff td.center {
   text-align: center;
 }
-button.small {
-  min-height: 40px;
-  padding: 0 10px;
-  font-size: 0.9rem;
-}
 
 .scroll {
   overflow-x: auto;
 }
 .absence-grid td,
 .absence-grid thead th {
-  width: 34px;
-  min-width: 34px;
-  padding: 4px 0;
+  width: 30px;
+  min-width: 30px;
+  padding: 3px 0;
   text-align: center;
   font-size: 0.8rem;
   user-select: none;
   touch-action: none;
 }
 .absence-grid td {
-  height: 36px;
+  height: 30px;
   cursor: pointer;
 }
 .absence-grid .off {
-  background: #eee;
-  color: #aaa;
+  background: var(--off-bg);
+  color: var(--off-text);
   cursor: default;
 }
 .absence-grid td.absent {
-  background: #b9b9b9;
+  background: var(--absent-cell);
   font-weight: bold;
 }
 .absence-grid .name {
   white-space: nowrap;
-  min-width: 160px;
+  min-width: 150px;
+}
+.absence-grid th.section {
+  padding-top: 10px;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  color: var(--green);
 }
 
 .capacity {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
 }
 .capacity .day {
   border-width: 1px;
   color: inherit;
+  font-size: 0.9rem;
   text-align: left;
 }
 .capacity .day.warn {
   border-color: var(--orange);
-  background: #fff4e5;
+  background: var(--warn-bg);
 }
 .day-editor {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   padding: 8px;
   border: 1px dashed var(--green);
 }
 .labels {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .labels label {
   display: flex;
@@ -322,47 +395,54 @@ button.small {
   list-style: none;
 }
 .warnings h3 {
-  margin: 12px 0 8px;
+  margin: 10px 0 6px;
+  font-size: 1.05rem;
 }
+/* Every day on one row, so the highlighted cells below stay in view. */
 .warning-days {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 12px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  font-size: 0.85rem;
 }
 .warning-day {
-  padding: 8px 12px 12px;
-  border: 1px solid #ddd;
-  border-top: 6px solid var(--orange);
-  border-radius: 8px;
-  background: #fff;
+  padding: 6px 8px 8px;
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--orange);
+  border-radius: 6px;
+  background: var(--surface);
 }
 .warning-day.red {
   border-top-color: var(--red);
 }
 .warning-day h4 {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   align-items: center;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
+  font-size: 0.95rem;
 }
 .warning-day .count {
-  padding: 0 8px;
-  border-radius: 12px;
+  padding: 0 7px;
+  border-radius: 10px;
   background: var(--red);
-  color: #fff;
-  font-size: 0.85rem;
+  color: var(--on-accent);
+  font-size: 0.8rem;
 }
 .warning-day ul {
   margin: 0;
 }
 .warning {
   margin: 2px 0;
-  padding: 2px 8px;
-  border-left: 4px solid var(--grey);
+  padding: 1px 6px;
+  border-left: 3px solid var(--grey);
   cursor: default;
 }
 .warning:hover {
-  background: #fff4e5;
+  background: var(--warn-bg);
 }
 .warning.red {
   border-color: var(--red);
@@ -371,16 +451,21 @@ button.small {
   border-color: var(--orange);
 }
 .warning-day .action {
-  margin: 8px 0;
+  margin: 6px 0;
   color: var(--grey);
 }
 .fixes {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
+}
+.fixes button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.85rem;
 }
 .warnings .notes {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .warnings .notes summary {
   color: var(--grey);
@@ -393,12 +478,12 @@ button.small {
 
 .roster-table {
   width: 100%;
-  margin: 12px 0;
-  background: #fff;
+  margin: 10px 0;
+  background: var(--surface);
 }
 .roster-table td.highlight {
   outline: 3px solid var(--orange);
-  background: #fff4e5;
+  background: var(--warn-bg);
 }
 .bold {
   font-weight: bold;
@@ -415,5 +500,5 @@ button.small {
 }
 .actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }

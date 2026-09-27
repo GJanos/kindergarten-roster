@@ -41,6 +41,15 @@ describe('AbsenceScreen', () => {
     ])
   })
 
+  it('heads the teachers and the nannies with a row each, keeping the day columns aligned', () => {
+    renderScreen()
+    const heads = screen.getAllByRole('rowheader').filter((h) => h.className === 'section')
+    expect(heads.map((h) => h.textContent)).toEqual(['Óvónők', 'Dajkák'])
+    expect(heads[0].getAttribute('colspan')).toBe(
+      String(document.querySelectorAll('thead th').length),
+    )
+  })
+
   it('marks a day, and a stretch by dragging along the row', () => {
     const dispatch = renderScreen()
     fireEvent.pointerDown(screen.getByLabelText('Anna 2026-10-26'))

@@ -294,7 +294,8 @@ tested with her at the demo.
 
 ## 8. UI — Hungarian, large
 
-Base text 18 px, buttons ≥ 48 px. Three tabs: **Munkatársak · Távollétek · Beosztás**. Footer on
+Base text 16 px, buttons ≥ 38 px (the main actions 46 px); light and dark theme, following the
+system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Three tabs: **Munkatársak · Távollétek · Beosztás**. Footer on
 every screen: *"Utolsó mentés: 3 napja"* + **Mentés fájlba**, orange after 7 days without a backup.
 First launch: **Új kezdés · Visszatöltés fájlból · Bemutató adatok**; demo mode shows a
 *"Bemutató adatok — nem valódi személyek"* banner.

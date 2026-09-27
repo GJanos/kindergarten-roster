@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeInput } from '../core/fixtures'
 import type { Warning, WarningCode } from '../../src/core/types'
-import { warningDays } from '../../src/ui/warningDays'
+import { shownWarningCount, warningDays } from '../../src/ui/warningDays'
 
 const MON = '2026-10-26'
 const TUE = '2026-10-27'
@@ -107,5 +107,20 @@ describe('warningDays', () => {
       away,
     )
     expect(days[0].fixes).toEqual([{ kind: 'callIn', date: MON, staffId: 't3', name: 'T3' }])
+  })
+})
+
+describe('shownWarningCount', () => {
+  it('counts exactly the lines the day cards show', () => {
+    const warnings = [
+      seat(MON, 'Hétfő, 1. cs.: nincs délutános óvónő (10:30–17:00).', 2),
+      warning('SUBSTITUTION', MON, 'Hétfő, 3. cs.: dajka helyett óvónő — T4.'),
+      warning('CLOSED_DAY', WED, 'Szerdán zárva.'),
+      warning('GROUPS_OVERRIDDEN', MON, 'Hétfő: 3 csoport (kézi beállítás).'),
+      warning('UNEVEN', MON, 'Egyenlő elosztás nem volt lehetséges: T1 …'),
+    ]
+    const shown = warningDays(warnings, input).days.reduce((sum, d) => sum + d.items.length, 0)
+    expect(shownWarningCount(warnings)).toBe(2)
+    expect(shownWarningCount(warnings)).toBe(shown)
   })
 })

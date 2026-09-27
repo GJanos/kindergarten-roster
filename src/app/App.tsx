@@ -8,6 +8,8 @@ import { FirstLaunch } from '../ui/FirstLaunch'
 import { Footer } from '../ui/Footer'
 import { RosterScreen } from '../ui/RosterScreen'
 import { StaffScreen } from '../ui/StaffScreen'
+import { ThemeToggle } from '../ui/ThemeToggle'
+import { shownWarningCount } from '../ui/warningDays'
 
 type Tab = 'staff' | 'absences' | 'roster'
 const TABS: Tab[] = ['staff', 'absences', 'roster']
@@ -21,7 +23,7 @@ export function App() {
   if (state === null) return <FirstLaunch onReady={replace} storageError={storageError} />
 
   const tab = chosen ?? (state.staff.length === 0 ? 'staff' : 'roster')
-  const warningCount = state.periods[week]?.roster?.warnings.length ?? 0
+  const warningCount = shownWarningCount(state.periods[week]?.roster?.warnings ?? [])
 
   return (
     <div className="app">
@@ -38,6 +40,7 @@ export function App() {
             {t === 'roster' && warningCount > 0 && <span className="badge">{warningCount}</span>}
           </button>
         ))}
+        <ThemeToggle />
       </nav>
       <main>
         {tab === 'staff' && <StaffScreen state={state} dispatch={dispatch} />}
