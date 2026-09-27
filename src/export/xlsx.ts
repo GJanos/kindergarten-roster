@@ -3,7 +3,12 @@ import type { Absence, Roster, Staff } from '../core/types'
 import { LEGEND, dayHeader, formatPeriod } from '../i18n/hu'
 import { groupView, personView, type Line, type Tone } from './views'
 
-export type XlsxExtras = { groupLabels?: string[]; footnotes?: string[] }
+export type XlsxExtras = { groupLabels?: string[]; footnotes?: string[]; backupJson?: string }
+
+/** The hidden sheet that makes every exported Excel a backup too. */
+export const BACKUP_SHEET = 'adatok'
+/** Excel caps a cell at 32,767 characters. */
+const CHUNK = 30_000
 
 const FILLS = { morning: 'FFFFF6D5', afternoon: 'FFDCEBFA', absent: 'FFE3E3E3', closed: 'FFF2F2F2' }
 const COLORS: Record<Tone, string> = {
@@ -29,11 +34,30 @@ export async function rosterWorkbook(
   workbook.creator = 'Óvodai beosztás'
   addGroupSheet(workbook, roster, staff, extras)
   addPersonSheet(workbook, roster, staff, absences)
+  if (extras.backupJson) addBackupSheet(workbook, extras.backupJson)
   return workbook
 }
 
 export async function workbookBytes(workbook: Workbook): Promise<Uint8Array<ArrayBuffer>> {
   return new Uint8Array(await workbook.xlsx.writeBuffer())
+}
+
+/** URI-encoded, so no chunk starts or ends with a space Excel might trim. */
+function addBackupSheet(workbook: Workbook, json: string): void {
+  const sheet = workbook.addWorksheet(BACKUP_SHEET, { state: 'veryHidden' })
+  const encoded = encodeURIComponent(json)
+  for (let i = 0; i < encoded.length; i += CHUNK) sheet.addRow([encoded.slice(i, i + CHUNK)])
+}
+
+export async function backupFromXlsx(data: ArrayBuffer): Promise<string> {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(data)
+  const sheet = workbook.getWorksheet(BACKUP_SHEET)
+  if (!sheet) throw new Error('This Excel file holds no backup')
+  const parts: string[] = []
+  sheet.eachRow((row) => parts.push(String(row.getCell(1).value ?? '')))
+  return decodeURIComponent(parts.join(''))
 }
 
 function landscape(workbook: Workbook, name: string): Worksheet {

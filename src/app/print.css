@@ -1,0 +1,77 @@
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  :root {
+    font-size: 10pt;
+    background: #fff;
+  }
+  .tabs,
+  .footer,
+  .demo-banner,
+  .screen-only {
+    display: none !important;
+  }
+  main {
+    padding: 0;
+  }
+  .print-only {
+    display: block;
+  }
+  .page {
+    break-after: page;
+  }
+  .page:last-child {
+    break-after: auto;
+  }
+  .page h1 {
+    margin: 0 0 6pt;
+    font-size: 14pt;
+  }
+  .print-only table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  .print-only th,
+  .print-only td {
+    border: 1px solid #000;
+    padding: 2pt 3pt;
+    vertical-align: top;
+  }
+  .print-only thead th:first-child,
+  .print-only tbody th {
+    width: 16%;
+  }
+  .fill-morning {
+    background: #fff6d5;
+  }
+  .fill-afternoon {
+    background: #dcebfa;
+  }
+  .fill-absent,
+  .fill-closed {
+    background: #e3e3e3;
+  }
+  .hole {
+    color: #c00000;
+  }
+  .substitution {
+    color: #d46a00;
+  }
+  .footnotes,
+  .legend {
+    margin-top: 4pt;
+    font-size: 8pt;
+  }
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

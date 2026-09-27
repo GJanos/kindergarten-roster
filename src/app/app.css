@@ -1,0 +1,303 @@
+:root {
+  --green: #2f6f4f;
+  --red: #c00000;
+  --orange: #d46a00;
+  --grey: #6b6b6b;
+  --morning: #fff6d5;
+  --afternoon: #dcebfa;
+  --absent: #e3e3e3;
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-size: 18px;
+  line-height: 1.4;
+  color: #1d1d1d;
+  background: #fafafa;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 16px;
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--green);
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+button.primary,
+button.on,
+.tab.active {
+  background: var(--green);
+  color: #fff;
+}
+button.big {
+  min-height: 64px;
+  font-size: 1.15rem;
+  padding: 0 28px;
+}
+
+input {
+  font: inherit;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid #999;
+  border-radius: 6px;
+}
+input[type='checkbox'] {
+  width: 28px;
+  height: 28px;
+}
+input.duplicate {
+  border-color: var(--orange);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+main {
+  flex: 1;
+  padding: 16px 24px;
+}
+.loading {
+  padding: 48px;
+}
+.demo-banner {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: #fff3c4;
+  font-weight: bold;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px 0;
+  border-bottom: 2px solid var(--green);
+}
+.tab {
+  border-radius: 8px 8px 0 0;
+  font-size: 1.1rem;
+}
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 24px;
+  border-top: 1px solid #ccc;
+  background: #fff;
+}
+.footer.overdue {
+  background: #ffe7cc;
+}
+
+.error {
+  color: var(--red);
+}
+.note,
+.hint {
+  color: var(--grey);
+}
+.stale {
+  padding: 8px 12px;
+  border-left: 6px solid var(--orange);
+  background: #fff4e5;
+}
+
+.first-launch {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  padding-top: 10vh;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.bar h2 {
+  margin: 0;
+  min-width: 320px;
+  text-align: center;
+}
+.groups {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+th,
+td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.staff td {
+  vertical-align: middle;
+}
+.staff tr.inactive {
+  color: var(--grey);
+}
+.toggle {
+  display: flex;
+}
+.toggle button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.toggle button:last-child {
+  border-radius: 0 8px 8px 0;
+}
+.staff-screen > button {
+  margin-top: 16px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+.absence-grid td,
+.absence-grid thead th {
+  width: 34px;
+  min-width: 34px;
+  padding: 4px 0;
+  text-align: center;
+  font-size: 0.8rem;
+  user-select: none;
+  touch-action: none;
+}
+.absence-grid td {
+  height: 36px;
+  cursor: pointer;
+}
+.absence-grid .off {
+  background: #eee;
+  color: #aaa;
+  cursor: default;
+}
+.absence-grid td.absent {
+  background: #b9b9b9;
+  font-weight: bold;
+}
+.absence-grid .name {
+  white-space: nowrap;
+  min-width: 160px;
+}
+
+.capacity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.capacity .day {
+  border-width: 1px;
+  color: inherit;
+  text-align: left;
+}
+.capacity .day.warn {
+  border-color: var(--orange);
+  background: #fff4e5;
+}
+.day-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px dashed var(--green);
+}
+.labels {
+  margin-bottom: 12px;
+}
+.labels label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.warnings ul {
+  padding: 0;
+  list-style: none;
+}
+.warning {
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-left: 6px solid var(--grey);
+  background: #fff;
+}
+.warning.red {
+  border-color: var(--red);
+}
+.warning.orange {
+  border-color: var(--orange);
+}
+.warning .action {
+  color: var(--grey);
+}
+.warning .fix {
+  margin-left: 12px;
+}
+.all-good {
+  color: var(--green);
+  font-weight: bold;
+}
+
+.roster-table {
+  width: 100%;
+  margin: 12px 0;
+  background: #fff;
+}
+.roster-table td.highlight {
+  outline: 3px solid var(--orange);
+  background: #fff4e5;
+}
+.bold {
+  font-weight: bold;
+}
+.hole {
+  color: var(--red);
+  font-weight: bold;
+}
+.substitution {
+  color: var(--orange);
+}
+.muted {
+  color: var(--grey);
+}
+.actions {
+  display: flex;
+  gap: 16px;
+}

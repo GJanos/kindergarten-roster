@@ -1,0 +1,251 @@
+import { useState } from 'react'
+import { addDays, periodForWeek } from '../core/calendar'
+import { dayCapacities, zeroHoleNeeds, type DayCapacity } from '../core/capacity'
+import type { Warning } from '../core/types'
+import { footnotes } from '../export/views'
+import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
+import { capitalize, dayHeader, formatDate, formatPeriod, groupName, ui } from '../i18n/hu'
+import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
+import { backupJson } from '../state/backup'
+import { inputKey, solveInputFor } from '../state/solveInput'
+import { SolveFailure, solveInWorker } from '../worker/client'
+import { XLSX_TYPE, download } from './download'
+import { PrintView } from './PrintView'
+import { RosterTable } from './RosterTable'
+import { WarningsPanel } from './WarningsPanel'
+
+type Props = {
+  state: AppState
+  dispatch: (action: Action) => void
+  week: string
+  onWeek: (week: string) => void
+}
+
+/** Warns, never blocks: Számol always works. */
+function dayStatus(c: DayCapacity): { ok: boolean; text: string } {
+  if (c.closed) return { ok: true, text: ui.roster.closed }
+  const needs = zeroHoleNeeds(c.groups)
+  const notes: string[] = []
+  if (c.teachers < needs.teachers)
+    notes.push(ui.roster.fewTeachers(c.teachers, c.groups, needs.teachers))
+  if (c.nannies < needs.nannies) notes.push(ui.roster.fewNannies(c.nannies, needs.nannies))
+  if (c.override !== undefined) notes.push(ui.roster.manual(c.groups))
+  return {
+    ok: notes.length === 0 || (notes.length === 1 && c.override !== undefined),
+    text: notes.join(' · '),
+  }
+}
+
+export function RosterScreen({ state, dispatch, week, onWeek }: Props) {
+  const [solving, setSolving] = useState(false)
+  const [error, setError] = useState<string>()
+  const [hovered, setHovered] = useState<Warning>()
+  const [editing, setEditing] = useState<string>()
+
+  const days = periodForWeek(week).days
+  const period = periodState(state, week)
+  const groups = groupCount(period)
+  const input = solveInputFor(state, week)
+  const capacities = days.length > 0 ? dayCapacities(input) : []
+  const roster = period.roster
+  const stale = roster !== undefined && period.rosterInputKey !== inputKey(input)
+  const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined
+
+  const solve = async (current: AppState) => {
+    const solveInput = solveInputFor(current, week)
+    setSolving(true)
+    setError(undefined)
+    try {
+      const result = await solveInWorker(solveInput, {
+        solvedAt: new Date().toISOString(),
+        appVersion: __APP_VERSION__,
+      })
+      dispatch({ type: 'saveRoster', week, roster: result, inputKey: inputKey(solveInput) })
+    } catch (failure) {
+      setError(
+        failure instanceof SolveFailure && failure.reason === 'invalid'
+          ? ui.roster.errorInvalid
+          : ui.roster.errorGeneric,
+      )
+    } finally {
+      setSolving(false)
+    }
+  }
+
+  // One click: reduce the day, then solve again.
+  const fix = (warning: Warning) => {
+    if (!warning.fix) return
+    const action: Action = {
+      type: 'setOverride',
+      week,
+      date: warning.fix.date,
+      groups: warning.fix.groups,
+    }
+    dispatch(action)
+    void solve(reducer(state, action))
+  }
+
+  const exportExcel = async () => {
+    if (!roster) return
+    const workbook = await rosterWorkbook(roster, state.staff, state.absences, {
+      groupLabels: period.groupLabels,
+      footnotes: footnotes(roster),
+      backupJson: backupJson(state),
+    })
+    download(await workbookBytes(workbook), rosterFileName(roster), XLSX_TYPE)
+    dispatch({ type: 'markBackedUp', at: new Date().toISOString() })
+  }
+
+  const editingPlan = period.dayPlans.find((d) => d.date === editing)
+
+  return (
+    <>
+      <section className="roster-screen screen-only">
+        <div className="bar">
+          <button aria-label={ui.roster.previousWeek} onClick={() => onWeek(addDays(week, -7))}>
+            ◀{hasRoster(addDays(week, -7)) && ' •'}
+          </button>
+          <h2>
+            {days.length > 0 ? formatPeriod(days) : formatDate(week)}
+            {hasRoster(week) && (
+              <span className="dot" title={ui.roster.saved}>
+                {' '}
+                •
+              </span>
+            )}
+          </h2>
+          <button aria-label={ui.roster.nextWeek} onClick={() => onWeek(addDays(week, 7))}>
+            {hasRoster(addDays(week, 7)) && '• '}▶
+          </button>
+          <span className="groups">
+            {ui.roster.groups}
+            <button
+              onClick={() => dispatch({ type: 'setGroups', week, groups: Math.max(1, groups - 1) })}
+            >
+              −
+            </button>
+            <strong>{groups}</strong>
+            <button onClick={() => dispatch({ type: 'setGroups', week, groups: groups + 1 })}>
+              +
+            </button>
+          </span>
+        </div>
+
+        {days.length === 0 && <p>{ui.roster.noDays}</p>}
+        {days.length > 0 && input.staff.length === 0 && <p>{ui.roster.noStaff}</p>}
+
+        {days.length > 0 && (
+          <div className="capacity">
+            {capacities.map((c) => {
+              const status = dayStatus(c)
+              return (
+                <button
+                  key={c.date}
+                  className={status.ok ? 'day ok' : 'day warn'}
+                  onClick={() => setEditing(c.date)}
+                >
+                  <strong>{dayHeader(c.date)}</strong> {status.ok ? '✓' : '⚠'} {status.text}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {editingPlan && (
+          <div className="day-editor">
+            <strong>{capitalize(dayHeader(editingPlan.date))}</strong> {ui.roster.dayGroups}
+            <button
+              onClick={() => {
+                const current = editingPlan.override ?? editingPlan.requestedGroups
+                dispatch({
+                  type: 'setOverride',
+                  week,
+                  date: editingPlan.date,
+                  groups: Math.max(0, current - 1),
+                })
+              }}
+            >
+              −
+            </button>
+            <strong>{editingPlan.override ?? editingPlan.requestedGroups}</strong>
+            <button
+              onClick={() => {
+                const current = editingPlan.override ?? editingPlan.requestedGroups
+                dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: current + 1 })
+              }}
+            >
+              +
+            </button>
+            <button
+              onClick={() =>
+                dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: 0 })
+              }
+            >
+              {ui.roster.closeDay}
+            </button>
+            <button onClick={() => dispatch({ type: 'setOverride', week, date: editingPlan.date })}>
+              {ui.roster.resetDay}
+            </button>
+            <button onClick={() => setEditing(undefined)}>{ui.roster.done}</button>
+          </div>
+        )}
+
+        {days.length > 0 && (
+          <details className="labels">
+            <summary>
+              {groupName(1)}, {groupName(2)}… — nevek
+            </summary>
+            {Array.from({ length: groups }, (_, i) => (
+              <label key={i}>
+                {ui.roster.groupLabel(i + 1)}
+                <input
+                  value={period.groupLabels?.[i] ?? ''}
+                  onChange={(e) =>
+                    dispatch({ type: 'setGroupLabel', week, group: i + 1, label: e.target.value })
+                  }
+                />
+              </label>
+            ))}
+          </details>
+        )}
+
+        {days.length > 0 && input.staff.length > 0 && (
+          <button className="primary big" disabled={solving} onClick={() => void solve(state)}>
+            {solving ? ui.roster.solving : ui.roster.solve}
+          </button>
+        )}
+        {error && <p className="error">{error}</p>}
+        {stale && <p className="stale">{ui.roster.stale}</p>}
+        {!roster && days.length > 0 && input.staff.length > 0 && <p>{ui.roster.notSolved}</p>}
+
+        {roster && (
+          <>
+            <WarningsPanel warnings={roster.warnings} onHover={setHovered} onFix={fix} />
+            <RosterTable
+              roster={roster}
+              staff={state.staff}
+              labels={period.groupLabels}
+              highlight={hovered}
+            />
+            <div className="actions">
+              <button className="big" onClick={() => window.print()}>
+                {ui.roster.print}
+              </button>
+              <button className="big" onClick={() => void exportExcel()}>
+                {ui.roster.excel}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+      {roster && (
+        <PrintView
+          roster={roster}
+          staff={state.staff}
+          absences={state.absences}
+          labels={period.groupLabels}
+        />
+      )}
+    </>
+  )
+}

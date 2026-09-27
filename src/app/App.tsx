@@ -1,0 +1,58 @@
+import { useState } from 'react'
+import { defaultWeek } from '../core/calendar'
+import { ui } from '../i18n/hu'
+import { useAppState } from '../state/useAppState'
+import { AbsenceScreen } from '../ui/AbsenceScreen'
+import { today } from '../ui/dates'
+import { FirstLaunch } from '../ui/FirstLaunch'
+import { Footer } from '../ui/Footer'
+import { RosterScreen } from '../ui/RosterScreen'
+import { StaffScreen } from '../ui/StaffScreen'
+
+type Tab = 'staff' | 'absences' | 'roster'
+const TABS: Tab[] = ['staff', 'absences', 'roster']
+
+export function App() {
+  const { state, dispatch, replace, persisted, storageError } = useAppState()
+  const [chosen, setChosen] = useState<Tab>()
+  const [week, setWeek] = useState(() => defaultWeek(today()))
+
+  if (state === undefined) return <p className="loading">{ui.loading}</p>
+  if (state === null) return <FirstLaunch onReady={replace} storageError={storageError} />
+
+  const tab = chosen ?? (state.staff.length === 0 ? 'staff' : 'roster')
+  const warningCount = state.periods[week]?.roster?.warnings.length ?? 0
+
+  return (
+    <div className="app">
+      {state.demo && (
+        <div className="demo-banner">
+          {ui.demoBanner}
+          <button onClick={() => replace(null)}>{ui.leaveDemo}</button>
+        </div>
+      )}
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <button key={t} className={t === tab ? 'tab active' : 'tab'} onClick={() => setChosen(t)}>
+            {ui.tabs[t]}
+            {t === 'roster' && warningCount > 0 && <span className="badge">{warningCount}</span>}
+          </button>
+        ))}
+      </nav>
+      <main>
+        {tab === 'staff' && <StaffScreen state={state} dispatch={dispatch} />}
+        {tab === 'absences' && <AbsenceScreen state={state} dispatch={dispatch} />}
+        {tab === 'roster' && (
+          <RosterScreen state={state} dispatch={dispatch} week={week} onWeek={setWeek} />
+        )}
+      </main>
+      <Footer
+        state={state}
+        dispatch={dispatch}
+        replace={replace}
+        persisted={persisted}
+        storageError={storageError}
+      />
+    </div>
+  )
+}
