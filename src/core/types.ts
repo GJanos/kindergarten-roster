@@ -2,6 +2,12 @@ export type Role = 'teacher' | 'nanny'
 export type Shift = 'morning' | 'afternoon'
 export const SHIFTS: readonly Shift[] = ['morning', 'afternoon']
 
+/** The four fairness counts (spec §6.3). */
+export type GapKind = 'morning' | 'opener' | 'closer' | 'reserve'
+
+/** Per person (staff id), per kind: count minus fair share — one roster's, or a year's sum. */
+export type Balance = Record<string, Partial<Record<GapKind, number>>>
+
 export type Staff = {
   id: string
   fullName: string
@@ -65,6 +71,7 @@ export type Roster = {
   holes: Hole[]
   warnings: Warning[]
   edited?: true // changed by hand after solving (v2 swaps); re-solving drops the edits
+  balance?: Balance // its fairness deltas, summed into the yearly balance (v2)
   solvedAt: string
   appVersion: string
 }
@@ -75,6 +82,7 @@ export type SolveInput = {
   absences: Absence[]
   period: Period
   dayPlans: DayPlan[] // one per period day
+  history?: Balance // the kindergarten year's earlier rosters, summed; the last tie-break (v2)
 }
 
 export type RosterMeta = { solvedAt: string; appVersion: string }

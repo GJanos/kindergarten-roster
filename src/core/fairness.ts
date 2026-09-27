@@ -1,7 +1,7 @@
 import { dayCapacities } from './capacity'
-import type { Assignment, Roster, SolveInput } from './types'
+import type { Assignment, Balance, GapKind, Roster, SolveInput } from './types'
 
-export type GapKind = 'morning' | 'opener' | 'closer' | 'reserve'
+export type { GapKind } from './types'
 
 /**
  * A fair share (spec §6.3): over `days`, `staffId`'s count of `kind` should be
@@ -137,4 +137,15 @@ export function worstGapFloor(shares: Share[]): number {
     )
   }
   return floor
+}
+
+/** What this roster adds to each person's year: count minus fair share, per kind. */
+export function balanceOf(input: SolveInput, roster: Roster): Balance {
+  const out: Balance = {}
+  for (const share of fairShares(input)) {
+    const delta = countFor(share, roster) - share.num / share.den
+    const mine = (out[share.staffId] ??= {})
+    mine[share.kind] = Math.round(delta * 10_000) / 10_000 || 0 // tidy JSON, no −0
+  }
+  return out
 }
