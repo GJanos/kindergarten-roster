@@ -3017,21 +3017,21 @@ export function sliceInput(file: SliceFile): SolveInput {
     { "name": "Anna", "role": "teacher" },
     { "name": "Bea", "role": "teacher" },
     { "name": "Cili", "role": "teacher" },
-    { "name": "Dóra", "role": "teacher" },
+    { "name": "Dalma", "role": "teacher" },
     { "name": "Emese", "role": "teacher" },
     { "name": "Flóra", "role": "teacher" },
-    { "name": "Gabi", "role": "teacher" },
+    { "name": "Gréta", "role": "teacher" },
     { "name": "Hanna", "role": "teacher" },
     { "name": "Kati", "role": "nanny" },
     { "name": "Laura", "role": "nanny" },
-    { "name": "Marika", "role": "nanny" },
+    { "name": "Melinda", "role": "nanny" },
     { "name": "Nóra", "role": "nanny" },
     { "name": "Olga", "role": "nanny" }
   ],
   "absent": {
     "Anna": ["2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28"],
     "Cili": ["2026-08-27", "2026-08-28"],
-    "Gabi": ["2026-08-26"],
+    "Gréta": ["2026-08-26"],
     "Laura": ["2026-08-24", "2026-08-25"],
     "Olga": ["2026-08-28"]
   }
