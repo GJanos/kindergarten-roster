@@ -182,10 +182,21 @@ export const ui = {
     ],
   },
   absences: {
-    hint: 'Kattints egy napra, vagy húzd végig az egeret a soron.',
+    hint: 'Válaszd ki a fajtát, aztán kattints egy napra, vagy húzd végig az egeret a soron. Ugyanazzal a fajtával újra kattintva törlöd.',
     previous: 'Előző hónap',
     next: 'Következő hónap',
     noStaff: 'Előbb vedd fel a munkatársakat.',
+    kindsLabel: 'Távollét fajtája',
+    kinds: { leave: 'Szabadság', sick: 'Beteg', other: 'Egyéb' } satisfies Record<
+      AbsenceKind,
+      string
+    >,
+    letters: { leave: 'Sz', sick: 'B', other: 'E' } satisfies Record<AbsenceKind, string>,
+    leaveHeader: (year: string) => `Szabadság ${year}`,
+    balance: (used: number, total: number) => `${used} / ${total}`,
+    balanceHint: (year: string) =>
+      `Szabadság ${year}: kivett napok / éves keret és áthozott napok. Kattints az áthozott napokhoz.`,
+    carry: (year: string) => `Áthozott napok (${year})`,
   },
   roster: {
     groups: 'Csoportok:',

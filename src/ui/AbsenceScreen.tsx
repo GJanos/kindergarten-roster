@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { isWorkingDay } from '../core/calendar'
-import type { Staff } from '../core/types'
+import type { AbsenceKind, Staff } from '../core/types'
 import { monthLabel, ui, weekdayInitial } from '../i18n/hu'
 import type { Action, AppState } from '../state/appState'
+import { leaveBalance } from '../state/leave'
 import { monthDays, shiftMonth, today } from './dates'
 
 type Props = { state: AppState; dispatch: (action: Action) => void }
+
+const KINDS: readonly AbsenceKind[] = ['leave', 'sick', 'other']
 
 /** Teachers first, then nannies, each by name. */
 export function rosterOrder(staff: Staff[]): Staff[] {
@@ -20,8 +23,10 @@ export function rosterOrder(staff: Staff[]): Staff[] {
 
 export function AbsenceScreen({ state, dispatch }: Props) {
   const [month, setMonth] = useState(() => today().slice(0, 7))
-  // While the button is held, dragging along a row sets every cell to the same value.
-  const drag = useRef<{ staffId: string; absent: boolean } | null>(null)
+  const [brush, setBrush] = useState<AbsenceKind>('leave')
+  const [carryOpen, setCarryOpen] = useState<string>() // whose carry-over editor is open
+  // While the button is held, dragging along a row does the same to every cell: paint or clear.
+  const drag = useRef<{ staffId: string; paint: boolean } | null>(null)
   useEffect(() => {
     const stop = () => {
       drag.current = null
@@ -33,9 +38,25 @@ export function AbsenceScreen({ state, dispatch }: Props) {
   const people = rosterOrder(state.staff.filter((s) => s.active))
   if (people.length === 0) return <p>{ui.absences.noStaff}</p>
   const days = monthDays(month)
-  const absent = new Set(state.absences.map((a) => `${a.staffId}|${a.date}`))
-  const mark = (staffId: string, date: string, value: boolean) =>
-    dispatch({ type: 'setAbsent', staffId, dates: [date], absent: value })
+  const year = month.slice(0, 4)
+  const tracksLeave = people.some((s) => s.leaveAllowance !== undefined)
+  const kindOf = new Map(state.absences.map((a) => [`${a.staffId}|${a.date}`, a.kind]))
+  const set = (staffId: string, date: string, paint: boolean) =>
+    dispatch(
+      paint
+        ? { type: 'setAbsent', staffId, dates: [date], absent: true, kind: brush }
+        : { type: 'setAbsent', staffId, dates: [date], absent: false },
+    )
+  const setCarry = (person: Staff, value: string) => {
+    const carry = { ...person.leaveCarry }
+    if (value === '') delete carry[year]
+    else carry[year] = Math.max(0, Math.round(Number(value)))
+    dispatch({
+      type: 'updateStaff',
+      id: person.id,
+      patch: { leaveCarry: Object.keys(carry).length > 0 ? carry : undefined },
+    })
+  }
 
   return (
     <section className="absence-screen">
@@ -47,13 +68,25 @@ export function AbsenceScreen({ state, dispatch }: Props) {
         <button aria-label={ui.absences.next} onClick={() => setMonth(shiftMonth(month, 1))}>
           ▶
         </button>
+        <div className="toggle kinds" role="group" aria-label={ui.absences.kindsLabel}>
+          {KINDS.map((kind) => (
+            <button
+              key={kind}
+              className={brush === kind ? `on kind-${kind}` : `kind-${kind}`}
+              aria-pressed={brush === kind}
+              onClick={() => setBrush(kind)}
+            >
+              {ui.absences.kinds[kind]}
+            </button>
+          ))}
+        </div>
       </div>
       <p className="hint">{ui.absences.hint}</p>
       <div className="scroll">
         <table className="absence-grid">
           <thead>
             <tr>
-              <th />
+              <th className="name">{tracksLeave ? ui.absences.leaveHeader(year) : ''}</th>
               {days.map((date) => (
                 <th key={date} className={isWorkingDay(date) ? undefined : 'off'}>
                   {weekdayInitial(date)}
@@ -64,56 +97,99 @@ export function AbsenceScreen({ state, dispatch }: Props) {
             </tr>
           </thead>
           <tbody>
-            {people.flatMap((s, i) => [
-              // One grid, so a day's column still reads straight down across both roles.
-              ...(i === 0 || people[i - 1].role !== s.role
-                ? [
-                    <tr key={s.role}>
+            {people.map((s, i) => {
+              const balance =
+                s.leaveAllowance === undefined ? undefined : leaveBalance(state.absences, s, year)
+              return (
+                <Fragment key={s.id}>
+                  {/* One grid, so a day's column still reads straight down across both roles. */}
+                  {(i === 0 || people[i - 1].role !== s.role) && (
+                    <tr>
                       <th scope="row" colSpan={days.length + 1} className="section">
                         {s.role === 'teacher' ? ui.staff.teachers : ui.staff.nannies}
                       </th>
-                    </tr>,
-                  ]
-                : []),
-              <tr key={s.id}>
-                <th className="name">{s.displayName || s.fullName}</th>
-                {days.map((date, i) => {
-                  if (!isWorkingDay(date)) return <td key={date} className="off" />
-                  const isAbsent = absent.has(`${s.id}|${date}`)
-                  // Absent next door too: the bar runs on, so a week off reads as one stretch.
-                  const joins = (other?: string) =>
-                    other !== undefined && isWorkingDay(other) && absent.has(`${s.id}|${other}`)
-                  const className = isAbsent
-                    ? [
-                        'absent',
-                        joins(days[i - 1]) ? 'join-left' : '',
-                        joins(days[i + 1]) ? 'join-right' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
-                    : undefined
-                  return (
-                    <td
-                      key={date}
-                      className={className}
-                      aria-label={`${s.displayName} ${date}`}
-                      onPointerDown={(e) => {
-                        e.preventDefault()
-                        drag.current = { staffId: s.id, absent: !isAbsent }
-                        mark(s.id, date, !isAbsent)
-                      }}
-                      onPointerEnter={() => {
-                        const held = drag.current
-                        if (held && held.staffId === s.id && held.absent !== isAbsent)
-                          mark(s.id, date, held.absent)
-                      }}
-                    >
-                      {isAbsent && <span className="bar-mark" />}
-                    </td>
-                  )
-                })}
-              </tr>,
-            ])}
+                    </tr>
+                  )}
+                  <tr>
+                    <th className="name">
+                      {s.displayName || s.fullName}
+                      {balance && (
+                        <button
+                          className={
+                            balance.used > balance.total ? 'leave-balance over' : 'leave-balance'
+                          }
+                          title={ui.absences.balanceHint(year)}
+                          onClick={() => setCarryOpen(carryOpen === s.id ? undefined : s.id)}
+                        >
+                          {ui.absences.balance(balance.used, balance.total)}
+                        </button>
+                      )}
+                    </th>
+                    {days.map((date, d) => {
+                      if (!isWorkingDay(date)) return <td key={date} className="off" />
+                      const kind = kindOf.get(`${s.id}|${date}`)
+                      // The same kind next door: the bar runs on, so a week off reads as one stretch.
+                      const joins = (other?: string) =>
+                        other !== undefined &&
+                        isWorkingDay(other) &&
+                        kind !== undefined &&
+                        kindOf.get(`${s.id}|${other}`) === kind
+                      const className = kind
+                        ? [
+                            'absent',
+                            kind,
+                            joins(days[d - 1]) ? 'join-left' : '',
+                            joins(days[d + 1]) ? 'join-right' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')
+                        : undefined
+                      return (
+                        <td
+                          key={date}
+                          className={className}
+                          aria-label={`${s.displayName} ${date}`}
+                          onPointerDown={(e) => {
+                            e.preventDefault()
+                            const paint = kind !== brush
+                            drag.current = { staffId: s.id, paint }
+                            set(s.id, date, paint)
+                          }}
+                          onPointerEnter={() => {
+                            const held = drag.current
+                            if (!held || held.staffId !== s.id) return
+                            if (held.paint ? kind !== brush : kind !== undefined)
+                              set(s.id, date, held.paint)
+                          }}
+                        >
+                          {kind && (
+                            <span className="bar-mark">
+                              {joins(days[d - 1]) ? '' : ui.absences.letters[kind]}
+                            </span>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                  {carryOpen === s.id && (
+                    <tr>
+                      <td colSpan={days.length + 1} className="leave-editor">
+                        <label>
+                          {ui.absences.carry(year)}{' '}
+                          <input
+                            type="number"
+                            min={0}
+                            value={s.leaveCarry?.[year] ?? ''}
+                            onChange={(e) => setCarry(s, e.target.value)}
+                          />
+                        </label>
+                        <button onClick={() => setCarryOpen(undefined)}>{ui.roster.done}</button>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>
