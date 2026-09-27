@@ -347,6 +347,12 @@ updated yearly by a push. **One absence type in v1.**
   altered (outlined in the table) and offers **↶ Visszavonás** / **Rendben**. Undo puts back only
   what the change touched — that day's input and the earlier roster — so later edits survive; up
   to 20 steps, in memory only, per week. Rendben keeps the week's changes and clears the marks.
+- **Swap two people:** in an open, current roster she clicks a name, then another name on the
+  same day; the two exchange shift, seat, opener and closer. The swap goes through
+  `validateRoster` and `explain` like a solve: if a strict rule breaks, nothing changes and a line
+  says why (*"Ez a csere nem lehetséges: dajka nem ülhet óvónői helyre."*). A swap is an undo step
+  with its two cells marked; the roster is marked *kézzel módosítva*, and Számol or a quick fix asks
+  before dropping hand edits. Same-day only; filling a hole stays with the call-in button.
 - Every period's roster is saved (the yearly balance's history in v2).
 - **A week that is over is archived** (its Sunday is behind us): an *Archív* badge, the saved
   roster and warnings read-only, print and Excel kept; no Számol, fixes, group counts or outdated
@@ -437,9 +443,6 @@ later; her demo feedback will add to this list.
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
   fixed by pen — re-clicking Számol in v1 re-solves from scratch.
-- **Hand editing: swap two people** — click two cells to swap them; `explain` and
-  `validateRoster` rerun, so a swap can't sneak in a broken strict rule. Not a full editor. Edits
-  stay in the app so it never goes stale; undo and the changed-cell marks apply.
 - **Yearly balance** — derived from the saved rosters (what was actually worked), resets Sep 1;
   enters stage 6; `UNEVEN` names who had it better.
 - **Richer absences** — types (szabadság / beteg / egyéb), yearly leave allowance (~50 days),
