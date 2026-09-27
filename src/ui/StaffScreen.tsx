@@ -1,7 +1,9 @@
 import { ui } from '../i18n/hu'
 import { isRostered, type Action, type AppState } from '../state/appState'
 import type { Role, Staff } from '../core/types'
+import { today } from './dates'
 import { Info } from './Info'
+import { YearBalance } from './YearBalance'
 
 type Props = { state: AppState; dispatch: (action: Action) => void }
 
@@ -43,6 +45,7 @@ export function StaffScreen({ state, dispatch }: Props) {
           />
         ))}
       </div>
+      <YearBalance state={state} today={today()} />
     </section>
   )
 }

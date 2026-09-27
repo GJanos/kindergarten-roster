@@ -1,4 +1,4 @@
-import type { Balance, GapKind } from '../core/types'
+import type { Balance, GapKind, Shift } from '../core/types'
 import type { AppState } from './appState'
 
 /** Sep 1 of the kindergarten year `date` falls in (the year her balance resets). */
@@ -29,4 +29,45 @@ export function yearlyHistory(state: AppState, week: string): Balance {
     addInto(total, period.roster.balance)
   }
   return total
+}
+
+export type YearCounts = Record<Shift | Exclude<GapKind, 'morning'>, number>
+export type YearRow = { staffId: string; counts: YearCounts; deltas: Balance[string] }
+
+/**
+ * Each person's kindergarten year up to this week: days worked per shift, openings, closings and
+ * reserve days, counted from the saved rosters, plus their summed deltas. Teachers first.
+ */
+export function yearTotals(state: AppState, today: string): YearRow[] {
+  const from = yearStart(today)
+  const rows = new Map<string, YearRow>()
+  const rowOf = (staffId: string): YearRow => {
+    let row = rows.get(staffId)
+    if (!row) {
+      row = {
+        staffId,
+        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        deltas: {},
+      }
+      rows.set(staffId, row)
+    }
+    return row
+  }
+  const deltas: Balance = {}
+  for (const [monday, period] of Object.entries(state.periods)) {
+    if (monday < from || monday > today || !period.roster) continue
+    for (const a of period.roster.assignments) {
+      const { counts } = rowOf(a.staffId)
+      counts[a.shift]++
+      if (a.opener) counts.opener++
+      if (a.closer) counts.closer++
+      if (!a.seat) counts.reserve++
+    }
+    if (period.roster.balance) addInto(deltas, period.roster.balance)
+  }
+  for (const [staffId, mine] of Object.entries(deltas)) rowOf(staffId).deltas = mine
+  return state.staff
+    .filter((s) => !s.deleted && rows.has(s.id))
+    .sort((a, b) => (a.role === b.role ? 0 : a.role === 'teacher' ? -1 : 1))
+    .map((s) => rows.get(s.id)!)
 }

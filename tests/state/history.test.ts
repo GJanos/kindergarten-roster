@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { TEST_META } from '../core/fixtures'
+import { TEST_META, makeStaff } from '../core/fixtures'
 import type { Balance, Roster } from '../../src/core/types'
 import { emptyState, type AppState } from '../../src/state/appState'
-import { yearStart, yearlyHistory } from '../../src/state/history'
+import { yearStart, yearTotals, yearlyHistory } from '../../src/state/history'
 
 const saved = (monday: string, balance: Balance): { dayPlans: []; roster: Roster } => ({
   dayPlans: [],
@@ -52,5 +52,45 @@ describe('yearlyHistory', () => {
       },
     }
     expect(yearlyHistory(state, '2026-11-02')).toEqual({})
+  })
+})
+
+describe('yearTotals', () => {
+  it("counts the year's worked days per person up to this week, with the deltas", () => {
+    const monday = '2026-10-26'
+    const period = saved(monday, { t1: { morning: 0.5 }, n1: { opener: 0.5, reserve: -0.5 } })
+    period.roster.assignments = [
+      {
+        staffId: 't1',
+        date: monday,
+        shift: 'morning',
+        seat: { kind: 'teacher', group: 1, shift: 'morning' },
+      },
+      {
+        staffId: 'n1',
+        date: monday,
+        shift: 'morning',
+        seat: { kind: 'nanny', group: 1 },
+        opener: true,
+      },
+      { staffId: 'n1', date: '2026-10-27', shift: 'afternoon', closer: true },
+    ]
+    const state: AppState = {
+      ...emptyState(),
+      staff: makeStaff(1, 1),
+      periods: { [monday]: period, '2026-11-09': saved('2026-11-09', { t1: { morning: 9 } }) },
+    }
+    expect(yearTotals(state, '2026-11-05')).toEqual([
+      {
+        staffId: 't1',
+        counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        deltas: { morning: 0.5 },
+      },
+      {
+        staffId: 'n1',
+        counts: { morning: 1, afternoon: 1, opener: 1, closer: 1, reserve: 1 },
+        deltas: { opener: 0.5, reserve: -0.5 },
+      },
+    ])
   })
 })
