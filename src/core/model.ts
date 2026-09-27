@@ -1,3 +1,4 @@
+import { addDays } from './calendar'
 import { dayCapacities, type DayCapacity } from './capacity'
 import { fairShares, worstGapFloor, type GapKind } from './fairness'
 import { Lin, Milp } from './lp'
@@ -35,6 +36,8 @@ export const v = {
   holeClose: (d: number) => `hc_${d}`,
   gap: (kind: GapKind, p: number) => `g${kind[0]}_${p}`,
   worstGap: 'worst',
+  switch: (p: number, d: number) => `sw_${p}_${d}`,
+  turnaround: (p: number, d: number) => `tu_${p}_${d}`,
 }
 
 /** An open (not closed) day of the period. `present` holds indexes into `people`. */
@@ -183,6 +186,39 @@ export function buildModel(input: SolveInput): RosterModel {
   // Without this floor HiGHS can take seconds to prove what counting shows at once.
   const floor = worstGapFloor(shares)
   if (floor > 0) milp.constrain(new Lin().add(worst), '>=', floor)
+
+  // ── Group switches and turnarounds (§6.4) ─────────────────────────────────
+  for (let i = 0; i + 1 < days.length; i++) {
+    const today = days[i]
+    const tomorrow = days[i + 1]
+    const nextCalendarDay = addDays(today.date, 1) === tomorrow.date
+    for (const p of today.present) {
+      if (!isPresent(p, tomorrow)) continue
+      if (today.groups > 0 && tomorrow.groups > 0) {
+        // switch ≥ inGroup_g(today) + inAnyGroup(tomorrow) − inGroup_g(tomorrow) − 1
+        const sw = milp.nonNegative(v.switch(p, today.index))
+        objectives.switches.add(sw)
+        for (const g of groupNumbers(today.groups)) {
+          const moved = new Lin()
+            .plus(inGroup(today.index, p, g))
+            .plus(seats[tomorrow.index][p])
+            .plus(inGroup(tomorrow.index, p, g), -1)
+            .addConstant(-1)
+          milp.constrain(new Lin().add(sw), '>=', moved)
+        }
+      }
+      if (nextCalendarDay && !isTeacher(p)) {
+        // A nanny closing at 18:00 and opening at 6:00 the next day.
+        const tu = milp.nonNegative(v.turnaround(p, today.index))
+        objectives.turnarounds.add(tu)
+        const late = new Lin()
+          .add(v.shift(p, today.index, 'afternoon'))
+          .add(v.shift(p, tomorrow.index, 'morning'))
+          .addConstant(-1)
+        milp.constrain(new Lin().add(tu), '>=', late)
+      }
+    }
+  }
 
   return { milp, objectives, people, days, capacities }
 }
