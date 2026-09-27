@@ -428,7 +428,7 @@ v1 data migrates to v2 with every absence as leave.
 | Situation | What she sees |
 | --- | --- |
 | Shortage | not an error: a roster with warnings (§7) |
-| Solver or WASM fails to load, crashes, or exceeds 10 s | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
+| Solver or WASM fails to load, crashes, or exceeds 150 s (each stage stops itself at 15 s; a stage that does is noted on screen) | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
 | `validateRoster` finds a violation (a bug) | *"Hiba történt a beosztás készítésekor."* — the roster is not shown or printed |
 | Invalid restore file | rejected with a message; nothing changes |
 | Persistent storage refused | the footer asks her to back up more often |

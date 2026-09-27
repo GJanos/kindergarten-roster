@@ -90,3 +90,17 @@ describe('solveInWorker', () => {
     expect(FakeWorker.made[0].terminated).toBe(true)
   })
 })
+
+describe('the watchdog', () => {
+  it('outlasts every solver stage running to its own time limit', async () => {
+    const { SOLVE_TIMEOUT_MS } = await loadClient()
+    const { STAGES } = await import('../../src/core/model')
+    const { STAGE_TIME_LIMIT } = await import('../../src/core/solve')
+    expect(SOLVE_TIMEOUT_MS).toBeGreaterThan(STAGES.length * STAGE_TIME_LIMIT * 1000)
+  })
+
+  it('gives each stage room for a slow, busy laptop', async () => {
+    const { STAGE_TIME_LIMIT } = await import('../../src/core/solve')
+    expect(STAGE_TIME_LIMIT).toBeGreaterThanOrEqual(15)
+  })
+})

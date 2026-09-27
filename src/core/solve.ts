@@ -24,8 +24,12 @@ export type LpSolver = Pick<LegacyHighs, 'solve'>
 /** Fixed seed and proven optima at every stage: the same input gives the same roster. */
 export const HIGHS_OPTIONS = { random_seed: 0, mip_rel_gap: 0, output_flag: false } as const
 
-/** Seconds per stage. A stage that runs out keeps the best roster found so far. */
-export const STAGE_TIME_LIMIT = 4
+/**
+ * Seconds per stage. Realistic weeks need about 3 s in all (6–7 s in a browser), the slowest stage
+ * under 2 s; 15 s leaves room for a slow or busy laptop. A stage that runs out keeps the best
+ * roster found so far, and the roster says so (`stoppedEarly`).
+ */
+export const STAGE_TIME_LIMIT = 15
 
 /** Slack when a fractional optimum becomes the next stage's bound; far below any real difference. */
 const TOLERANCE = 1e-6
@@ -50,6 +54,7 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
   const model = buildModel(input)
   const bounds: Row[] = []
   let columns: Columns | undefined
+  let stoppedEarly: Stage | undefined
   for (const stage of STAGES) {
     const objective = model.objectives[stage]
     if (objective.isEmpty()) continue
@@ -65,11 +70,15 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
     // Out of time: every rule is a constraint, so the best roster found so far is valid.
     if (result.Status === 'Time limit reached') {
       if (hasSolution(result)) columns = result.Columns
-      if (columns) break
+      if (columns) {
+        stoppedEarly = stage
+        break
+      }
     }
     throw new SolveError(stage, result.Status)
   }
-  return decode(input, model, columns ?? {}, meta)
+  const roster = decode(input, model, columns ?? {}, meta)
+  return stoppedEarly ? { ...roster, stoppedEarly } : roster
 }
 
 /** Stopped before finding any roster, HiGHS reports an infinite objective yet fills every column. */

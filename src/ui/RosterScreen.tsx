@@ -267,6 +267,9 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 </button>
               </div>
             )}
+            {roster.stoppedEarly && !archived && !stale && (
+              <p className="stopped-early">{ui.roster.stoppedEarly}</p>
+            )}
             <div className={stale ? 'result outdated' : 'result'}>
               <WarningsPanel
                 warnings={roster.warnings}

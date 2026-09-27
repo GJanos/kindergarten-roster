@@ -224,6 +224,20 @@ describe('RosterScreen', () => {
     expect(screen.getByText('2. cs.: dajka helyett óvónő — Tímea.')).toBeTruthy()
   })
 
+  it('says so when the solver stopped early, and nothing when it finished', () => {
+    const early = reducer(base, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: { ...roster, stoppedEarly: 'switches' },
+      inputKey: inputKey(solveInputFor(base, WEEK)),
+    })
+    renderScreen(early)
+    expect(screen.getByText(/időkorlát miatt hamarabb leállt/)).toBeTruthy()
+    cleanup()
+    renderScreen(withRoster(base))
+    expect(screen.queryByText(/időkorlát miatt hamarabb leállt/)).toBeNull()
+  })
+
   it('reports a failed solve in words', async () => {
     vi.mocked(solveInWorker).mockRejectedValue(new SolveFailure('invalid'))
     renderScreen(base)

@@ -220,6 +220,8 @@ export const ui = {
     archived:
       'Ez a hét már elmúlt — a beosztás archív, nem módosítható. Nyomtatni és letölteni lehet.',
     archivedEmpty: 'Ehhez a héthez nincs mentett beosztás.',
+    stoppedEarly:
+      'A számolás időkorlát miatt hamarabb leállt (valószínűleg épp túl terhelt volt a gép). A beosztás érvényes, de lehet jobb is — érdemes újraszámolni.',
     staleTitle: 'Ez a beosztás elavult.',
     stale: 'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta.',
     resolve: 'Újraszámol',

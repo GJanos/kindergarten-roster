@@ -75,6 +75,7 @@ export type Roster = {
   warnings: Warning[]
   edited?: true // changed by hand after solving (v2 swaps); re-solving drops the edits
   balance?: Balance // its fairness deltas, summed into the yearly balance (v2)
+  stoppedEarly?: string // a solver stage that ran out of time: valid, but maybe not the best
   solvedAt: string
   appVersion: string
 }

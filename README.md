@@ -102,7 +102,7 @@ When the user presses _Számol_:
    working days from the Hungarian calendar (holidays out, working Saturdays in) and the group
    counts.
 2. **The worker:** it sends the input to a **Web Worker**, a second thread, so the page never
-   freezes. A 30 s watchdog replaces the worker if it ever hangs.
+   freezes. A 150 s watchdog, longer than all stages together, replaces the worker if it hangs.
 3. **The solver:** inside the worker runs **HiGHS**, an open-source C++ optimisation solver
    compiled to WebAssembly. It is loaded once and reused.
 4. **The model** (`src/core/model.ts`):
@@ -117,7 +117,8 @@ When the user presses _Számol_:
    person's fairness gap → the total gap → fewest group switches → fewest turnarounds.
    - After each stage its best value is locked in as a new rule, so a later stage can only choose
      among rosters that are equally good on everything before it.
-   - Each stage gets 4 s. A stage that runs out of time keeps the best roster found so far, and
+   - Each stage gets 15 s (a week needs about 3 s in all). A stage that runs out of time keeps the
+     best roster found so far — marked, so the screen suggests solving again — and
      only if HiGHS actually found one (a finite objective).
    - Fixed solver settings make the same input always give the same roster.
 6. **Decode:** the solution is turned back into a roster: who works which shift, in which seat,

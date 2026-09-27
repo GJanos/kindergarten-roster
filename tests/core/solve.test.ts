@@ -12,6 +12,10 @@ describe('solve', () => {
     expect(solve(input, highs, TEST_META)).toEqual(solve(input, highs, TEST_META))
   })
 
+  it('says nothing about stopping early when every stage finished', () => {
+    expect(solve(randomInput(7), highs, TEST_META).stoppedEarly).toBeUndefined()
+  })
+
   it('returns an empty roster when every day is closed', () => {
     const input = makeInput({
       teachers: 2,
@@ -38,6 +42,7 @@ describe('solve', () => {
     const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
     const roster = solve(input, slow, TEST_META)
     expect(calls).toBe(3)
+    expect(roster.stoppedEarly).toBe('totalGap') // holes, worstGap, then this one ran out
     expect(validateRoster(input, roster)).toEqual([])
   })
 
