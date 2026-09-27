@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { reducer, type Action, type AppState } from './appState'
 import { clearState, loadState, requestPersistence, saveState } from './storage'
 
@@ -11,12 +11,22 @@ export function useAppState() {
   const [persisted, setPersisted] = useState<boolean>()
   const [storageError, setStorageError] = useState(false)
 
+  // What storage last handed us. Writing it back would gain nothing and could overwrite a newer
+  // save from another window, so only states she changed are saved.
+  const loaded = useRef<AppState | null>(null)
+
   /** Reads the saved state again — after taking over from another window that kept editing. */
   const reload = useCallback(() => {
-    loadState().then(setState, () => {
-      setStorageError(true)
-      setState(null)
-    })
+    loadState().then(
+      (next) => {
+        loaded.current = next
+        setState(next)
+      },
+      () => {
+        setStorageError(true)
+        setState(null)
+      },
+    )
   }, [])
 
   useEffect(() => {
@@ -25,7 +35,7 @@ export function useAppState() {
   }, [reload])
 
   useEffect(() => {
-    if (state) saveState(state).catch(() => setStorageError(true))
+    if (state && state !== loaded.current) saveState(state).catch(() => setStorageError(true))
   }, [state])
 
   const dispatch = useCallback((action: Action) => {
