@@ -570,3 +570,38 @@ td {
 .roster-screen.archived .roster-table {
   filter: saturate(0.4);
 }
+
+/* Swapping: names are click targets; the picked one is marked until the second click. */
+.roster-table.editable [data-staff] {
+  margin: 0 -4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.roster-table.editable [data-staff]:hover {
+  background: var(--hover);
+}
+.roster-table .picked {
+  outline: 2px solid var(--green);
+  background: var(--changed-bg);
+}
+.swap-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 2px dashed var(--green);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.edited-badge {
+  margin-left: 10px;
+  padding: 1px 10px;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  color: var(--green);
+  font-size: 0.8rem;
+  vertical-align: middle;
+}

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { addDays, periodForWeek } from '../core/calendar'
 import { dayCapacities } from '../core/capacity'
+import { editRoster, type Swap } from '../core/edit'
 import type { Warning } from '../core/types'
 import { footnotes } from '../export/views'
 import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
@@ -40,6 +41,8 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const [error, setError] = useState<string>()
   const [hovered, setHovered] = useState<Warning>()
   const [editing, setEditing] = useState<string>()
+  const [picked, setPicked] = useState<{ staffId: string; date: string }>()
+  const [swapError, setSwapError] = useState<string>()
 
   const days = periodForWeek(week).days
   const period = periodState(state, week)
@@ -52,6 +55,43 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const open = !archived && days.length > 0
   const stale = !archived && roster !== undefined && period.rosterInputKey !== inputKey(input)
   const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined
+
+  // Swaps only in a current, open roster, and not while a solve runs.
+  const editable = roster !== undefined && !archived && !stale && !solving
+  const nameOf = (id: string) => state.staff.find((s) => s.id === id)?.displayName ?? '?'
+  // Re-solving throws hand edits away, so she is asked first.
+  const mayDropEdits = () => !roster?.edited || window.confirm(ui.roster.confirmDropEdits)
+
+  useEffect(() => {
+    if (!picked) return
+    const cancel = (event: KeyboardEvent) => event.key === 'Escape' && setPicked(undefined)
+    window.addEventListener('keydown', cancel)
+    return () => window.removeEventListener('keydown', cancel)
+  }, [picked])
+
+  const swap = (change: Swap) => {
+    if (!roster) return
+    const result = editRoster(input, roster, change)
+    if (!result.ok) {
+      setSwapError(ui.roster.swapRefused(result.violations.map((v) => v.rule)))
+      return
+    }
+    dispatch({ type: 'saveRoster', week, roster: result.roster, inputKey: inputKey(input) })
+    history.record({
+      week,
+      label: ui.roster.didSwap(nameOf(change.a), nameOf(change.b), change.date),
+      undo: [{ type: 'restoreRoster', week, roster, inputKey: period.rosterInputKey }],
+      changed: [...changedCells(roster, result.roster, state.staff, period.groupLabels)],
+    })
+  }
+
+  // First click picks, a second on the same day swaps; another day moves the pick.
+  const pick = (staffId: string, date: string) => {
+    setSwapError(undefined)
+    if (!picked || picked.date !== date) return setPicked({ staffId, date })
+    setPicked(undefined)
+    if (picked.staffId !== staffId) swap({ date, a: picked.staffId, b: staffId })
+  }
 
   /**
    * Solves `current` and saves the result. With `change` (the input edit that led here, and its
@@ -101,6 +141,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
 
   // One click: reduce the day or call someone in, then solve again.
   const fix = (dayFix: DayFix) => {
+    if (!mayDropEdits()) return
     const { date } = dayFix
     let action: Action, inverse: Action, label: string
     if (dayFix.kind === 'setGroups') {
@@ -141,6 +182,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         className={archived ? 'roster-screen screen-only archived' : 'roster-screen screen-only'}
       >
         <WeekBar
+          edited={roster?.edited === true}
           week={week}
           days={days}
           hasRoster={hasRoster}
@@ -184,7 +226,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           <button
             className={stale && !solving ? 'primary big attention' : 'primary big'}
             disabled={solving}
-            onClick={() => void solve(state)}
+            onClick={() => mayDropEdits() && void solve(state)}
           >
             {solving ? ui.roster.solving : ui.roster.solve}
           </button>
@@ -200,6 +242,13 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           />
         )}
 
+        {picked && (
+          <div className="swap-bar" aria-live="polite">
+            <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
+            <button onClick={() => setPicked(undefined)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {swapError && <p className="error">{swapError}</p>}
         {roster && (
           <>
             {stale && (
@@ -207,7 +256,11 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 <span>
                   <strong>{ui.roster.staleTitle}</strong> {ui.roster.stale}
                 </span>
-                <button className="primary" disabled={solving} onClick={() => void solve(state)}>
+                <button
+                  className="primary"
+                  disabled={solving}
+                  onClick={() => mayDropEdits() && void solve(state)}
+                >
                   {ui.roster.resolve}
                 </button>
               </div>
@@ -221,6 +274,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 onFix={archived ? undefined : fix}
               />
               <RosterTable
+                pick={editable ? { picked, onPick: pick } : undefined}
                 roster={roster}
                 staff={state.staff}
                 labels={period.groupLabels}

@@ -9,10 +9,11 @@ type Props = {
   /** Absent for a week that is over: its group count is history. */
   groups?: { count: number; onChange: (count: number) => void }
   archived: boolean
+  edited: boolean
 }
 
 /** ◀ the week ▶, a dot where a roster is saved, and the week's group count. */
-export function WeekBar({ week, days, hasRoster, onWeek, groups, archived }: Props) {
+export function WeekBar({ week, days, hasRoster, onWeek, groups, archived, edited }: Props) {
   return (
     <div className="bar">
       <button aria-label={ui.roster.previousWeek} onClick={() => onWeek(addDays(week, -7))}>
@@ -27,6 +28,7 @@ export function WeekBar({ week, days, hasRoster, onWeek, groups, archived }: Pro
           </span>
         )}
         {archived && <span className="archived-badge">{ui.roster.archivedBadge}</span>}
+        {edited && <span className="edited-badge">{ui.roster.editedBadge}</span>}
       </h2>
       <button aria-label={ui.roster.nextWeek} onClick={() => onWeek(addDays(week, 7))}>
         {hasRoster(addDays(week, 7)) && '• '}▶

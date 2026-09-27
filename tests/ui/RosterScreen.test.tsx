@@ -349,3 +349,81 @@ describe('RosterScreen archive', () => {
     expect(screen.getByText('Archív')).toBeTruthy()
   })
 })
+
+// A week open only on Wednesday, so the fixture roster passes every strict rule.
+const wedOnly = DAYS.filter((d) => d !== WED).reduce(
+  (state, date) => reducer(state, { type: 'setOverride', week: WEEK, date, groups: 0 }),
+  base,
+)
+const valid: Roster = {
+  ...roster,
+  groupsPerDay: Object.fromEntries(DAYS.map((d) => [d, d === WED ? 2 : 0])),
+}
+const withValid = reducer(wedOnly, {
+  type: 'saveRoster',
+  week: WEEK,
+  roster: valid,
+  inputKey: inputKey(solveInputFor(wedOnly, WEEK)),
+})
+
+describe('RosterScreen swap', () => {
+  it('swaps two people on the same day, marks both cells, and undoes it', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.getByText('T2 kiválasztva (szerda) — kattints arra, akivel cserél.')).toBeTruthy()
+    fireEvent.click(screenTable().getByText('DE: T1'))
+    expect(screen.getByText('Csere: T2 ↔ T1, szerda.')).toBeTruthy()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(2)
+    expect(screen.getByText('kézzel módosítva')).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screen.queryByText('kézzel módosítva')).toBeNull()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(0)
+  })
+
+  it('refuses a swap that breaks a rule, and changes nothing', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('Dajka: N1 (DE, nyit)'))
+    fireEvent.click(screenTable().getByText('T4 (DE)'))
+    expect(
+      screen.getByText('Ez a csere nem lehetséges: nyitni és zárni csak dajka tud.'),
+    ).toBeTruthy()
+    expect(screen.queryByText('↶ Visszavonás')).toBeNull()
+    expect(screenTable().getByText('Dajka: N1 (DE, nyit)')).toBeTruthy()
+  })
+
+  it('drops the selection on Mégse, on Escape, or on the same name again', () => {
+    render(<Harness initial={withValid} />)
+    const bar = /kiválasztva/
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    fireEvent.click(screen.getByText('Mégse'))
+    expect(screen.queryByText(bar)).toBeNull()
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByText(bar)).toBeNull()
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.queryByText(bar)).toBeNull()
+  })
+
+  it('offers no swaps in an archived week', () => {
+    vi.setSystemTime(new Date(2026, 10, 10, 12))
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.queryByText(/kiválasztva/)).toBeNull()
+  })
+
+  it('asks before re-solving drops hand edits', () => {
+    const edited = reducer(withValid, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: { ...valid, edited: true },
+      inputKey: inputKey(solveInputFor(wedOnly, WEEK)),
+    })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<Harness initial={edited} />)
+    fireEvent.click(screen.getByText('Számol'))
+    expect(confirm).toHaveBeenCalledWith('A kézi cserék elvesznek. Újraszámolod?')
+    expect(solveInWorker).not.toHaveBeenCalled()
+    confirm.mockRestore()
+  })
+})
