@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput, makeStaff, randomInput, seededRandom } from './fixtures'
 import { makeRoster } from '../../src/core/pipeline'
 import { validateRoster } from '../../src/core/validate'
+import { balanceOf } from '../../src/core/fairness'
 import type { Roster } from '../../src/core/types'
 import { editRoster, swapDay } from '../../src/core/edit'
 
@@ -102,6 +103,16 @@ describe('editRoster', () => {
     expect(result.roster.edited).toBe(true)
     expect(validateRoster(input, result.roster)).toEqual([])
     expect(Array.isArray(result.roster.warnings)).toBe(true)
+  })
+
+  it('stores the edited roster’s own deltas', () => {
+    const result = editRoster(input, base, {
+      date: MON,
+      a: seated[0].staffId,
+      b: seated[1].staffId,
+    })
+    if (!result.ok) throw new Error('must be accepted')
+    expect(result.roster.balance).toEqual(balanceOf(input, result.roster))
   })
 
   it('refuses a swap that breaks a strict rule, and says which', () => {

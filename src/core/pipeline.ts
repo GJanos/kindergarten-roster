@@ -1,4 +1,5 @@
 import { explain } from './explain'
+import { balanceOf } from './fairness'
 import { solve, type LpSolver } from './solve'
 import type { Roster, RosterMeta, SolveInput } from './types'
 import { validateRoster, type Violation } from './validate'
@@ -10,5 +11,8 @@ export function makeRoster(input: SolveInput, highs: LpSolver, meta: RosterMeta)
   const roster = solve(input, highs, meta)
   const violations = validateRoster(input, roster)
   if (violations.length > 0) return { ok: false, violations }
-  return { ok: true, roster: { ...roster, warnings: explain(input, roster) } }
+  return {
+    ok: true,
+    roster: { ...roster, warnings: explain(input, roster), balance: balanceOf(input, roster) },
+  }
 }

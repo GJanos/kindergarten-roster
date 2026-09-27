@@ -1,4 +1,5 @@
 import { explain } from './explain'
+import { balanceOf } from './fairness'
 import type { RosterResult } from './pipeline'
 import type { Assignment, Roster, SolveInput, Staff } from './types'
 import { validateRoster } from './validate'
@@ -48,5 +49,13 @@ export function editRoster(input: SolveInput, roster: Roster, swap: Swap): Roste
   const swapped = swapDay(roster, input.staff, swap)
   const violations = validateRoster(input, swapped)
   if (violations.length > 0) return { ok: false, violations }
-  return { ok: true, roster: { ...swapped, edited: true, warnings: explain(input, swapped) } }
+  return {
+    ok: true,
+    roster: {
+      ...swapped,
+      edited: true,
+      warnings: explain(input, swapped),
+      balance: balanceOf(input, swapped),
+    },
+  }
 }
