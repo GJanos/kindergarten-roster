@@ -154,6 +154,10 @@ export const ui = {
       'Végleges. Ha valaki csak egy ideig nem dolgozik, inkább vedd ki az Aktív jelölést.',
     activeHint:
       'Aki nem aktív, az nem kerül a beosztásba és a távolléti táblába. Bármikor visszakapcsolható.',
+    leaveAllowance: 'Szabadság/év',
+    leaveAllowanceHint:
+      'Éves szabadságkeret napokban. Üresen hagyva nem követjük. A Távollétek fülön látszik, ' +
+      'mennyi fogyott el belőle.',
     confirmRemove: (name: string) => `Biztosan törlöd: ${name}?`,
     confirmRemoveRostered: (name: string) =>
       `${name} már szerepelt beosztásban. Ha csak egy ideig nem dolgozik, inkább vedd ki az ` +
@@ -174,6 +178,7 @@ export const ui = {
       'Törlés: végleges. Aki már szerepelt beosztásban, annak a neve a korábbi heteken megmarad.',
       'Megjelenő név: ez szerepel a beosztásban és a nyomtatásban. Legyen rövid, és ne legyen két egyforma.',
       'A → Dajka és → Óvónő gombbal lehet valakit a másik oszlopba tenni.',
+      'Szabadság/év: ha megadod, a Távollétek fülön látszik, mennyi fogyott el a keretből.',
     ],
   },
   absences: {

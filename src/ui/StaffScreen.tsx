@@ -83,6 +83,9 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
               <th>
                 {ui.staff.active} <Info text={ui.staff.activeHint} />
               </th>
+              <th>
+                {ui.staff.leaveAllowance} <Info text={ui.staff.leaveAllowanceHint} />
+              </th>
               <th />
               <th />
             </tr>
@@ -115,6 +118,23 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                       aria-label={ui.staff.active}
                       checked={s.active}
                       onChange={(e) => update(s.id, { active: e.target.checked })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      className="allowance"
+                      aria-label={ui.staff.leaveAllowance}
+                      value={s.leaveAllowance ?? ''}
+                      onChange={(e) =>
+                        update(s.id, {
+                          leaveAllowance:
+                            e.target.value === ''
+                              ? undefined
+                              : Math.max(0, Math.round(Number(e.target.value))),
+                        })
+                      }
                     />
                   </td>
                   <td>

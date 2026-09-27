@@ -114,6 +114,30 @@ describe('StaffScreen', () => {
     expect(dispatch).not.toHaveBeenCalled()
   })
 
+  it('sets a yearly leave allowance, empty for none', () => {
+    const dispatch = renderScreen(run(...person('a', 'Kiss Anna')))
+    fireEvent.change(screen.getByLabelText('Szabadság/év'), { target: { value: '50' } })
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: 'updateStaff',
+      id: 'a',
+      patch: { leaveAllowance: 50 },
+    })
+    cleanup()
+    // The dispatch is a stub, so clearing starts from someone who already has an allowance.
+    const tracked = run(...person('a', 'Kiss Anna'), {
+      type: 'updateStaff',
+      id: 'a',
+      patch: { leaveAllowance: 40 },
+    })
+    const clear = renderScreen(tracked)
+    fireEvent.change(screen.getByLabelText('Szabadság/év'), { target: { value: '' } })
+    expect(clear).toHaveBeenLastCalledWith({
+      type: 'updateStaff',
+      id: 'a',
+      patch: { leaveAllowance: undefined },
+    })
+  })
+
   it('hides deleted people, also from the duplicate check', () => {
     const state = run(
       ...person('a', 'Kiss Anna', 'Anna'),
