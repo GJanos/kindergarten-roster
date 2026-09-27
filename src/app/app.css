@@ -20,7 +20,6 @@
   --hover: #eef5f1;
   --changed-bg: #e3f3ea;
   --off-text: #a0a0a0;
-  --absent-fill: #8f6ad8; /* violet: taken by nothing else (orange/red = warnings) */
   color-scheme: light;
   font-family: system-ui, 'Segoe UI', sans-serif;
   font-size: 16px;
@@ -54,7 +53,6 @@
     --hover: #24302a;
     --changed-bg: #1d3327;
     --off-text: #70767c;
-    --absent-fill: #8a6ee0;
     color-scheme: dark;
   }
 }
@@ -81,7 +79,6 @@
     --hover: #24302a;
     --changed-bg: #1d3327;
     --off-text: #70767c;
-    --absent-fill: #8a6ee0;
     color-scheme: dark;
   }
 }
@@ -356,12 +353,12 @@ td {
   color: var(--off-text);
   font-weight: normal;
 }
-/* An absence is a violet bar; days next to each other join into one stretch. */
+/* An absence is a bar in the theme green; days next to each other join into one stretch. */
 .absence-grid .bar-mark {
   position: absolute;
   inset: 6px 3px;
   border-radius: 6px;
-  background: var(--absent-fill);
+  background: var(--green);
 }
 .absence-grid .join-left .bar-mark {
   left: -1px;

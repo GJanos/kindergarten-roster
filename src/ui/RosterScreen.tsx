@@ -47,7 +47,8 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const input = solveInputFor(state, week)
   const capacities = days.length > 0 ? dayCapacities(input) : []
   const roster = period.roster
-  const archived = addDays(week, 6) < today() // the whole week, Sunday included, is behind us
+  // Over once its last working day has passed (usually Friday; a working Saturday counts).
+  const archived = (days.at(-1) ?? addDays(week, 6)) < today()
   const open = !archived && days.length > 0
   const stale = !archived && roster !== undefined && period.rosterInputKey !== inputKey(input)
   const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined

@@ -317,4 +317,16 @@ describe('RosterScreen archive', () => {
     expect(screen.queryByText('Archív')).toBeNull()
     expect(screen.getByText('Számol')).toBeTruthy()
   })
+
+  it('keeps it open on its last working day', () => {
+    vi.setSystemTime(new Date(2026, 9, 30, 12)) // Friday
+    renderScreen(withRoster(base))
+    expect(screen.queryByText('Archív')).toBeNull()
+  })
+
+  it('archives it once the last working day is over, weekend or not', () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 12)) // the Sunday after
+    renderScreen(withRoster(base))
+    expect(screen.getByText('Archív')).toBeTruthy()
+  })
 })
