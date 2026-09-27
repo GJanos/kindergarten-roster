@@ -1,4 +1,5 @@
 import { dayCapacities, type DayCapacity } from './capacity'
+import { fairShares, worstGapFloor, type GapKind } from './fairness'
 import { Lin, Milp } from './lp'
 import { SHIFTS, type Shift, type SolveInput, type Staff } from './types'
 
@@ -32,6 +33,8 @@ export const v = {
   holeTeacher: (d: number, g: number, t: Shift) => `ht_${d}_${g}_${t[0]}`,
   holeOpen: (d: number) => `ho_${d}`,
   holeClose: (d: number) => `hc_${d}`,
+  gap: (kind: GapKind, p: number) => `g${kind[0]}_${p}`,
+  worstGap: 'worst',
 }
 
 /** An open (not closed) day of the period. `present` holds indexes into `people`. */
@@ -149,6 +152,37 @@ export function buildModel(input: SolveInput): RosterModel {
       milp.constrain(Lin.sum(days.map((day) => v.close(p, day.index))), '<=', days.length - 1)
     })
   }
+
+  // ── Fairness (§6.3): |count − share| ≤ gap, rows scaled by `den` ─────────
+  const shares = fairShares(input)
+  const worst = milp.nonNegative(v.worstGap)
+  objectives.worstGap.add(worst)
+  const indexOf = new Map(people.map((s, p) => [s.id, p]))
+  const dayIndex = new Map(days.map((day) => [day.date, day.index]))
+  for (const share of shares) {
+    const p = indexOf.get(share.staffId)!
+    const ds = share.days.map((date) => dayIndex.get(date)!)
+    const count =
+      share.kind === 'morning'
+        ? Lin.sum(ds.map((d) => v.shift(p, d, 'morning')))
+        : share.kind === 'opener'
+          ? Lin.sum(ds.map((d) => v.open(p, d)))
+          : share.kind === 'closer'
+            ? Lin.sum(ds.map((d) => v.close(p, d)))
+            : ds.reduce((reserve, d) => reserve.plus(seats[d][p], -1), Lin.constant(ds.length))
+    const gap = milp.nonNegative(v.gap(share.kind, p))
+    const scaled = new Lin().add(gap, share.den)
+    milp.constrain(scaled, '>=', new Lin().plus(count, share.den).addConstant(-share.num))
+    milp.constrain(scaled, '>=', new Lin().plus(count, -share.den).addConstant(share.num))
+    // A whole count is never closer to its share than the share is to a whole number.
+    const r = share.num % share.den
+    if (r !== 0) milp.constrain(scaled, '>=', Math.min(r, share.den - r))
+    milp.constrain(new Lin().add(worst), '>=', new Lin().add(gap))
+    objectives.totalGap.add(gap)
+  }
+  // Without this floor HiGHS can take seconds to prove what counting shows at once.
+  const floor = worstGapFloor(shares)
+  if (floor > 0) milp.constrain(new Lin().add(worst), '>=', floor)
 
   return { milp, objectives, people, days, capacities }
 }
