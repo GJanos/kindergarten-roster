@@ -1,7 +1,7 @@
 import { periodForWeek } from '../core/calendar'
 import type { Absence, DayPlan, Role, Roster, Staff } from '../core/types'
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 export const DEFAULT_GROUPS = 2
 
 export type PeriodState = {
@@ -74,7 +74,7 @@ export function reducer(state: AppState, action: Action): AppState {
       const dates = new Set(action.dates)
       const kept = state.absences.filter((a) => a.staffId !== action.staffId || !dates.has(a.date))
       const added = action.absent
-        ? [...dates].map((date) => ({ staffId: action.staffId, date }))
+        ? [...dates].map((date) => ({ staffId: action.staffId, date, kind: 'leave' as const }))
         : []
       return { ...state, absences: [...kept, ...added] }
     }

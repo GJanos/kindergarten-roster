@@ -27,7 +27,7 @@ export function sliceInput(file: SliceFile): SolveInput {
     if (!staffId) throw new Error(`Unknown name in "absent": ${name}`)
     return dates.map((date) => {
       if (!days.includes(date)) throw new Error(`${name}: ${date} is not one of the days`)
-      return { staffId, date }
+      return { staffId, date, kind: 'leave' as const }
     })
   })
   const dayPlans: DayPlan[] = days.map((date) => {

@@ -15,8 +15,11 @@ export type Staff = {
   role: Role
   active: boolean
   deleted?: true // deleted after appearing in a roster: hidden, kept so old weeks keep the name
+  leaveAllowance?: number // leave days per calendar year; absent = not tracked (v2)
+  leaveCarry?: Record<string, number> // days carried into a calendar year ('2026' → 3), typed by her
 }
-export type Absence = { staffId: string; date: string } // ISO date, one row per absent day
+export type AbsenceKind = 'leave' | 'sick' | 'other' // szabadság, beteg, egyéb
+export type Absence = { staffId: string; date: string; kind: AbsenceKind } // one row per absent day
 
 export type Period = { start: string; days: string[] } // working days only, 1–6 of them
 export type DayPlan = { date: string; requestedGroups: number; override?: number } // override 0 = closed

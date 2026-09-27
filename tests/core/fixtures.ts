@@ -36,7 +36,7 @@ export type InputSpec = {
 export function makeInput(spec: InputSpec): SolveInput {
   const days = spec.days ?? consecutiveDays('2026-10-26', 5)
   const absences: Absence[] = Object.entries(spec.absent ?? {}).flatMap(([staffId, dates]) =>
-    dates.map((date) => ({ staffId, date })),
+    dates.map((date) => ({ staffId, date, kind: 'leave' as const })),
   )
   const dayPlans: DayPlan[] = days.map((date) => {
     const override = spec.overrides?.[date]
@@ -72,7 +72,9 @@ export function randomInput(seed: number): SolveInput {
   const input = makeInput({ teachers: int(2, 10), nannies: int(1, 6), groups, days })
   const absenceRate = random() * 0.3
   input.absences = input.staff.flatMap((s) =>
-    days.filter(() => random() < absenceRate).map((date) => ({ staffId: s.id, date })),
+    days
+      .filter(() => random() < absenceRate)
+      .map((date) => ({ staffId: s.id, date, kind: 'leave' as const })),
   )
   input.dayPlans = days.map((date) =>
     random() < 0.1

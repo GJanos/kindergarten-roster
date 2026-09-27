@@ -17,7 +17,7 @@ describe('solveInputFor', () => {
   it('takes the active staff and the week’s absences and days', () => {
     const input = solveInputFor(base(), WEEK)
     expect(input.staff.map((s) => s.id)).toEqual(['a'])
-    expect(input.absences).toEqual([{ staffId: 'a', date: '2026-10-27' }])
+    expect(input.absences).toEqual([{ staffId: 'a', date: '2026-10-27', kind: 'leave' }])
     expect(input.period.days).toHaveLength(5)
     expect(input.dayPlans).toHaveLength(5)
   })

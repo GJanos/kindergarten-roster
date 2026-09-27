@@ -38,8 +38,8 @@ function people(names: string[], role: Staff['role']): Staff[] {
 export function demoState(today: string): AppState {
   const week = defaultWeek(today)
   const days = periodForWeek(week).days
-  const away = (staffId: string, dates: string[]): Absence[] =>
-    dates.map((date) => ({ staffId, date }))
+  const away = (staffId: string, dates: string[], kind: Absence['kind'] = 'leave'): Absence[] =>
+    dates.map((date) => ({ staffId, date, kind }))
   return {
     ...emptyState(),
     demo: true,
@@ -47,7 +47,7 @@ export function demoState(today: string): AppState {
     absences: [
       ...away('demo-teacher-1', days),
       ...away('demo-teacher-3', days.slice(2, 4)),
-      ...away('demo-teacher-7', days.slice(-1)),
+      ...away('demo-teacher-7', days.slice(-1), 'sick'),
       ...away('demo-nanny-2', days.slice(0, 1)),
     ],
     periods: { [week]: { dayPlans: days.map((date) => ({ date, requestedGroups: 3 })) } },

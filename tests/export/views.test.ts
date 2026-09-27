@@ -93,7 +93,7 @@ describe('groupView', () => {
 })
 
 describe('personView', () => {
-  const view = personView(roster, staff, [{ staffId: 'n2', date: MON }])
+  const view = personView(roster, staff, [{ staffId: 'n2', date: MON, kind: 'other' }])
 
   it('lists teachers, then nannies', () => {
     expect(view.rows.map((r) => r.name)).toEqual(['T1', 'T2', 'T3', 'N1', 'N2'])

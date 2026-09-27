@@ -20,7 +20,7 @@ describe('sliceInput', () => {
         { id: 's1', fullName: 'Anna', displayName: 'Anna', role: 'teacher', active: true },
         { id: 's2', fullName: 'Kati', displayName: 'Kati', role: 'nanny', active: true },
       ],
-      absences: [{ staffId: 's2', date: '2026-08-24' }],
+      absences: [{ staffId: 's2', date: '2026-08-24', kind: 'leave' }],
       period: { start: '2026-08-24', days: ['2026-08-24', '2026-08-25'] },
       dayPlans: [
         { date: '2026-08-24', requestedGroups: 2 },

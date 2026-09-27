@@ -87,7 +87,7 @@ describe('absences', () => {
       dates: ['2026-10-26'],
       absent: false,
     })
-    expect(cleared.absences).toEqual([{ staffId: 'a', date: '2026-10-27' }])
+    expect(cleared.absences).toEqual([{ staffId: 'a', date: '2026-10-27', kind: 'leave' }])
   })
 })
 

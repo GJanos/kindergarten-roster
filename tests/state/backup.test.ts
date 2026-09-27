@@ -18,6 +18,7 @@ function bigState(): AppState {
     Array.from({ length: 60 }, (_, d) => ({
       staffId: s.id,
       date: `2026-${String(9 + (d % 3)).padStart(2, '0')}-${String(1 + (d % 28)).padStart(2, '0')}`,
+      kind: 'leave' as const,
     })),
   )
   return { ...emptyState(), staff, absences, lastBackupAt: '2026-10-01T10:00:00.000Z' }

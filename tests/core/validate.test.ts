@@ -66,7 +66,7 @@ describe('validateRoster', () => {
 
   it('keeps the absent at home', () => {
     const { input, roster } = setup()
-    input.absences = [{ staffId: 'n2', date: D }]
+    input.absences = [{ staffId: 'n2', date: D, kind: 'leave' }]
     expect(rules(input, roster)).toContain('absentButWorking')
   })
 
