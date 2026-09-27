@@ -54,7 +54,7 @@ from the shift. **Shift times are never stretched** — her rule: time limits ar
 - **Nobody opens, or closes, on every working day of the period.**
 - **As equal as possible** — within the period first, across the kindergarten year second. When a
   period can't be perfectly equal, the less favourable share goes to whoever has had it better this
-  year (v2).
+  year.
 - **Same group all period** — soft.
 - **Group count fixed for the period** (a per-day override exists for shortages, §6.6).
 - No personal requests, no pairing rules, no ügyelet.
@@ -237,7 +237,12 @@ switches can outweigh a fairness gain.
    period.
 4. **Total gap** — with every gap ≤ M\*, minimise the sum → E\*.
 5. **Group switches** — keep people in the same room.
-6. **Turnarounds** — and in v2 the yearly balance, as a tie-breaker.
+6. **Turnarounds.**
+7. **Yearly balance** — the tie-break of last resort. Each roster stores its fairness deltas
+   (`count − share` per person and count); the kindergarten year's earlier rosters (Sep 1 onwards,
+   by the week's Monday) are summed into `SolveInput.history`, and this stage minimises
+   `Σ history × count`, so the rounded-up unit goes to whoever is behind this year. Rosters saved
+   before v2 have no deltas and count as zero. The history is not part of the input fingerprint.
 
 Six solves of ~500 binaries take milliseconds. HiGHS runs with a **fixed seed**: the same input
 gives the same roster every time.
@@ -286,7 +291,7 @@ footnotes (the wall shows a forced choice, not a bug); grey stays on screen.
 | `CLOSED_DAY` | orange | 0 groups | *Szerdán zárva.* | — |
 | `GROUP_SWITCH` | grey | a switch survived stage 5 | *Dalma csütörtöktől a 2. csoportban.* | — |
 | `TURNAROUND` | grey | nanny afternoon → morning | *Nóra kedden 18:00-ig, szerdán 6:00-tól.* | — |
-| `UNEVEN` | grey | someone's gap ≥ 1 after stage 4 | *Egyenlő elosztás nem volt lehetséges: Nóra 3 délutános műszak az 5-ből.* | v2: who "had it better" |
+| `UNEVEN` | grey | someone's gap ≥ 1 after stage 4 | *Egyenlő elosztás nem volt lehetséges: Nóra 3 délutános műszak az 5-ből.* | — ; adds *"Idén eddig 2 délutánnal több jutott neki."* when the year is ≥ 1 day off |
 
 The panel sits above the result, ordered by day then severity; the Beosztás tab shows a count
 badge; hovering a warning highlights its cells. Warnings are saved with the roster. Wording is
@@ -315,6 +320,10 @@ Aktív, Törlés and the display name.
 someone already rostered recommends unticking Aktív instead. Deleting them anyway hides them
 (`deleted: true`, inactive) but keeps the record, so past rosters keep the name. Someone never
 rostered is deleted outright.
+
+**Éves egyenleg (2026/27)** — a folded table at the bottom: per person the year's mornings,
+afternoons, openings, closings and reserve days from the saved rosters, each with its difference
+from an equal share, e.g. *12 (+1,5)*.
 
 ### 8.2 Távollétek
 
@@ -443,8 +452,6 @@ later; her demo feedback will add to this list.
   later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
   side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
   fixed by pen — re-clicking Számol in v1 re-solves from scratch.
-- **Yearly balance** — derived from the saved rosters (what was actually worked), resets Sep 1;
-  enters stage 6; `UNEVEN` names who had it better.
 - **Richer absences** — types (szabadság / beteg / egyéb), yearly leave allowance (~50 days),
   balance *32 / 50 nap*, carry-over; call-in suggestions prefer people on leave over the sick.
 - Month overview polish.
