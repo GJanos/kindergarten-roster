@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { dayCapacities, gMax } from '../../src/core/capacity'
+import {
+  dayCapacities,
+  gMax,
+  groupsWithoutTeacherHoles,
+  zeroHoleNeeds,
+} from '../../src/core/capacity'
 import { makeInput } from './fixtures'
 
 const D = '2026-10-26'
@@ -72,5 +77,19 @@ describe('dayCapacities', () => {
     const input = makeInput({ teachers: 2, nannies: 2, groups: 1, days: [D] })
     input.dayPlans = []
     expect(() => dayCapacities(input)).toThrow(/No day plan/)
+  })
+})
+
+describe('shortage helpers', () => {
+  it('knows what a day needs for zero holes', () => {
+    expect(zeroHoleNeeds(0)).toEqual({ teachers: 0, nannies: 2 })
+    expect(zeroHoleNeeds(1)).toEqual({ teachers: 2, nannies: 2 })
+    expect(zeroHoleNeeds(3)).toEqual({ teachers: 6, nannies: 3 })
+  })
+
+  it('suggests the largest group count with every teacher seat filled', () => {
+    expect(groupsWithoutTeacherHoles(3, 2, 2)).toBe(1)
+    expect(groupsWithoutTeacherHoles(5, 1, 3)).toBe(2)
+    expect(groupsWithoutTeacherHoles(1, 3, 2)).toBeUndefined()
   })
 })

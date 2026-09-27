@@ -38,3 +38,21 @@ export function dayCapacities(input: SolveInput): DayCapacity[] {
     }
   })
 }
+
+/** Staff a day needs for zero holes: two teachers per group, a nanny per group, two nannies for the keys. */
+export function zeroHoleNeeds(groups: number): { teachers: number; nannies: number } {
+  return { teachers: 2 * groups, nannies: Math.max(groups, 2) }
+}
+
+/** The largest group count below `below` that leaves no teacher seat empty, if any. */
+export function groupsWithoutTeacherHoles(
+  teachers: number,
+  nannies: number,
+  below: number,
+): number | undefined {
+  for (let groups = below - 1; groups >= 1; groups--) {
+    // Substitutes fill the nanny seats nannies cannot, and each one takes a teacher.
+    if (teachers >= 2 * groups + Math.max(0, groups - nannies)) return groups
+  }
+  return undefined
+}
