@@ -647,6 +647,29 @@ td {
   gap: 8px;
   margin-left: 16px;
 }
+/* Month or week: a joined pair, since exactly one is on. */
+.views {
+  display: flex;
+  margin-right: 12px;
+}
+.views button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.views button:last-child {
+  margin-left: -2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+/* The week view: a handful of wide columns with full day headers. */
+.absence-grid.wide td,
+.absence-grid.wide thead th {
+  width: 110px;
+  min-width: 110px;
+}
+.absence-grid.wide td {
+  height: 36px;
+}
 .kinds .kind-sick.on {
   background: var(--orange);
   border-color: var(--orange);

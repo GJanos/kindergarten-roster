@@ -192,6 +192,10 @@ export const ui = {
     hint: 'Válaszd ki a fajtát, aztán kattints egy napra, vagy húzd végig az egeret a soron. Ugyanazzal a fajtával újra kattintva törlöd.',
     previous: 'Előző hónap',
     next: 'Következő hónap',
+    previousWeek: 'Előző hét',
+    nextWeek: 'Következő hét',
+    views: { month: 'Hónap', week: 'Hét' },
+    viewsLabel: 'Nézet',
     noStaff: 'Előbb vedd fel a munkatársakat.',
     kindsLabel: 'Távollét fajtája',
     kinds: { leave: 'Szabadság', sick: 'Beteg', other: 'Egyéb' } satisfies Record<

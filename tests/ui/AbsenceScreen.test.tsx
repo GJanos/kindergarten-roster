@@ -237,3 +237,50 @@ describe('AbsenceScreen at a glance', () => {
     expect(screen.getByText('2026. október')).toBeTruthy()
   })
 })
+
+describe('AbsenceScreen week view', () => {
+  it("shows the shared week's working days, full headers, painting as in the month", () => {
+    const dispatch = vi.fn<(action: Action) => void>()
+    render(<Screen state={state} dispatch={dispatch} week="2026-10-19" />)
+    fireEvent.click(screen.getByText('Hét'))
+    expect(screen.getByText('2026. október 19 – 22.')).toBeTruthy() // Friday the 23rd is a holiday
+    expect(screen.getByText('Hétfő 10.19.')).toBeTruthy()
+    expect(screen.queryByLabelText('Anna 2026-10-23')).toBeNull()
+    expect(document.querySelectorAll('thead th')).toHaveLength(5) // names + 4 days
+    fireEvent.pointerDown(screen.getByLabelText('Anna 2026-10-20'))
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'setAbsent',
+      staffId: 'a',
+      dates: ['2026-10-20'],
+      absent: true,
+      kind: 'leave',
+    })
+  })
+
+  it('steps week by week, moving the week Beosztás shows too', () => {
+    const onWeek = vi.fn()
+    render(<Screen state={state} dispatch={vi.fn()} onWeek={onWeek} />)
+    fireEvent.click(screen.getByText('Hét'))
+    fireEvent.click(screen.getByLabelText('Következő hét'))
+    expect(onWeek).toHaveBeenLastCalledWith('2026-11-02')
+    expect(screen.getByText('2026. november 2 – 6.')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('Előző hét'))
+    fireEvent.click(screen.getByLabelText('Előző hét'))
+    expect(onWeek).toHaveBeenLastCalledWith('2026-10-19')
+  })
+
+  it('jumps to the current week, offered only away from it', () => {
+    render(<Screen state={state} dispatch={vi.fn()} />) // week of Oct 26; today is Oct 5
+    fireEvent.click(screen.getByText('Hét'))
+    fireEvent.click(screen.getByText('Ma'))
+    expect(screen.getByText('2026. október 5 – 9.')).toBeTruthy()
+    expect(screen.queryByText('Ma')).toBeNull()
+  })
+
+  it('opens the month of the week when switching back', () => {
+    render(<Screen state={state} dispatch={vi.fn()} week="2026-11-30" />)
+    fireEvent.click(screen.getByText('Hét'))
+    fireEvent.click(screen.getByText('Hónap'))
+    expect(screen.getByText('2026. november')).toBeTruthy()
+  })
+})
