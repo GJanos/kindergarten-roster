@@ -1,8 +1,11 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput, randomInput } from './fixtures'
-import { anchorModel, recalcInput } from '../../src/core/recalc'
+import { anchorModel, recalcInput, scheduleChanges } from '../../src/core/recalc'
 import { buildModel, v } from '../../src/core/model'
+import { makeRoster } from '../../src/core/pipeline'
+import { demoState } from '../../src/demo/demoData'
+import { solveInputFor } from '../../src/state/solveInput'
 import { solve } from '../../src/core/solve'
 import { validateRoster } from '../../src/core/validate'
 import type { Anchor, Assignment, Roster, Shift } from '../../src/core/types'
@@ -224,4 +227,77 @@ describe('anchored solve', () => {
     },
     120_000,
   )
+})
+
+describe('makeRoster with an anchor', () => {
+  it('solves from the anchor, and a hand-edited anchor keeps its mark', () => {
+    const input = makeInput({
+      teachers: 3,
+      nannies: 3,
+      groups: 1,
+      days: [WED],
+      absent: { t2: [WED] },
+    })
+    const anchor: Anchor = { roster: { ...wall, edited: true }, from: WED, mode: 'minimal' }
+    const result = makeRoster(input, highs, TEST_META, anchor)
+    if (!result.ok) throw new Error('expected a roster')
+    expect(result.roster.edited).toBe(true)
+    expect(of(result.roster, 't3')?.seat).toEqual({
+      kind: 'teacher',
+      group: 1,
+      shift: 'afternoon',
+    })
+  })
+
+  it('refuses an anchor from another period', () => {
+    const input = makeInput({ teachers: 3, nannies: 3, groups: 1, days: [TUE] })
+    expect(() => makeRoster(input, highs, TEST_META, keeping(TUE, wall))).toThrow()
+  })
+})
+
+describe('scheduleChanges', () => {
+  it('lists the days from `from` on that someone still works, but differently', () => {
+    const after = oneDay(
+      wall.assignments
+        .filter((a) => a.staffId !== 't2')
+        .map((a) =>
+          a.staffId === 't3'
+            ? day('t3', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' } })
+            : a.staffId === 'n3'
+              ? day('n3', 'afternoon')
+              : a,
+        ),
+    )
+    expect(scheduleChanges(wall, after, WED)).toEqual([
+      { staffId: 't3', date: WED, before: of(wall, 't3'), after: of(after, 't3'), hours: false },
+      { staffId: 'n3', date: WED, before: of(wall, 'n3'), after: of(after, 'n3'), hours: true },
+    ])
+    expect(scheduleChanges(wall, after, '2026-10-29')).toEqual([])
+  })
+})
+
+describe('a realistic week', () => {
+  it('changes one or two people for a sick nanny — far fewer than a full re-plan', () => {
+    const state = demoState('2026-09-18')
+    const input = solveInputFor(state, '2026-10-26')
+    const before = solve(input, highs, TEST_META)
+    const sick = {
+      ...input,
+      absences: [
+        ...input.absences,
+        ...[WED, '2026-10-29'].map((date) => ({
+          staffId: 'demo-nanny-1',
+          date,
+          kind: 'sick' as const,
+        })),
+      ],
+    }
+    const changedPeople = (mode: Anchor['mode']) => {
+      const anchor: Anchor = { roster: before, from: WED, mode }
+      const after = solve(recalcInput(sick, anchor)!, highs, TEST_META, anchor)
+      return new Set(scheduleChanges(before, after, WED).map((c) => c.staffId)).size
+    }
+    expect(changedPeople('minimal')).toBeLessThanOrEqual(2)
+    expect(changedPeople('minimal')).toBeLessThan(changedPeople('full'))
+  }, 120_000)
 })

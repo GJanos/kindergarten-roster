@@ -10,9 +10,9 @@ const post = (message: SolveResponse) =>
   (self as unknown as { postMessage(message: SolveResponse): void }).postMessage(message)
 
 self.onmessage = async (event: MessageEvent<SolveRequest>) => {
-  const { id, input, meta } = event.data
+  const { id, input, meta, anchor } = event.data
   try {
-    const result = makeRoster(input, await highs, meta)
+    const result = makeRoster(input, await highs, meta, anchor)
     post(
       result.ok
         ? { id, ok: true, roster: result.roster }

@@ -1,7 +1,7 @@
 import { dayCapacities } from './capacity'
 import { Lin } from './lp'
 import { v, type RosterModel } from './model'
-import type { Absence, Anchor, Assignment, DayPlan, SolveInput } from './types'
+import type { Absence, Anchor, Assignment, DayPlan, Roster, SolveInput } from './types'
 
 /**
  * The input a recalculation solves. Days before `anchor.from` are history: who worked them, and
@@ -123,4 +123,40 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
       objectives.keepDuties.add(duties)
     }
   }
+}
+
+export type ScheduleChange = {
+  staffId: string
+  date: string
+  before: Assignment
+  after: Assignment
+  hours: boolean // the shift changed, not just the seat or the key
+}
+
+const seatKey = (a: Assignment) =>
+  a.seat ? `${a.seat.kind}${a.seat.group}${a.seat.kind === 'teacher' ? a.seat.shift : ''}` : ''
+
+const sameDay = (a: Assignment, b: Assignment) =>
+  a.shift === b.shift &&
+  seatKey(a) === seatKey(b) &&
+  !a.opener === !b.opener &&
+  !a.closer === !b.closer &&
+  !a.substitution === !b.substitution
+
+/** Days from `from` on that someone works both before and after, but differently. */
+export function scheduleChanges(before: Roster, after: Roster, from: string): ScheduleChange[] {
+  const was = new Map(before.assignments.map((a) => [`${a.staffId}|${a.date}`, a]))
+  return after.assignments.flatMap((now) => {
+    const then = was.get(`${now.staffId}|${now.date}`)
+    if (now.date < from || !then || sameDay(then, now)) return []
+    return [
+      {
+        staffId: now.staffId,
+        date: now.date,
+        before: then,
+        after: now,
+        hours: then.shift !== now.shift,
+      },
+    ]
+  })
 }
