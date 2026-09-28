@@ -5,7 +5,7 @@ import type { AppState } from '../state/appState'
 import { useUndo } from '../state/undo'
 import { useAppState } from '../state/useAppState'
 import { useSingleWindow } from './singleWindow'
-import { AbsenceScreen } from '../ui/AbsenceScreen'
+import { AbsenceScreen, type AbsenceView } from '../ui/AbsenceScreen'
 import { today } from '../ui/dates'
 import { FirstLaunch } from '../ui/FirstLaunch'
 import { Footer } from '../ui/Footer'
@@ -29,6 +29,7 @@ export function App() {
   }
   const [chosen, setChosen] = useState<Tab>()
   const [week, setWeek] = useState(() => defaultWeek(today()))
+  const [absenceView, setAbsenceView] = useState<AbsenceView>('month')
 
   // Back from another window: it may have changed the data, so read it again.
   const single = useSingleWindow()
@@ -72,7 +73,16 @@ export function App() {
       </nav>
       <main>
         {tab === 'staff' && <StaffScreen state={state} dispatch={dispatch} />}
-        {tab === 'absences' && <AbsenceScreen state={state} dispatch={dispatch} />}
+        {tab === 'absences' && (
+          <AbsenceScreen
+            state={state}
+            dispatch={dispatch}
+            week={week}
+            onWeek={setWeek}
+            view={absenceView}
+            onView={setAbsenceView}
+          />
+        )}
         {tab === 'roster' && (
           <RosterScreen
             state={state}
