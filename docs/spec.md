@@ -360,6 +360,12 @@ under each role counts who is away (orange when fewer are left than the week's g
 for zero holes), the name column stays put while the grid scrolls, and **Ma** jumps back to the
 current month.
 
+**Hónap | Hét** (v2-G, `docs/specs/2026-09-28-absence-week-view-design.md`): the week view is the
+same grid for one week's working days, with wide cells and full day headers. ◀ ▶ step a week,
+and **Ma** jumps to the current week. Its week is **shared with Beosztás**: stepping here moves the
+roster screen too. Switching back to Hónap opens the week's month. The chosen view lasts until
+the page reloads.
+
 ### 8.3 Beosztás
 
 ```

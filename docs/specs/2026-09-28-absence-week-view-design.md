@@ -1,6 +1,6 @@
 # kindergarten-roster — absence planner week view (v2-G)
 
-Status: **agreed with the user, 2026-09-28.** Plan: `docs/plans/2026-09-28-v2-g-absence-week-view.md`.
+Status: **agreed with the user, 2026-09-28; implemented.** Plan: `docs/plans/2026-09-28-v2-g-absence-week-view.md`.
 
 ## Problem
 
