@@ -397,7 +397,8 @@ current month.
 - **Beteg lett…**: a picked name on today or a later day offers it next to *Mégse*;
   *"Kati beteg keddtől — meddig?"* takes the last sick day, marks every working day up to it
   *beteg*, and recalculates with the fewest changes. The undo bar then lists whom to phone
-  (*"1 munkatárs beosztása változott:"*, one line per changed day, today's first). Undo puts back
+  per person, only what changed: first those whose hours changed (*"… ideje változott — őket
+  érdemes felhívni:"*, today's calls at the top), then those who only move group or key). Undo puts back
   the absences and the roster together.
 - Every period's roster is saved (the yearly balance's history in v2).
 - **A week that is over is archived** (the day after its last working day): an *Archív* badge, the saved

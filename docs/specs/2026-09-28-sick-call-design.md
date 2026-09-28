@@ -36,10 +36,15 @@ they were, the gap gets filled with as few changes as possible, and she sees who
 fewest-changes mode, without asking. Days already over get no fix buttons.
 
 **The result.** The undo bar names the change (*"Kati beteg: 10.27.–10.29."*) and counts the
-changed cells as before. Below that it lists the people to phone:
-*"1 munkatárs beosztása változott:"* (1 person's schedule changed), then one line per changed day,
-today first:
-*"Bea: ma DE 6:00–14:00, 2. cs., nyit (eddig DU 10:00–18:00, csoporton kívül)"*.
+changed cells as before. Below that come the changed people, one line each with only what
+changed on each day (revised after her first test, 2026-09-28 — a line per day repeated the table):
+
+- *"2 munkatárs ideje változott — őket érdemes felhívni:"* (2 people's hours changed — worth
+  phoning), earliest change first, e.g.
+  *"Kati — ma: nem nyit · szerda: DE 6:00–14:00 (eddig DU), 1. cs., nyit, nem zár"*.
+- *"1 munkatársnak csak a helye vagy a kulcsa változott:"* (only place or key changed — tell them
+  at the door), e.g. *"Cili — kedd: csoporton kívül (eddig 2. cs.)"*.
+
 Undo puts back the absences and the old roster together.
 
 ## How it solves
