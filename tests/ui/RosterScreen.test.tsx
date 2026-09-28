@@ -465,3 +465,68 @@ describe('RosterScreen swap', () => {
     confirm.mockRestore()
   })
 })
+
+describe('RosterScreen week in progress', () => {
+  beforeEach(() => vi.setSystemTime(new Date(2026, 9, 28, 12))) // Wednesday
+  const kept = (mode: 'minimal' | 'full') => ({ roster: valid, from: WED, mode })
+
+  it('asks how much to change, then keeps the days before today', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(valid)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    expect(
+      screen.getByText('A hét már elkezdődött — a korábbi napok változatlanok maradnak.'),
+    ).toBeTruthy()
+    expect(solveInWorker).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Csak a szükséges változtatások'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(
+        solveInputFor(wedOnly, WEEK),
+        expect.any(Object),
+        kept('minimal'),
+      ),
+    )
+    expect(await screen.findByText('Senki más beosztása nem változott.')).toBeTruthy()
+  })
+
+  it('re-plans everything from today on request', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(valid)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    fireEvent.click(screen.getByText('Mától mindent újraszámol'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(
+        solveInputFor(wedOnly, WEEK),
+        expect.any(Object),
+        kept('full'),
+      ),
+    )
+  })
+
+  it('solves nothing on Mégse', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    fireEvent.click(screen.getByText('Mégse'))
+    expect(screen.queryByText(/A hét már elkezdődött/)).toBeNull()
+    expect(solveInWorker).not.toHaveBeenCalled()
+  })
+
+  it('applies a quick fix with as few changes as possible, without asking', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    render(<Harness initial={withRoster(base)} />)
+    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(expect.any(Object), expect.any(Object), {
+        roster,
+        from: WED,
+        mode: 'minimal',
+      }),
+    )
+  })
+
+  it('offers no fix for a day already over', () => {
+    vi.setSystemTime(new Date(2026, 9, 29, 12)) // Thursday
+    renderScreen(withRoster(base))
+    expect(screen.queryByText('Szerdán 1 csoport')).toBeNull()
+  })
+})
