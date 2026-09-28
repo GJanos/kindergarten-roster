@@ -530,3 +530,57 @@ describe('RosterScreen week in progress', () => {
     expect(screen.queryByText('Szerdán 1 csoport')).toBeNull()
   })
 })
+
+describe('RosterScreen sick call', () => {
+  beforeEach(() => vi.setSystemTime(new Date(2026, 9, 28, 8))) // Wednesday morning
+  // T2 is off sick; T4, the morning reserve, takes her seat.
+  const covered: Roster = {
+    ...valid,
+    assignments: valid.assignments
+      .filter((a) => a.staffId !== 't2')
+      .map((a) =>
+        a.staffId === 't4' ? { ...a, seat: { kind: 'teacher', group: 1, shift: 'morning' } } : a,
+      ),
+  }
+
+  it('marks the days sick, re-plans with as few changes as possible, and undoes both', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(covered)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    fireEvent.click(screen.getByText('Beteg lett…'))
+    fireEvent.change(screen.getByLabelText('T2 beteg szerdától — meddig?'), {
+      target: { value: '2026-10-29' },
+    })
+    fireEvent.click(screen.getByText('Beteg — újraszámol'))
+    const sick = reducer(wedOnly, {
+      type: 'setAbsent',
+      staffId: 't2',
+      dates: [WED, '2026-10-29'],
+      absent: true,
+      kind: 'sick',
+    })
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(solveInputFor(sick, WEEK), expect.any(Object), {
+        roster: valid,
+        from: WED,
+        mode: 'minimal',
+      }),
+    )
+    expect(await screen.findByText('T2 beteg: 10.28.–10.29.')).toBeTruthy()
+    expect(screen.getByText('1 munkatárs beosztása változott:')).toBeTruthy()
+    expect(
+      screen.getByText('T4: ma DE 7:00–13:30, 1. cs. (eddig DE 7:00–13:30, csoporton kívül)'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screenTable().getByText('DE: T2')).toBeTruthy()
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull()
+  })
+
+  it('offers no sick call for a day already over', () => {
+    vi.setSystemTime(new Date(2026, 9, 29, 8)) // Thursday
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.getByText(/kiválasztva/)).toBeTruthy()
+    expect(screen.queryByText('Beteg lett…')).toBeNull()
+  })
+})

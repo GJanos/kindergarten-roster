@@ -9,6 +9,7 @@ import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
 import { ui } from '../i18n/hu'
 import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
 import { backupJson } from '../state/backup'
+import { sickCall } from '../state/sickCall'
 import type { UndoHistory } from '../state/undo'
 import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
@@ -46,6 +47,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const [picked, setPicked] = useState<{ staffId: string; date: string }>()
   const [swapError, setSwapError] = useState<string>()
   const [choosing, setChoosing] = useState(false)
+  const [sick, setSick] = useState<{ staffId: string; date: string; until: string }>()
 
   const days = periodForWeek(week).days
   const period = periodState(state, week)
@@ -195,6 +197,27 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     if (mayDropEdits()) void solve(state)
   }
 
+  // "Beteg lett": mark the days sick, then change as few people as possible.
+  const reportSick = ({
+    staffId,
+    date,
+    until,
+  }: {
+    staffId: string
+    date: string
+    until: string
+  }) => {
+    setSick(undefined)
+    const last = until < date ? date : until
+    const call = sickCall(state, staffId, date, last)
+    dispatch(call.action)
+    void solve(
+      reducer(state, call.action),
+      { label: ui.recalc.didSick(nameOf(staffId), date, last), inverse: call.inverse },
+      'minimal',
+    )
+  }
+
   const lastChange = history.latest(week)
   const changed = new Set(lastChange?.changed)
 
@@ -306,7 +329,34 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {picked && (
           <div className="swap-bar" aria-live="polite">
             <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
+            {from !== undefined && picked.date >= from && (
+              <button
+                onClick={() => {
+                  setSick({ ...picked, until: picked.date })
+                  setPicked(undefined)
+                }}
+              >
+                {ui.recalc.sick}
+              </button>
+            )}
             <button onClick={() => setPicked(undefined)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {sick && (
+          <div className="swap-bar" aria-live="polite">
+            <label>
+              {ui.recalc.sickUntil(nameOf(sick.staffId), sick.date)}{' '}
+              <input
+                type="date"
+                min={sick.date}
+                value={sick.until}
+                onChange={(event) => setSick({ ...sick, until: event.target.value || sick.date })}
+              />
+            </label>
+            <button className="primary" disabled={solving} onClick={() => reportSick(sick)}>
+              {ui.recalc.sickGo}
+            </button>
+            <button onClick={() => setSick(undefined)}>{ui.roster.cancel}</button>
           </div>
         )}
         {swapError && <p className="error">{swapError}</p>}
