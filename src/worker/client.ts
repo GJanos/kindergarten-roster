@@ -1,8 +1,11 @@
-import type { Roster, RosterMeta, SolveInput } from '../core/types'
+import type { Anchor, Roster, RosterMeta, SolveInput } from '../core/types'
 import type { SolveRequest, SolveResponse } from './protocol'
 
-/** Every solver stage stops itself (STAGE_TIME_LIMIT); this outlasts all of them and only catches a hang. */
-export const SOLVE_TIMEOUT_MS = 150_000
+/**
+ * Every solver stage stops itself (STAGE_TIME_LIMIT); this outlasts all of them — ten in a
+ * recalculation — and only catches a hang.
+ */
+export const SOLVE_TIMEOUT_MS = 180_000
 
 export class SolveFailure extends Error {
   constructor(
@@ -23,7 +26,11 @@ function freshWorker(): Worker {
 }
 
 /** Solves off the main thread, so the page stays responsive; a stuck worker is replaced. */
-export function solveInWorker(input: SolveInput, meta: RosterMeta): Promise<Roster> {
+export function solveInWorker(
+  input: SolveInput,
+  meta: RosterMeta,
+  anchor?: Anchor,
+): Promise<Roster> {
   const current = freshWorker()
   const id = nextId++
   return new Promise((resolve, reject) => {
@@ -54,6 +61,6 @@ export function solveInWorker(input: SolveInput, meta: RosterMeta): Promise<Rost
     }, SOLVE_TIMEOUT_MS)
     current.addEventListener('message', onMessage)
     current.addEventListener('error', onError)
-    current.postMessage({ id, input, meta } satisfies SolveRequest)
+    current.postMessage({ id, input, meta, ...(anchor ? { anchor } : {}) } satisfies SolveRequest)
   })
 }

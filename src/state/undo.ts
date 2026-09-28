@@ -14,7 +14,11 @@ export type UndoEntry = {
   label: string
   undo: Action[]
   changed: string[]
+  details?: UndoDetail[] // a recalculation's changed people, grouped under headings
 }
+
+/** A heading and its lines, e.g. the people to phone after a recalculation. */
+export type UndoDetail = { title: string; items: string[] }
 
 /** In memory only: undo is for the last few clicks, not across visits. */
 export function useUndo(dispatch: (action: Action) => void) {

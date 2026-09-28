@@ -10,10 +10,11 @@ type Props = {
   staff: Staff[] // everyone, hidden people included, so old rosters resolve
   onHover: (warning?: Warning) => void
   onFix?: (fix: DayFix) => void // absent for an archived week: history has no fixes
+  fixFrom?: string // a week in progress: days before this get no fixes, they are over
 }
 
 /** Above the result, one card per day; hovering a line highlights its cells. */
-export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props) {
+export function WarningsPanel({ warnings, input, staff, onHover, onFix, fixFrom }: Props) {
   const { days, notes } = warningDays(warnings, input)
   const shown = (text: string) => resolveNames(text, staff)
   const line = (w: Warning, text: string, key: string) => (
@@ -46,6 +47,7 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
           >
             {days.map((day) => {
               const headingId = `warnings-${day.date}`
+              const onDayFix = fixFrom === undefined || day.date >= fixFrom ? onFix : undefined
               return (
                 <section
                   key={day.date}
@@ -58,13 +60,13 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
                     {day.holes > 0 && <span className="count">{ui.roster.holes(day.holes)}</span>}
                   </h4>
                   <ul>{day.items.map((w, i) => line(w, day.texts[i], `${w.code}-${i}`))}</ul>
-                  {onFix &&
+                  {onDayFix &&
                     day.actions.map((action) => (
                       <p key={action} className="action">
                         {shown(action)}
                       </p>
                     ))}
-                  {onFix && day.fixes.length > 0 && (
+                  {onDayFix && day.fixes.length > 0 && (
                     <div className="fixes">
                       {day.fixes.map((fix) =>
                         fix.kind === 'setGroups' ? (
@@ -72,7 +74,7 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
                             key={`groups-${fix.groups}`}
                             className="fix"
                             title={ui.roster.fixHint(fix.date, fix.groups)}
-                            onClick={() => onFix(fix)}
+                            onClick={() => onDayFix(fix)}
                           >
                             {ui.roster.fix(fix.date, fix.groups)}
                           </button>
@@ -81,7 +83,7 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix }: Props)
                             key={fix.staffId}
                             className="fix"
                             title={ui.roster.callInHint(fix.name, fix.date)}
-                            onClick={() => onFix(fix)}
+                            onClick={() => onDayFix(fix)}
                           >
                             {ui.roster.callIn(fix.name, fix.sick)}
                           </button>

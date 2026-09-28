@@ -96,15 +96,20 @@ roster at this size, clunkier modelling.
 src/core/types.ts        domain types (§5)
 src/core/calendar.ts     working days of a period, holidays, working Saturdays
 src/core/capacity.ts     per-day headcount, g_max, effective group count (§6.6)
-src/core/model.ts        input → MILP (LP text); pure
+src/core/fairness.ts     fair shares, gaps, a roster's balance (§6.3)
+src/core/lp.ts           tiny MILP builder and LP-text writer
+src/core/model.ts        input → MILP; pure
+src/core/recalc.ts       a week in progress: recalcInput, anchorModel, scheduleChanges (§6.5)
 src/core/solve.ts        staged solve with HiGHS → Roster (§6.5)
+src/core/pipeline.ts     makeRoster: solve → validate → explain → balance
+src/core/edit.ts         hand swaps through the same check (§8.3)
 src/core/validate.ts     validateRoster(input, roster) → Violation[]  (strict rules; a hit is a bug)
 src/core/explain.ts      explain(input, roster) → Warning[]           (what was relaxed, §7)
-src/worker/solver.ts     Web Worker wrapper, 10 s timeout
-src/state/               AppState, persistence, migrations, backup/restore (§9)
-src/ui/                  screens (§8), Hungarian strings in one file
-src/export/xlsx.ts       Excel export incl. hidden backup sheet
-src/export/print.css     print layout
+src/worker/              the solver's Web Worker and its client, 180 s watchdog
+src/state/               AppState, persistence, migrations, backup/restore, undo, yearly history (§9)
+src/ui/, src/app/        screens (§8); src/app/print.css is the print layout
+src/i18n/hu.ts           every Hungarian string
+src/export/              the group and person views, Excel export incl. hidden backup sheet
 scripts/slice.ts         MVP slice runner (§12)
 data/                    gitignored — real names live only here
 ```
@@ -113,8 +118,9 @@ data/                    gitignored — real names live only here
 (slice, tests) and in the worker unchanged. `explain` reads only the finished roster — never
 solver internals — so v2 hand edits get the same warnings for free.
 
-**Entry point:** `solve(input: SolveInput): Roster`, where `SolveInput` carries staff, absences,
-period, group counts, and (v2) `locked` cells and the `previous` roster.
+**Entry point:** `makeRoster(input, highs, meta, anchor?)`. `SolveInput` carries staff, absences,
+period, group counts and the year's `history`; the optional `anchor` (v2-F) is the saved roster of a
+week in progress, whose past days are kept.
 
 ## 5. Data types
 
@@ -122,8 +128,13 @@ period, group counts, and (v2) `locked` cells and the `previous` roster.
 type Role = 'teacher' | 'nanny'
 type Shift = 'morning' | 'afternoon'
 
-type Staff = { id: string; fullName: string; displayName: string; role: Role; active: boolean }
-type Absence = { staffId: string; date: string }           // ISO date, one row per absent day
+type Staff = {
+  id: string; fullName: string; displayName: string; role: Role; active: boolean
+  deleted?: true                                            // left after appearing in a roster
+  leaveAllowance?: number; leaveCarry?: Record<string, number>  // v2-D, per calendar year
+}
+type AbsenceKind = 'leave' | 'sick' | 'other'
+type Absence = { staffId: string; date: string; kind: AbsenceKind }  // one row per absent day
 
 type Period = { start: string; days: string[] }             // working days only, 1–6 of them
 type DayPlan = { date: string; requestedGroups: number; override?: number }  // override 0 = closed
@@ -145,8 +156,16 @@ type Roster = {
   assignments: Assignment[]
   holes: Hole[]
   warnings: Warning[]
+  edited?: true                                             // hand swaps since solving (v2-B)
+  balance?: Balance                                         // fairness deltas, for the year (v2-C)
+  stoppedEarly?: string                                     // a stage ran out of time
   solvedAt: string; appVersion: string
 }
+
+// Per staff id, per count: count minus fair share — one roster's, or a year's sum (v2-C).
+type Balance = Record<string, Partial<Record<'morning' | 'opener' | 'closer' | 'reserve', number>>>
+type SolveInput = { staff; absences; period; dayPlans; history?: Balance }
+type Anchor = { roster: Roster; from: string; mode: 'minimal' | 'full' }  // v2-F
 
 type Hole =
   | { kind: 'teacherSeat'; date: string; group: number; shift: Shift }
@@ -244,8 +263,27 @@ switches can outweigh a fairness gain.
    `Σ history × count`, so the rounded-up unit goes to whoever is behind this year. Rosters saved
    before v2 have no deltas and count as zero. The history is not part of the input fingerprint.
 
-Six solves of ~500 binaries take milliseconds. HiGHS runs with a **fixed seed**: the same input
-gives the same roster every time.
+**A week in progress** (v2-F, `docs/specs/2026-09-28-sick-call-design.md`) is solved with an
+anchor, the saved roster. The days before `from` (the first working day that is today or later)
+are fixed as planned; who worked them is read from the anchor, not from absences typed since. In
+the default *minimal* mode three stages come right after substitutions:
+
+- **keepPeople**: people whose hours change.
+- **keepHours**: their changed days, an earlier day costing more.
+- **keepDuties**: seat and key moves at unchanged hours.
+
+So a reserve on the same shift fills in first, and stability beats fairness; the yearly balance
+evens out the difference. *Full* mode keeps only the fixed past. Without an anchor these stages are
+empty and skipped, so an ordinary solve is unchanged.
+
+Seven solves (ten in a recalculation) of ~500 binaries take well under a second each. HiGHS runs
+with a **fixed seed**: the same input gives the same roster every time.
+
+A stage after the first is feasible by construction, since the previous stage's roster meets
+every bound. On real data (2026-09-28) HiGHS's presolve still called the yearly stage infeasible:
+the fractional stages' bounds leave only 1e-6 of room. A later stage that comes back *Infeasible*
+is therefore solved once more **without presolve**, which returns the true optimum. If that fails
+too, the error is shown as before.
 
 ### 6.6 Capacity, periods and shortages
 
@@ -347,6 +385,12 @@ under each role counts who is away (orange when fewer are left than the week's g
 for zero holes), the name column stays put while the grid scrolls, and **Ma** jumps back to the
 current month.
 
+**Hónap | Hét** (v2-G, `docs/specs/2026-09-28-absence-week-view-design.md`): the week view is the
+same grid for one week's working days, with wide cells and full day headers. ◀ ▶ step a week,
+and **Ma** jumps to the current week. Its week is **shared with Beosztás**: stepping here moves the
+roster screen too. Switching back to Hónap opens the week's month. The chosen view lasts until
+the page reloads.
+
 ### 8.3 Beosztás
 
 ```
@@ -377,6 +421,16 @@ current month.
   says why (*"Ez a csere nem lehetséges: dajka nem ülhet óvónői helyre."*). A swap is an undo step
   with its two cells marked; the roster is marked *kézzel módosítva*, and Számol or a quick fix asks
   before dropping hand edits. Same-day only; filling a hole stays with the call-in button.
+- **A week in progress** (its first working day has come): Számol and Újraszámol first ask
+  *"A hét már elkezdődött — a korábbi napok változatlanok maradnak."* with **Csak a szükséges
+  változtatások** (default) or **Mától mindent újraszámol**. Quick fixes use the first without
+  asking, and days already over get no fix buttons.
+- **Beteg lett…**: a picked name on today or a later day offers it next to *Mégse*;
+  *"Kati beteg keddtől — meddig?"* takes the last sick day, marks every working day up to it
+  *beteg*, and recalculates with the fewest changes. The undo bar then lists whom to phone
+  per person, only what changed: first those whose hours changed (*"… ideje változott — őket
+  érdemes felhívni:"*, today's calls at the top), then those who only move group or key). Undo puts back
+  the absences and the roster together.
 - Every period's roster is saved (the yearly balance's history in v2).
 - **A week that is over is archived** (the day after its last working day): an *Archív* badge, the saved
   roster and warnings read-only, print and Excel kept; no Számol, fixes, group counts or outdated
@@ -406,7 +460,10 @@ type AppState = {
   schemaVersion: 2
   staff: Staff[]
   absences: Absence[]
-  periods: Record<string, { dayPlans: DayPlan[]; groupLabels?: string[]; roster?: Roster }>
+  periods: Record<string, {
+    dayPlans: DayPlan[]; groupLabels?: string[]; roster?: Roster
+    rosterInputKey?: string                                 // fingerprint the roster was solved from
+  }>
   lastBackupAt?: string
 }
 ```
@@ -428,7 +485,7 @@ v1 data migrates to v2 with every absence as leave.
 | Situation | What she sees |
 | --- | --- |
 | Shortage | not an error: a roster with warnings (§7) |
-| Solver or WASM fails to load, crashes, or exceeds 150 s (each stage stops itself at 15 s; a stage that does is noted on screen) | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
+| Solver or WASM fails to load, crashes, or exceeds 180 s (each stage stops itself at 15 s; a stage that does is noted on screen) | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
 | `validateRoster` finds a violation (a bug) | *"Hiba történt a beosztás készítésekor."* — the roster is not shown or printed |
 | Invalid restore file | rejected with a message; nothing changes |
 | Persistent storage refused | the footer asks her to back up more often |
@@ -462,13 +519,11 @@ v1 data migrates to v2 with every absence as leave.
 
 Designed in `docs/specs/2026-09-27-v2-design.md`, one plan each in `docs/plans/2026-09-27-v2-*.md`
 (A warning names · B swap · C yearly balance · D absence kinds · E month overview); all five landed
-on 2026-09-27 and are described in the sections above. Left: the sick-call recalculation, and
-whatever her demo feedback adds.
-
-- **Recalculation after a sick call:** past days locked; reserve on the same shift fills first;
-  later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
-  side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
-  fixed by pen — re-clicking Számol in v1 re-solves from scratch.
+on 2026-09-27 and are described in the sections above. **F, the sick-call recalculation**
+(`docs/specs/2026-09-28-sick-call-design.md`, `docs/plans/2026-09-28-v2-f-sick-call.md`), is
+described in §6.5 and §8.3. **G, the absence planner's week view**
+(`docs/specs/2026-09-28-absence-week-view-design.md`), is described in §8.2. Left: whatever her
+demo feedback adds.
 
 ## 14. Privacy and portfolio rules
 

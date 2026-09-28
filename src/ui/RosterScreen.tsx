@@ -2,16 +2,19 @@ import { useEffect, useState } from 'react'
 import { addDays, periodForWeek } from '../core/calendar'
 import { dayCapacities } from '../core/capacity'
 import { editRoster, type Swap } from '../core/edit'
-import type { Warning } from '../core/types'
+import { recalcInput } from '../core/recalc'
+import type { Anchor, Warning } from '../core/types'
 import { footnotes } from '../export/views'
 import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
 import { ui } from '../i18n/hu'
 import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
 import { backupJson } from '../state/backup'
+import { sickCall } from '../state/sickCall'
 import type { UndoHistory } from '../state/undo'
 import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
 import { changedCells } from './changedCells'
+import { changeSummary } from './changeSummary'
 import { DayChips } from './DayChips'
 import { DayEditor } from './DayEditor'
 import { today } from './dates'
@@ -43,6 +46,8 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const [editing, setEditing] = useState<string>()
   const [picked, setPicked] = useState<{ staffId: string; date: string }>()
   const [swapError, setSwapError] = useState<string>()
+  const [choosing, setChoosing] = useState(false)
+  const [sick, setSick] = useState<{ staffId: string; date: string; until: string }>()
 
   const days = periodForWeek(week).days
   const period = periodState(state, week)
@@ -55,6 +60,18 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const open = !archived && days.length > 0
   const stale = !archived && roster !== undefined && period.rosterInputKey !== inputKey(input)
   const hasRoster = (monday: string) => state.periods[monday]?.roster !== undefined
+
+  const now = today()
+  // Where a week in progress is re-planned from: today, or its next working day.
+  const from = days.find((date) => date >= now)
+  // Keeps what `kept` planned before `from`; undefined when it no longer fits the week.
+  const anchorFor = (mode: Anchor['mode'], kept = roster): Anchor | undefined => {
+    if (!kept || from === undefined || archived) return undefined
+    const anchor: Anchor = { roster: kept, from, mode }
+    return recalcInput(input, anchor) ? anchor : undefined
+  }
+  // Its first working day has come (Monday counts): solving keeps the past and asks how much.
+  const started = days.length > 0 && days[0] <= now && anchorFor('minimal') !== undefined
 
   // Swaps only in a current, open roster, and not while a solve runs.
   const editable = roster !== undefined && !archived && !stale && !solving
@@ -97,17 +114,22 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
    * Solves `current` and saves the result. With `change` (the input edit that led here, and its
    * inverse) or an earlier roster to go back to, it also records an undo step.
    */
-  const solve = async (current: AppState, change?: { label: string; inverse: Action }) => {
+  const solve = async (
+    current: AppState,
+    change?: { label: string; inverse: Action[] },
+    mode?: Anchor['mode'],
+  ) => {
     const solveInput = solveInputFor(current, week)
     const before = current.periods[week]
-    const undoInput = change ? [change.inverse] : []
+    const undoInput = change?.inverse ?? []
+    const anchor = mode ? anchorFor(mode, before?.roster) : undefined
     setSolving(true)
     setError(undefined)
     try {
-      const result = await solveInWorker(solveInput, {
-        solvedAt: new Date().toISOString(),
-        appVersion: __APP_VERSION__,
-      })
+      const meta = { solvedAt: new Date().toISOString(), appVersion: __APP_VERSION__ }
+      const result = await (anchor
+        ? solveInWorker(solveInput, meta, anchor)
+        : solveInWorker(solveInput, meta))
       dispatch({ type: 'saveRoster', week, roster: result, inputKey: inputKey(solveInput) })
       if (change || before?.roster) {
         const changed = changedCells(before?.roster, result, current.staff, before?.groupLabels)
@@ -124,6 +146,9 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
             },
           ],
           changed: [...changed],
+          ...(anchor
+            ? { details: changeSummary(anchor.roster, result, anchor.from, current.staff, now) }
+            : {}),
         })
       }
     } catch (failure) {
@@ -141,7 +166,8 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
 
   // One click: reduce the day or call someone in, then solve again.
   const fix = (dayFix: DayFix) => {
-    if (!mayDropEdits()) return
+    // In a week in progress a fix changes as little as it can, so it need not ask about edits.
+    if (!started && !mayDropEdits()) return
     const { date } = dayFix
     let action: Action, inverse: Action, label: string
     if (dayFix.kind === 'setGroups') {
@@ -158,7 +184,38 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
       label = ui.roster.didCallIn(dayFix.name, date)
     }
     dispatch(action)
-    void solve(reducer(state, action), { label, inverse })
+    void solve(
+      reducer(state, action),
+      { label, inverse: [inverse] },
+      started ? 'minimal' : undefined,
+    )
+  }
+
+  // Számol and Újraszámol: a week in progress first asks how much may change.
+  const askSolve = () => {
+    if (started) return setChoosing(true)
+    if (mayDropEdits()) void solve(state)
+  }
+
+  // "Beteg lett": mark the days sick, then change as few people as possible.
+  const reportSick = ({
+    staffId,
+    date,
+    until,
+  }: {
+    staffId: string
+    date: string
+    until: string
+  }) => {
+    setSick(undefined)
+    const last = until < date ? date : until
+    const call = sickCall(state, staffId, date, last)
+    dispatch(call.action)
+    void solve(
+      reducer(state, call.action),
+      { label: ui.recalc.didSick(nameOf(staffId), date, last), inverse: call.inverse },
+      'minimal',
+    )
   }
 
   const lastChange = history.latest(week)
@@ -228,12 +285,37 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           <button
             className={stale && !solving ? 'primary big attention' : 'primary big'}
             disabled={solving}
-            onClick={() => mayDropEdits() && void solve(state)}
+            onClick={askSolve}
           >
             {solving ? ui.roster.solving : ui.roster.solve}
           </button>
         )}
         {error && <p className="error">{error}</p>}
+        {choosing && (
+          <div className="recalc-choice" role="group">
+            <span>{ui.recalc.started}</span>
+            <button
+              className="primary"
+              title={ui.recalc.minimalHint}
+              onClick={() => {
+                setChoosing(false)
+                void solve(state, undefined, 'minimal')
+              }}
+            >
+              {ui.recalc.minimal}
+            </button>
+            <button
+              title={ui.recalc.fullHint}
+              onClick={() => {
+                setChoosing(false)
+                if (mayDropEdits()) void solve(state, undefined, 'full')
+              }}
+            >
+              {ui.recalc.full}
+            </button>
+            <button onClick={() => setChoosing(false)}>{ui.roster.cancel}</button>
+          </div>
+        )}
         {!roster && canSolve && <p>{ui.roster.notSolved}</p>}
         {lastChange && !archived && (
           <UndoBar
@@ -247,7 +329,34 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {picked && (
           <div className="swap-bar" aria-live="polite">
             <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
+            {from !== undefined && picked.date >= from && (
+              <button
+                onClick={() => {
+                  setSick({ ...picked, until: picked.date })
+                  setPicked(undefined)
+                }}
+              >
+                {ui.recalc.sick}
+              </button>
+            )}
             <button onClick={() => setPicked(undefined)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {sick && (
+          <div className="swap-bar" aria-live="polite">
+            <label>
+              {ui.recalc.sickUntil(nameOf(sick.staffId), sick.date)}{' '}
+              <input
+                type="date"
+                min={sick.date}
+                value={sick.until}
+                onChange={(event) => setSick({ ...sick, until: event.target.value || sick.date })}
+              />
+            </label>
+            <button className="primary" disabled={solving} onClick={() => reportSick(sick)}>
+              {ui.recalc.sickGo}
+            </button>
+            <button onClick={() => setSick(undefined)}>{ui.roster.cancel}</button>
           </div>
         )}
         {swapError && <p className="error">{swapError}</p>}
@@ -258,11 +367,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 <span>
                   <strong>{ui.roster.staleTitle}</strong> {ui.roster.stale}
                 </span>
-                <button
-                  className="primary"
-                  disabled={solving}
-                  onClick={() => mayDropEdits() && void solve(state)}
-                >
+                <button className="primary" disabled={solving} onClick={askSolve}>
                   {ui.roster.resolve}
                 </button>
               </div>
@@ -277,6 +382,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 staff={state.staff}
                 onHover={setHovered}
                 onFix={archived ? undefined : fix}
+                fixFrom={started ? from : undefined}
               />
               <RosterTable
                 pick={editable ? { picked, onPick: pick } : undefined}

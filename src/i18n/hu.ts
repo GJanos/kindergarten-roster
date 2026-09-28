@@ -1,5 +1,6 @@
 import { weekday } from '../core/calendar'
-import type { AbsenceKind, Role, Shift } from '../core/types'
+import { shiftTimes } from '../core/shifts'
+import type { AbsenceKind, Assignment, Role, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -54,6 +55,12 @@ export function dayHeader(date: string): string {
 export function formatDate(date: string): string {
   const [y, m, d] = parts(date)
   return `${y}. ${MONTHS[m - 1]} ${d}.`
+}
+
+/** '10.28.' */
+export function shortDate(date: string): string {
+  const [, month, day] = date.split('-')
+  return `${month}.${day}.`
 }
 
 /** '2026. október 26 – 30.', '2026. október 29 – november 2.', '2026. december 28. – 2027. január 1.' */
@@ -185,6 +192,10 @@ export const ui = {
     hint: 'Válaszd ki a fajtát, aztán kattints egy napra, vagy húzd végig az egeret a soron. Ugyanazzal a fajtával újra kattintva törlöd.',
     previous: 'Előző hónap',
     next: 'Következő hónap',
+    previousWeek: 'Előző hét',
+    nextWeek: 'Következő hét',
+    views: { month: 'Hónap', week: 'Hét' },
+    viewsLabel: 'Nézet',
     noStaff: 'Előbb vedd fel a munkatársakat.',
     kindsLabel: 'Távollét fajtája',
     kinds: { leave: 'Szabadság', sick: 'Beteg', other: 'Egyéb' } satisfies Record<
@@ -276,6 +287,43 @@ export const ui = {
     fewNannies: (have: number, need: number) => `csak ${have} dajka — ${need} kell`,
     manual: (groups: number) => `kézi: ${groups} cs.`,
     fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
+  },
+  recalc: {
+    started: 'A hét már elkezdődött — a korábbi napok változatlanok maradnak.',
+    minimal: 'Csak a szükséges változtatások',
+    minimalHint: 'A lehető legkevesebb munkatárs beosztása változik, a többieké marad.',
+    full: 'Mától mindent újraszámol',
+    fullHint:
+      'Mától az egész hetet újraosztja az egyenlő elosztás szerint — sok beosztás változhat.',
+    sick: 'Beteg lett…',
+    sickUntil: (name: string, date: string) => `${name} beteg ${fromDay(date)} — meddig?`,
+    sickGo: 'Beteg — újraszámol',
+    didSick: (name: string, from: string, to: string) =>
+      `${name} beteg: ${shortDate(from)}${to > from ? `–${shortDate(to)}` : ''}`,
+    callTitle: (count: number) => `${count} munkatárs ideje változott — őket érdemes felhívni:`,
+    tellTitle: (count: number) => `${count} munkatársnak csak a helye vagy a kulcsa változott:`,
+    unchanged: 'Senki más beosztása nem változott.',
+    /** 'Kati — ma: nem nyit · kedd: 1. cs. (eddig csoporton kívül)' */
+    person: (name: string, days: string[]) => `${name} — ${days.join(' · ')}`,
+    /**
+     * Only what changed on one day: new hours (with the old shift) and where, or else the move;
+     * then a key taken on or given up. 'szerda: DE 6:00–14:00 (eddig DU), 1. cs., nyit, nem zár'
+     */
+    day: (role: Role, was: Assignment, now: Assignment, isToday: boolean) => {
+      const place = (a: Assignment) => (a.seat ? groupShort(a.seat.group) : 'csoporton kívül')
+      const parts: string[] = []
+      if (now.shift !== was.shift) {
+        const times = shiftTimes(role, now.shift, now.date)
+        parts.push(`${shiftShort[now.shift]} ${times} (eddig ${shiftShort[was.shift]})`, place(now))
+      } else if (place(now) !== place(was)) {
+        parts.push(`${place(now)} (eddig ${place(was)})`)
+      }
+      if (now.substitution && !was.substitution) parts.push('dajka helyett')
+      if (!now.opener !== !was.opener) parts.push(now.opener ? 'nyit' : 'nem nyit')
+      if (!now.closer !== !was.closer) parts.push(now.closer ? 'zár' : 'nem zár')
+      if (parts.length === 0) parts.push(place(now))
+      return `${isToday ? 'ma' : dayName(now.date)}: ${parts.join(', ')}`
+    },
   },
   print: {
     groupTitle: (period: string) => `Beosztás — ${period}`,

@@ -465,3 +465,121 @@ describe('RosterScreen swap', () => {
     confirm.mockRestore()
   })
 })
+
+describe('RosterScreen week in progress', () => {
+  beforeEach(() => vi.setSystemTime(new Date(2026, 9, 28, 12))) // Wednesday
+  const kept = (mode: 'minimal' | 'full') => ({ roster: valid, from: WED, mode })
+
+  it('asks how much to change, then keeps the days before today', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(valid)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    expect(
+      screen.getByText('A hét már elkezdődött — a korábbi napok változatlanok maradnak.'),
+    ).toBeTruthy()
+    expect(solveInWorker).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Csak a szükséges változtatások'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(
+        solveInputFor(wedOnly, WEEK),
+        expect.any(Object),
+        kept('minimal'),
+      ),
+    )
+    expect(await screen.findByText('Senki más beosztása nem változott.')).toBeTruthy()
+  })
+
+  it('re-plans everything from today on request', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(valid)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    fireEvent.click(screen.getByText('Mától mindent újraszámol'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(
+        solveInputFor(wedOnly, WEEK),
+        expect.any(Object),
+        kept('full'),
+      ),
+    )
+  })
+
+  it('solves nothing on Mégse', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screen.getByText('Számol'))
+    fireEvent.click(screen.getByText('Mégse'))
+    expect(screen.queryByText(/A hét már elkezdődött/)).toBeNull()
+    expect(solveInWorker).not.toHaveBeenCalled()
+  })
+
+  it('applies a quick fix with as few changes as possible, without asking', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    render(<Harness initial={withRoster(base)} />)
+    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(expect.any(Object), expect.any(Object), {
+        roster,
+        from: WED,
+        mode: 'minimal',
+      }),
+    )
+  })
+
+  it('offers no fix for a day already over', () => {
+    vi.setSystemTime(new Date(2026, 9, 29, 12)) // Thursday
+    renderScreen(withRoster(base))
+    expect(screen.queryByText('Szerdán 1 csoport')).toBeNull()
+  })
+})
+
+describe('RosterScreen sick call', () => {
+  beforeEach(() => vi.setSystemTime(new Date(2026, 9, 28, 8))) // Wednesday morning
+  // T2 is off sick; T4, the morning reserve, takes her seat.
+  const covered: Roster = {
+    ...valid,
+    assignments: valid.assignments
+      .filter((a) => a.staffId !== 't2')
+      .map((a) =>
+        a.staffId === 't4' ? { ...a, seat: { kind: 'teacher', group: 1, shift: 'morning' } } : a,
+      ),
+  }
+
+  it('marks the days sick, re-plans with as few changes as possible, and undoes both', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(covered)
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    fireEvent.click(screen.getByText('Beteg lett…'))
+    fireEvent.change(screen.getByLabelText('T2 beteg szerdától — meddig?'), {
+      target: { value: '2026-10-29' },
+    })
+    fireEvent.click(screen.getByText('Beteg — újraszámol'))
+    const sick = reducer(wedOnly, {
+      type: 'setAbsent',
+      staffId: 't2',
+      dates: [WED, '2026-10-29'],
+      absent: true,
+      kind: 'sick',
+    })
+    await waitFor(() =>
+      expect(solveInWorker).toHaveBeenCalledWith(solveInputFor(sick, WEEK), expect.any(Object), {
+        roster: valid,
+        from: WED,
+        mode: 'minimal',
+      }),
+    )
+    expect(await screen.findByText('T2 beteg: 10.28.–10.29.')).toBeTruthy()
+    // T4 keeps her hours, so she is told at the door rather than phoned.
+    expect(screen.getByText('1 munkatársnak csak a helye vagy a kulcsa változott:')).toBeTruthy()
+    expect(screen.getByText('T4 — ma: 1. cs. (eddig csoporton kívül)')).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screenTable().getByText('DE: T2')).toBeTruthy()
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull()
+  })
+
+  it('offers no sick call for a day already over', () => {
+    vi.setSystemTime(new Date(2026, 9, 29, 8)) // Thursday
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.getByText(/kiválasztva/)).toBeTruthy()
+    expect(screen.queryByText('Beteg lett…')).toBeNull()
+  })
+})

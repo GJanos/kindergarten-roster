@@ -55,6 +55,18 @@ afterEach(() => {
 })
 
 describe('solveInWorker', () => {
+  it('passes a recalculation anchor on to the worker', async () => {
+    let seen: SolveRequest | undefined
+    FakeWorker.reply = (request) => {
+      seen = request
+      return solved(request)
+    }
+    const { solveInWorker } = await loadClient()
+    const anchor = { roster, from: input.period.days[1], mode: 'minimal' as const }
+    await solveInWorker(input, TEST_META, anchor)
+    expect(seen?.anchor).toEqual(anchor)
+  })
+
   it('resolves with the roster and keeps the worker for the next solve', async () => {
     FakeWorker.reply = solved
     const { solveInWorker } = await loadClient()

@@ -561,6 +561,13 @@ td {
 .undo-bar span {
   margin-right: auto;
 }
+.undo-details {
+  flex-basis: 100%;
+}
+.undo-details ul {
+  margin: 2px 0 8px;
+  padding-left: 20px;
+}
 .roster-table td.changed {
   outline: 2px dashed var(--green);
   outline-offset: -3px;
@@ -612,6 +619,17 @@ td {
   border-radius: 8px;
   background: var(--surface);
 }
+.recalc-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  background: var(--surface);
+}
 .edited-badge {
   margin-left: 10px;
   padding: 1px 10px;
@@ -628,6 +646,29 @@ td {
   display: flex;
   gap: 8px;
   margin-left: 16px;
+}
+/* Month or week: a joined pair, since exactly one is on. */
+.views {
+  display: flex;
+  margin-right: 12px;
+}
+.views button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.views button:last-child {
+  margin-left: -2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+/* The week view: a handful of wide columns with full day headers. */
+.absence-grid.wide td,
+.absence-grid.wide thead th {
+  width: 110px;
+  min-width: 110px;
+}
+.absence-grid.wide td {
+  height: 36px;
 }
 .kinds .kind-sick.on {
   background: var(--orange);

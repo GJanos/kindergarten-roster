@@ -9,8 +9,10 @@ import {
   type RosterModel,
   type Stage,
 } from './model'
+import { anchorModel } from './recalc'
 import {
   SHIFTS,
+  type Anchor,
   type Assignment,
   type Hole,
   type Roster,
@@ -48,10 +50,17 @@ type Columns = Record<string, { Primal?: number }>
 
 /**
  * Staged solve (§6.5): each stage's optimum becomes a bound for the next, so a
- * later stage only chooses among rosters tied on every earlier one.
+ * later stage only chooses among rosters tied on every earlier one. With an anchor (a week in
+ * progress), `input` must come from `recalcInput`.
  */
-export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Roster {
+export function solve(
+  input: SolveInput,
+  highs: LpSolver,
+  meta: RosterMeta,
+  anchor?: Anchor,
+): Roster {
   const model = buildModel(input)
+  if (anchor) anchorModel(model, anchor)
   const bounds: Row[] = []
   let columns: Columns | undefined
   let stoppedEarly: Stage | undefined
@@ -59,7 +68,14 @@ export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Ros
     const objective = model.objectives[stage]
     if (objective.isEmpty()) continue
     const lp = toLpText(model.milp, objective, bounds)
-    const result = highs.solve(lp, { ...HIGHS_OPTIONS, time_limit: STAGE_TIME_LIMIT })
+    const options = { ...HIGHS_OPTIONS, time_limit: STAGE_TIME_LIMIT }
+    let result = highs.solve(lp, options)
+    // A later stage is feasible by construction: the previous stage's roster meets every bound.
+    // "Infeasible" there is HiGHS's presolve misjudging a bound that leaves only TOLERANCE of room
+    // (seen on real data, 2026-09-28), so the stage is solved again without presolve.
+    if (result.Status === 'Infeasible' && columns) {
+      result = highs.solve(lp, { ...options, presolve: 'off' })
+    }
     if (result.Status === 'Optimal') {
       columns = result.Columns
       const optimum = result.ObjectiveValue

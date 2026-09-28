@@ -4,10 +4,16 @@ import { fairShares, worstGapFloor, type GapKind } from './fairness'
 import { Lin, Milp } from './lp'
 import { SHIFTS, type Shift, type SolveInput, type Staff } from './types'
 
-/** Solve stages in strict priority order (spec §6.5); 'yearly' is the v2 tie-break. */
+/**
+ * Solve stages in strict priority order (spec §6.5). The keep* stages only count in a
+ * recalculation of a week in progress (v2-F); 'yearly' is the v2 tie-break.
+ */
 export const STAGES = [
   'holes',
   'substitutions',
+  'keepPeople',
+  'keepHours',
+  'keepDuties',
   'worstGap',
   'totalGap',
   'switches',
@@ -20,6 +26,9 @@ export type Stage = (typeof STAGES)[number]
 export const INTEGRAL_STAGES: ReadonlySet<Stage> = new Set([
   'holes',
   'substitutions',
+  'keepPeople',
+  'keepHours',
+  'keepDuties',
   'switches',
   'turnarounds',
 ])
@@ -39,6 +48,9 @@ export const v = {
   worstGap: 'worst',
   switch: (p: number, d: number) => `sw_${p}_${d}`,
   turnaround: (p: number, d: number) => `tu_${p}_${d}`,
+  keptPerson: (p: number) => `kp_${p}`,
+  keptHours: (p: number, d: number) => `kh_${p}_${d}`,
+  keptDuties: (p: number, d: number) => `kd_${p}_${d}`,
 }
 
 /** An open (not closed) day of the period. `present` holds indexes into `people`. */
@@ -50,6 +62,8 @@ export type RosterModel = {
   people: Staff[]
   days: ModelDay[]
   capacities: DayCapacity[]
+  /** Per day, per person: the sum of their seat variables (empty if they can have none). */
+  seats: Lin[][]
 }
 
 export function groupNumbers(groups: number): number[] {
@@ -224,5 +238,5 @@ export function buildModel(input: SolveInput): RosterModel {
     }
   }
 
-  return { milp, objectives, people, days, capacities }
+  return { milp, objectives, people, days, capacities, seats }
 }
