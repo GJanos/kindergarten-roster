@@ -244,6 +244,19 @@ switches can outweigh a fairness gain.
    `Σ history × count`, so the rounded-up unit goes to whoever is behind this year. Rosters saved
    before v2 have no deltas and count as zero. The history is not part of the input fingerprint.
 
+**A week in progress** (v2-F, `docs/specs/2026-09-28-sick-call-design.md`) is solved with an
+anchor, the saved roster. The days before `from` (the first working day that is today or later)
+are fixed as planned; who worked them is read from the anchor, not from absences typed since. In
+the default *minimal* mode three stages come right after substitutions:
+
+- **keepPeople**: people whose hours change.
+- **keepHours**: their changed days, an earlier day costing more.
+- **keepDuties**: seat and key moves at unchanged hours.
+
+So a reserve on the same shift fills in first, and stability beats fairness; the yearly balance
+evens out the difference. *Full* mode keeps only the fixed past. Without an anchor these stages are
+empty and skipped, so an ordinary solve is unchanged.
+
 Six solves of ~500 binaries take milliseconds. HiGHS runs with a **fixed seed**: the same input
 gives the same roster every time.
 
@@ -377,6 +390,15 @@ current month.
   says why (*"Ez a csere nem lehetséges: dajka nem ülhet óvónői helyre."*). A swap is an undo step
   with its two cells marked; the roster is marked *kézzel módosítva*, and Számol or a quick fix asks
   before dropping hand edits. Same-day only; filling a hole stays with the call-in button.
+- **A week in progress** (its first working day has come): Számol and Újraszámol first ask
+  *"A hét már elkezdődött — a korábbi napok változatlanok maradnak."* with **Csak a szükséges
+  változtatások** (default) or **Mától mindent újraszámol**. Quick fixes use the first without
+  asking, and days already over get no fix buttons.
+- **Beteg lett…**: a picked name on today or a later day offers it next to *Mégse*;
+  *"Kati beteg keddtől — meddig?"* takes the last sick day, marks every working day up to it
+  *beteg*, and recalculates with the fewest changes. The undo bar then lists whom to phone
+  (*"1 munkatárs beosztása változott:"*, one line per changed day, today's first). Undo puts back
+  the absences and the roster together.
 - Every period's roster is saved (the yearly balance's history in v2).
 - **A week that is over is archived** (the day after its last working day): an *Archív* badge, the saved
   roster and warnings read-only, print and Excel kept; no Számol, fixes, group counts or outdated
@@ -462,13 +484,9 @@ v1 data migrates to v2 with every absence as leave.
 
 Designed in `docs/specs/2026-09-27-v2-design.md`, one plan each in `docs/plans/2026-09-27-v2-*.md`
 (A warning names · B swap · C yearly balance · D absence kinds · E month overview); all five landed
-on 2026-09-27 and are described in the sections above. Left: the sick-call recalculation, and
-whatever her demo feedback adds.
-
-- **Recalculation after a sick call:** past days locked; reserve on the same shift fills first;
-  later start over earlier; same day over other days; a `changed[p,d]` penalty keeps the rest;
-  side-by-side diff (*"1 munkatárs beosztása változott."*). Until then a sick call during a break is
-  fixed by pen — re-clicking Számol in v1 re-solves from scratch.
+on 2026-09-27 and are described in the sections above. **F, the sick-call recalculation**
+(`docs/specs/2026-09-28-sick-call-design.md`, `docs/plans/2026-09-28-v2-f-sick-call.md`), is
+described in §6.5 and §8.3. Left: whatever her demo feedback adds.
 
 ## 14. Privacy and portfolio rules
 
