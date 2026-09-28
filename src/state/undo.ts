@@ -14,6 +14,7 @@ export type UndoEntry = {
   label: string
   undo: Action[]
   changed: string[]
+  details?: string[] // a recalculation's changed people, one line each
 }
 
 /** In memory only: undo is for the last few clicks, not across visits. */

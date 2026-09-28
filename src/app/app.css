@@ -561,6 +561,11 @@ td {
 .undo-bar span {
   margin-right: auto;
 }
+.undo-details {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 20px;
+}
 .roster-table td.changed {
   outline: 2px dashed var(--green);
   outline-offset: -3px;

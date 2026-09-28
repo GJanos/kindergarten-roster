@@ -1,5 +1,6 @@
 import { weekday } from '../core/calendar'
-import type { AbsenceKind, Role, Shift } from '../core/types'
+import { shiftTimes } from '../core/shifts'
+import type { AbsenceKind, Assignment, Role, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -54,6 +55,12 @@ export function dayHeader(date: string): string {
 export function formatDate(date: string): string {
   const [y, m, d] = parts(date)
   return `${y}. ${MONTHS[m - 1]} ${d}.`
+}
+
+/** '10.28.' */
+export function shortDate(date: string): string {
+  const [, month, day] = date.split('-')
+  return `${month}.${day}.`
 }
 
 /** '2026. október 26 – 30.', '2026. október 29 – november 2.', '2026. december 28. – 2027. január 1.' */
@@ -276,6 +283,30 @@ export const ui = {
     fewNannies: (have: number, need: number) => `csak ${have} dajka — ${need} kell`,
     manual: (groups: number) => `kézi: ${groups} cs.`,
     fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
+  },
+  recalc: {
+    started: 'A hét már elkezdődött — a korábbi napok változatlanok maradnak.',
+    minimal: 'Csak a szükséges változtatások',
+    minimalHint: 'A lehető legkevesebb munkatárs beosztása változik, a többieké marad.',
+    full: 'Mától mindent újraszámol',
+    fullHint:
+      'Mától az egész hetet újraosztja az egyenlő elosztás szerint — sok beosztás változhat.',
+    sick: 'Beteg lett…',
+    sickUntil: (name: string, date: string) => `${name} beteg ${fromDay(date)} — meddig?`,
+    sickGo: 'Beteg — újraszámol',
+    didSick: (name: string, from: string, to: string) =>
+      `${name} beteg: ${shortDate(from)}${to > from ? `–${shortDate(to)}` : ''}`,
+    changedPeople: (count: number) =>
+      count === 0
+        ? 'Senki más beosztása nem változott.'
+        : `${count} munkatárs beosztása változott:`,
+    /** 'DE 6:00–14:00, 2. cs., nyit' */
+    dayText: (role: Role, a: Assignment) =>
+      `${shiftShort[a.shift]} ${shiftTimes(role, a.shift, a.date)}, ${
+        a.seat ? groupShort(a.seat.group) : 'csoporton kívül'
+      }${a.opener ? ', nyit' : a.closer ? ', zár' : ''}`,
+    change: (name: string, date: string, isToday: boolean, now: string, was: string) =>
+      `${name}: ${isToday ? 'ma' : onDay(date)} ${now} (eddig ${was})`,
   },
   print: {
     groupTitle: (period: string) => `Beosztás — ${period}`,

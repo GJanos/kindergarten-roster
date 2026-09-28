@@ -21,6 +21,13 @@ export function UndoBar({ change, busy, onUndo, onAccept }: Props) {
       <button title={ui.roster.acceptHint} onClick={onAccept}>
         {ui.roster.accept}
       </button>
+      {change.details && (
+        <ul className="undo-details">
+          {change.details.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
