@@ -301,3 +301,22 @@ describe('a realistic week', () => {
     expect(changedPeople('minimal')).toBeLessThan(changedPeople('full'))
   }, 120_000)
 })
+
+describe('a group change later in a week in progress', () => {
+  it('on Wednesday, a new group count for Friday changes Friday only', () => {
+    const state = demoState('2026-09-18')
+    const input = solveInputFor(state, '2026-10-26')
+    const before = solve(input, highs, TEST_META)
+    const FRI = '2026-10-30'
+    const fewer = {
+      ...input,
+      dayPlans: input.dayPlans.map((p) => (p.date === FRI ? { ...p, override: 2 } : p)),
+    }
+    const anchor: Anchor = { roster: before, from: WED, mode: 'minimal' }
+    const after = solve(recalcInput(fewer, anchor)!, highs, TEST_META, anchor)
+    expect(after.groupsPerDay[FRI]).toBe(2)
+    expect(on(after, WED)).toEqual(on(before, WED))
+    expect(on(after, '2026-10-29')).toEqual(on(before, '2026-10-29'))
+    expect(scheduleChanges(before, after, WED).every((c) => c.date === FRI)).toBe(true)
+  }, 120_000)
+})
