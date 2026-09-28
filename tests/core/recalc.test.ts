@@ -1,9 +1,11 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { TEST_META, makeInput } from './fixtures'
-import { recalcInput } from '../../src/core/recalc'
+import { TEST_META, makeInput, randomInput } from './fixtures'
+import { anchorModel, recalcInput } from '../../src/core/recalc'
+import { buildModel, v } from '../../src/core/model'
 import { solve } from '../../src/core/solve'
-import type { Anchor, Roster } from '../../src/core/types'
+import { validateRoster } from '../../src/core/validate'
+import type { Anchor, Assignment, Roster, Shift } from '../../src/core/types'
 
 const highs = await loadHighs()
 const MON = '2026-10-26'
@@ -84,4 +86,142 @@ describe('recalcInput', () => {
     }
     expect(recalcInput(gone, keeping(TUE))).toBeUndefined()
   })
+})
+
+// One day, one group: the wall as it was planned before anyone called in sick.
+const day = (staffId: string, shift: Shift, rest: Partial<Assignment> = {}): Assignment => ({
+  staffId,
+  date: WED,
+  shift,
+  ...rest,
+})
+const oneDay = (assignments: Assignment[]): Roster => ({
+  period: { start: WED, days: [WED] },
+  groupsPerDay: { [WED]: 1 },
+  assignments,
+  holes: [],
+  warnings: [],
+  ...TEST_META,
+})
+const wall = oneDay([
+  day('t1', 'morning', { seat: { kind: 'teacher', group: 1, shift: 'morning' } }),
+  day('t2', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' } }),
+  day('t3', 'afternoon'),
+  day('n1', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+  day('n2', 'afternoon', { closer: true }),
+  day('n3', 'morning'),
+])
+const of = (r: Roster, id: string) => r.assignments.find((a) => a.staffId === id)
+const on = (r: Roster, date: string) =>
+  r.assignments.filter((a) => a.date === date).sort((a, b) => a.staffId.localeCompare(b.staffId))
+
+/** Solves the one-day week again with `sick` away, keeping `roster`. */
+function recalcWed(roster: Roster, sick: string[]) {
+  const input = makeInput({
+    teachers: 3,
+    nannies: 3,
+    groups: 1,
+    days: [WED],
+    absent: Object.fromEntries(sick.map((id) => [id, [WED]])),
+  })
+  const anchor: Anchor = { roster, from: WED, mode: 'minimal' }
+  const derived = recalcInput(input, anchor)!
+  const result = solve(derived, highs, TEST_META, anchor)
+  expect(validateRoster(derived, result)).toEqual([])
+  return result
+}
+
+describe('anchored solve', () => {
+  it('lets a reserve on the same shift take the seat, and moves nobody else', () => {
+    const r = recalcWed(wall, ['t2'])
+    expect(of(r, 't3')).toEqual(
+      day('t3', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' } }),
+    )
+    for (const id of ['t1', 'n1', 'n2', 'n3']) expect(of(r, id)).toEqual(of(wall, id))
+  })
+
+  it('gives the seat and the key to the nanny already on that shift', () => {
+    const r = recalcWed(wall, ['n1'])
+    expect(of(r, 'n3')).toEqual(
+      day('n3', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+    )
+    for (const id of ['t1', 't2', 't3', 'n2']) expect(of(r, id)).toEqual(of(wall, id))
+  })
+
+  it("changes one person's hours when it must, and keeps the closer", () => {
+    const late = oneDay(
+      wall.assignments.map((a) => (a.staffId === 'n3' ? day('n3', 'afternoon') : a)),
+    )
+    const r = recalcWed(late, ['n1'])
+    expect(of(r, 'n3')).toEqual(
+      day('n3', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+    )
+    expect(of(r, 'n2')).toEqual(of(late, 'n2'))
+  })
+
+  it('keeps every day before `from` exactly as planned, in both modes', () => {
+    // N1 falls ill from Tuesday; her Monday absence is typed in too, after the fact.
+    const sick = {
+      ...week,
+      absences: [
+        ...week.absences,
+        ...[MON, TUE, WED].map((date) => ({ staffId: 'n1', date, kind: 'sick' as const })),
+      ],
+    }
+    for (const mode of ['minimal', 'full'] as const) {
+      const anchor: Anchor = { roster: planned, from: TUE, mode }
+      const derived = recalcInput(sick, anchor)!
+      const r = solve(derived, highs, TEST_META, anchor)
+      expect(validateRoster(derived, r)).toEqual([])
+      expect(on(r, MON)).toEqual(on(planned, MON))
+      expect(r.assignments.some((a) => a.staffId === 'n1' && a.date >= TUE)).toBe(false)
+    }
+  })
+
+  it("weighs an earlier day's change of hours above a later one's", () => {
+    const anchor: Anchor = { roster: planned, from: MON, mode: 'minimal' }
+    const model = buildModel(recalcInput(week, anchor)!)
+    anchorModel(model, anchor)
+    const terms = model.objectives.keepHours.terms
+    expect(terms.get(v.keptHours(0, 0))).toBe(3) // t1 on Monday
+    expect(terms.get(v.keptHours(0, 2))).toBe(1) // t1 on Wednesday
+  })
+
+  it('adds no stability stage in full mode', () => {
+    const anchor: Anchor = { roster: planned, from: TUE, mode: 'full' }
+    const model = buildModel(recalcInput(week, anchor)!)
+    anchorModel(model, anchor)
+    expect(model.objectives.keepPeople.isEmpty()).toBe(true)
+    expect(model.objectives.keepDuties.isEmpty()).toBe(true)
+  })
+
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])(
+    'seed %i: a random sick call keeps the past and every strict rule',
+    (seed) => {
+      const input = randomInput(seed)
+      const days = input.period.days
+      if (days.length < 2) return
+      const before = solve(input, highs, TEST_META)
+      const from = days[1]
+      const victim = before.assignments.find((a) => a.date === from)
+      if (!victim) return
+      const sick = {
+        ...input,
+        absences: [
+          ...input.absences.filter((a) => a.staffId !== victim.staffId || a.date < from),
+          ...days
+            .filter((date) => date >= from)
+            .map((date) => ({ staffId: victim.staffId, date, kind: 'sick' as const })),
+        ],
+      }
+      for (const mode of ['minimal', 'full'] as const) {
+        const anchor: Anchor = { roster: before, from, mode }
+        const derived = recalcInput(sick, anchor)!
+        const r = solve(derived, highs, TEST_META, anchor)
+        expect(validateRoster(derived, r)).toEqual([])
+        expect(on(r, days[0])).toEqual(on(before, days[0]))
+      }
+    },
+    120_000,
+  )
 })

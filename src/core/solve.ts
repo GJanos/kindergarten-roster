@@ -9,8 +9,10 @@ import {
   type RosterModel,
   type Stage,
 } from './model'
+import { anchorModel } from './recalc'
 import {
   SHIFTS,
+  type Anchor,
   type Assignment,
   type Hole,
   type Roster,
@@ -48,10 +50,17 @@ type Columns = Record<string, { Primal?: number }>
 
 /**
  * Staged solve (§6.5): each stage's optimum becomes a bound for the next, so a
- * later stage only chooses among rosters tied on every earlier one.
+ * later stage only chooses among rosters tied on every earlier one. With an anchor (a week in
+ * progress), `input` must come from `recalcInput`.
  */
-export function solve(input: SolveInput, highs: LpSolver, meta: RosterMeta): Roster {
+export function solve(
+  input: SolveInput,
+  highs: LpSolver,
+  meta: RosterMeta,
+  anchor?: Anchor,
+): Roster {
   const model = buildModel(input)
+  if (anchor) anchorModel(model, anchor)
   const bounds: Row[] = []
   let columns: Columns | undefined
   let stoppedEarly: Stage | undefined

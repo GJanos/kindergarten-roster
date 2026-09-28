@@ -1,8 +1,11 @@
 import type { Roster, RosterMeta, SolveInput } from '../core/types'
 import type { SolveRequest, SolveResponse } from './protocol'
 
-/** Every solver stage stops itself (STAGE_TIME_LIMIT); this outlasts all of them and only catches a hang. */
-export const SOLVE_TIMEOUT_MS = 150_000
+/**
+ * Every solver stage stops itself (STAGE_TIME_LIMIT); this outlasts all of them — ten in a
+ * recalculation — and only catches a hang.
+ */
+export const SOLVE_TIMEOUT_MS = 180_000
 
 export class SolveFailure extends Error {
   constructor(
