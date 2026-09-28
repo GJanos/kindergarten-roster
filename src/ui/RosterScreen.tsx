@@ -14,7 +14,7 @@ import type { UndoHistory } from '../state/undo'
 import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
 import { changedCells } from './changedCells'
-import { changeLines } from './changeLines'
+import { changeSummary } from './changeSummary'
 import { DayChips } from './DayChips'
 import { DayEditor } from './DayEditor'
 import { today } from './dates'
@@ -147,7 +147,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           ],
           changed: [...changed],
           ...(anchor
-            ? { details: changeLines(anchor.roster, result, anchor.from, current.staff, now) }
+            ? { details: changeSummary(anchor.roster, result, anchor.from, current.staff, now) }
             : {}),
         })
       }

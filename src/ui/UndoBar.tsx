@@ -22,11 +22,20 @@ export function UndoBar({ change, busy, onUndo, onAccept }: Props) {
         {ui.roster.accept}
       </button>
       {change.details && (
-        <ul className="undo-details">
-          {change.details.map((line) => (
-            <li key={line}>{line}</li>
+        <div className="undo-details">
+          {change.details.map((section) => (
+            <section key={section.title}>
+              <strong>{section.title}</strong>
+              {section.items.length > 0 && (
+                <ul>
+                  {section.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )

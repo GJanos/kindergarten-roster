@@ -567,10 +567,9 @@ describe('RosterScreen sick call', () => {
       }),
     )
     expect(await screen.findByText('T2 beteg: 10.28.–10.29.')).toBeTruthy()
-    expect(screen.getByText('1 munkatárs beosztása változott:')).toBeTruthy()
-    expect(
-      screen.getByText('T4: ma DE 7:00–13:30, 1. cs. (eddig DE 7:00–13:30, csoporton kívül)'),
-    ).toBeTruthy()
+    // T4 keeps her hours, so she is told at the door rather than phoned.
+    expect(screen.getByText('1 munkatársnak csak a helye vagy a kulcsa változott:')).toBeTruthy()
+    expect(screen.getByText('T4 — ma: 1. cs. (eddig csoporton kívül)')).toBeTruthy()
     fireEvent.click(screen.getByText('↶ Visszavonás'))
     expect(screenTable().getByText('DE: T2')).toBeTruthy()
     expect(screen.queryByText(/változott a számolás óta/)).toBeNull()

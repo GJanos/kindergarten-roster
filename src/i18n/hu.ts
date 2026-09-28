@@ -296,17 +296,30 @@ export const ui = {
     sickGo: 'Beteg — újraszámol',
     didSick: (name: string, from: string, to: string) =>
       `${name} beteg: ${shortDate(from)}${to > from ? `–${shortDate(to)}` : ''}`,
-    changedPeople: (count: number) =>
-      count === 0
-        ? 'Senki más beosztása nem változott.'
-        : `${count} munkatárs beosztása változott:`,
-    /** 'DE 6:00–14:00, 2. cs., nyit' */
-    dayText: (role: Role, a: Assignment) =>
-      `${shiftShort[a.shift]} ${shiftTimes(role, a.shift, a.date)}, ${
-        a.seat ? groupShort(a.seat.group) : 'csoporton kívül'
-      }${a.opener ? ', nyit' : a.closer ? ', zár' : ''}`,
-    change: (name: string, date: string, isToday: boolean, now: string, was: string) =>
-      `${name}: ${isToday ? 'ma' : onDay(date)} ${now} (eddig ${was})`,
+    callTitle: (count: number) => `${count} munkatárs ideje változott — őket érdemes felhívni:`,
+    tellTitle: (count: number) => `${count} munkatársnak csak a helye vagy a kulcsa változott:`,
+    unchanged: 'Senki más beosztása nem változott.',
+    /** 'Kati — ma: nem nyit · kedd: 1. cs. (eddig csoporton kívül)' */
+    person: (name: string, days: string[]) => `${name} — ${days.join(' · ')}`,
+    /**
+     * Only what changed on one day: new hours (with the old shift) and where, or else the move;
+     * then a key taken on or given up. 'szerda: DE 6:00–14:00 (eddig DU), 1. cs., nyit, nem zár'
+     */
+    day: (role: Role, was: Assignment, now: Assignment, isToday: boolean) => {
+      const place = (a: Assignment) => (a.seat ? groupShort(a.seat.group) : 'csoporton kívül')
+      const parts: string[] = []
+      if (now.shift !== was.shift) {
+        const times = shiftTimes(role, now.shift, now.date)
+        parts.push(`${shiftShort[now.shift]} ${times} (eddig ${shiftShort[was.shift]})`, place(now))
+      } else if (place(now) !== place(was)) {
+        parts.push(`${place(now)} (eddig ${place(was)})`)
+      }
+      if (now.substitution && !was.substitution) parts.push('dajka helyett')
+      if (!now.opener !== !was.opener) parts.push(now.opener ? 'nyit' : 'nem nyit')
+      if (!now.closer !== !was.closer) parts.push(now.closer ? 'zár' : 'nem zár')
+      if (parts.length === 0) parts.push(place(now))
+      return `${isToday ? 'ma' : dayName(now.date)}: ${parts.join(', ')}`
+    },
   },
   print: {
     groupTitle: (period: string) => `Beosztás — ${period}`,
