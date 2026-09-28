@@ -89,4 +89,10 @@ export type SolveInput = {
   history?: Balance // the kindergarten year's earlier rosters, summed; the last tie-break (v2)
 }
 
+/**
+ * Re-plan a week in progress from `from` on (the sick-call recalculation, v2): days before it stay
+ * as `roster` has them. 'minimal' changes as few people as it can; 'full' re-plans the rest freely.
+ */
+export type Anchor = { roster: Roster; from: string; mode: 'minimal' | 'full' }
+
 export type RosterMeta = { solvedAt: string; appVersion: string }
