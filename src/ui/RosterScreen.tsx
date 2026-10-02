@@ -88,7 +88,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
 
   const swap = (change: Swap) => {
     if (!roster) return
-    const result = editRoster(input, roster, change)
+    const result = editRoster(input, roster, change, from)
     if (!result.ok) {
       setSwapError(ui.roster.swapRefused(result.violations.map((v) => v.rule)))
       return

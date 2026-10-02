@@ -178,6 +178,9 @@ export const ui = {
       'Az idei (szeptember 1. óta) mentett beosztásokból. Zárójelben: ennyivel több (+) vagy ' +
       'kevesebb (−) jutott neki az egyenlő résznél. Ahol egy hét nem osztható el egyenlően, a ' +
       'következő beosztás ezt egyenlíti ki.',
+    yearBalanceEmpty:
+      'Még üres: az idei első mentett beosztás után itt látod, ki hányszor volt délelőttös, ' +
+      'délutános, nyitó, záró vagy tartalék.',
     yearColumns: ['Név', 'Délelőtt', 'Délután', 'Nyit', 'Zár', 'Tartalék'],
     legendTitle: 'ⓘ Tudnivalók',
     legend: [

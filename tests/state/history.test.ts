@@ -93,4 +93,17 @@ describe('yearTotals', () => {
       },
     ])
   })
+
+  it('gives every active person a row of zeros before their first saved day', () => {
+    const staff = makeStaff(1, 1)
+    staff[1] = { ...staff[1], active: false }
+    const state: AppState = { ...emptyState(), staff }
+    expect(yearTotals(state, '2026-11-05')).toEqual([
+      {
+        staffId: 't1',
+        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        deltas: {},
+      },
+    ])
+  })
 })

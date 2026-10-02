@@ -124,6 +124,59 @@ describe('editRoster', () => {
   })
 })
 
+describe('editRoster in a week in progress', () => {
+  const [MON, TUE, WED] = ['2026-10-26', '2026-10-27', '2026-10-28']
+  const days = [MON, TUE, WED]
+  const planned = solved(makeInput({ teachers: 4, nannies: 3, groups: 2, days }))
+  // Recalculated from Wednesday after the week's facts changed: Monday and Tuesday are history.
+  const recalculated = (input: ReturnType<typeof makeInput>): Roster => {
+    const result = makeRoster(input, highs, TEST_META, {
+      roster: planned,
+      from: WED,
+      mode: 'minimal',
+    })
+    if (!result.ok) throw new Error('the recalculation must solve')
+    return result.roster
+  }
+  const teachersOn = (roster: Roster, date: string) =>
+    roster.assignments.filter((a) => a.date === date && a.seat?.kind === 'teacher')
+
+  it('checks the days before `from` as they were worked, not against the group count set since', () => {
+    const fewer = makeInput({ teachers: 4, nannies: 3, groups: 1, days })
+    const roster = recalculated(fewer)
+    const [a, b] = teachersOn(roster, WED)
+    expect(editRoster(fewer, roster, { date: WED, a: a.staffId, b: b.staffId }, WED).ok).toBe(true)
+  })
+
+  it('checks the days before `from` against who worked them, not absences typed since', () => {
+    const base = makeInput({ teachers: 4, nannies: 3, groups: 2, days })
+    const worker = planned.assignments.find((a) => a.date === MON)!.staffId
+    const sick = {
+      ...base,
+      absences: [{ staffId: worker, date: MON, kind: 'sick' as const }],
+    }
+    const roster = recalculated(sick)
+    const [a, b] = teachersOn(roster, WED)
+    expect(editRoster(sick, roster, { date: WED, a: a.staffId, b: b.staffId }, WED).ok).toBe(true)
+  })
+
+  it('still refuses a swap that breaks a rule on the day it is made', () => {
+    const fewer = makeInput({ teachers: 4, nannies: 3, groups: 1, days })
+    const roster = recalculated(fewer)
+    const opener = roster.assignments.find((a) => a.date === WED && a.opener)!
+    const result = editRoster(
+      fewer,
+      roster,
+      { date: WED, a: opener.staffId, b: teachersOn(roster, WED)[0].staffId },
+      WED,
+    )
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.violations.map((v) => v.rule)).toContain('keyNotNanny')
+    expect(result.violations.every((v) => v.date === WED)).toBe(true)
+  })
+})
+
 // PROPERTY_RUNS=300 npm test -- edit   for a deep run before a release.
 const RUNS = Number(process.env.PROPERTY_RUNS ?? 25)
 
