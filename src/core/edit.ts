@@ -1,6 +1,7 @@
 import { explain } from './explain'
 import { balanceOf } from './fairness'
 import type { RosterResult } from './pipeline'
+import { recalcInput } from './recalc'
 import type { Assignment, Roster, SolveInput, Staff } from './types'
 import { validateRoster } from './validate'
 
@@ -43,19 +44,27 @@ export function swapDay(roster: Roster, staff: Staff[], swap: Swap): Roster {
 
 /**
  * A swap through the same gate as a solve: every strict rule re-checked, the warnings explained
- * again. A roster that breaks a rule never comes back — the caller shows why instead.
+ * again. A roster that breaks a rule never comes back — the caller shows why instead. With `from`
+ * (a week in progress) the days before it are history, checked the way `makeRoster` checks them:
+ * as they were worked, not against absences or group counts set since.
  */
-export function editRoster(input: SolveInput, roster: Roster, swap: Swap): RosterResult {
-  const swapped = swapDay(roster, input.staff, swap)
-  const violations = validateRoster(input, swapped)
+export function editRoster(
+  input: SolveInput,
+  roster: Roster,
+  swap: Swap,
+  from?: string,
+): RosterResult {
+  const checked = (from && recalcInput(input, { roster, from, mode: 'minimal' })) || input
+  const swapped = swapDay(roster, checked.staff, swap)
+  const violations = validateRoster(checked, swapped)
   if (violations.length > 0) return { ok: false, violations }
   return {
     ok: true,
     roster: {
       ...swapped,
       edited: true,
-      warnings: explain(input, swapped),
-      balance: balanceOf(input, swapped),
+      warnings: explain(checked, swapped),
+      balance: balanceOf(checked, swapped),
     },
   }
 }
