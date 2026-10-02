@@ -36,7 +36,8 @@ export type YearRow = { staffId: string; counts: YearCounts; deltas: Balance[str
 
 /**
  * Each person's kindergarten year up to this week: days worked per shift, openings, closings and
- * reserve days, counted from the saved rosters, plus their summed deltas. Teachers first.
+ * reserve days, counted from the saved rosters, plus their summed deltas. Teachers first. Every
+ * active person has a row, zeros until their first saved day.
  */
 export function yearTotals(state: AppState, today: string): YearRow[] {
   const from = yearStart(today)
@@ -67,7 +68,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
   }
   for (const [staffId, mine] of Object.entries(deltas)) rowOf(staffId).deltas = mine
   return state.staff
-    .filter((s) => !s.deleted && rows.has(s.id))
+    .filter((s) => !s.deleted && (s.active || rows.has(s.id)))
     .sort((a, b) => (a.role === b.role ? 0 : a.role === 'teacher' ? -1 : 1))
-    .map((s) => rows.get(s.id)!)
+    .map((s) => rowOf(s.id))
 }
