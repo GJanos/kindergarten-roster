@@ -263,6 +263,12 @@ switches can outweigh a fairness gain.
    `Σ history × count`, so the rounded-up unit goes to whoever is behind this year. Rosters saved
    before v2 have no deltas and count as zero. The history is not part of the input fingerprint.
 
+**Out of time.** A stage that runs out of time keeps its best roster so far, which is valid because every
+rule is a constraint, and that roster's value becomes the bound for the later stages, which still
+run. The yearly stage is best-effort: 10 s, and running out of it is not reported. On a week with
+6 groups and 16 people HiGHS finds its roster in about 3 s but cannot prove it optimal even in
+900 s (2026-10-02). Its leftover is carried into next week's history anyway.
+
 **A week in progress** (v2-F, `docs/specs/2026-09-28-sick-call-design.md`) is solved with an
 anchor, the saved roster. The days before `from` (the first working day that is today or later)
 are fixed as planned; who worked them is read from the anchor, not from absences typed since. In
@@ -485,7 +491,7 @@ v1 data migrates to v2 with every absence as leave.
 | Situation | What she sees |
 | --- | --- |
 | Shortage | not an error: a roster with warnings (§7) |
-| Solver or WASM fails to load, crashes, or exceeds 180 s (each stage stops itself at 15 s; a stage that does is noted on screen) | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
+| Solver or WASM fails to load, crashes, or exceeds 180 s (each stage stops itself at 15 s, the yearly tie-break at 10 s; a stage that does keeps its best roster so far, the later stages still run, and the screen names it — the yearly tie-break excepted) | *"Hiba történt — frissítsd az oldalt."* The worker keeps the page responsive |
 | `validateRoster` finds a violation (a bug) | *"Hiba történt a beosztás készítésekor."* — the roster is not shown or printed |
 | Invalid restore file | rejected with a message; nothing changes |
 | Persistent storage refused | the footer asks her to back up more often |

@@ -191,8 +191,11 @@ When the user presses _Számol_:
    - After each stage its best value is locked in as a new rule, so a later stage can only choose
      among rosters that are equally good on everything before it.
    - Each stage gets 15 s (a week needs about 3 s in all). A stage that runs out of time keeps the
-     best roster found so far — marked, so the screen suggests solving again — and
-     only if HiGHS actually found one (a finite objective).
+     best roster found so far (if HiGHS found none, the previous stage's), locks in what that
+     roster reached and lets the later stages run; the screen names the stage that ran out.
+   - The yearly tie-break gets 10 s, and running out of it is not shown: its leftover evens out
+     next week, and on a big week (6 groups, 16 people) HiGHS finds its roster in seconds but
+     cannot prove it the best even in 15 minutes.
    - A later stage can never really be infeasible, because the previous stage's roster meets
      every bound. If HiGHS says it is anyway, that is its presolve misjudging a fairness bound
      that leaves 1e-6 of room (seen on real data). The stage is then solved again without
