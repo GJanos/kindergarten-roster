@@ -30,6 +30,20 @@ export function rosterOrder(staff: Staff[]): Staff[] {
   )
 }
 
+/** Back to the current week or month. Kept in place, only hidden, so the bar never shifts. */
+function TodayButton({ away, onClick }: { away: boolean; onClick: () => void }) {
+  return (
+    <button
+      className={away ? undefined : 'invisible'}
+      aria-hidden={!away}
+      tabIndex={away ? undefined : -1}
+      onClick={onClick}
+    >
+      {ui.absences.today}
+    </button>
+  )
+}
+
 export function AbsenceScreen({ state, dispatch, week, onWeek, view, onView }: Props) {
   const [month, setMonth] = useState(() => today().slice(0, 7))
   const [brush, setBrush] = useState<AbsenceKind>('leave')
@@ -69,9 +83,7 @@ export function AbsenceScreen({ state, dispatch, week, onWeek, view, onView }: P
             <button aria-label={ui.absences.nextWeek} onClick={() => onWeek(addDays(week, 7))}>
               ▶
             </button>
-            {week !== mondayOf(now) && (
-              <button onClick={() => onWeek(mondayOf(now))}>{ui.absences.today}</button>
-            )}
+            <TodayButton away={week !== mondayOf(now)} onClick={() => onWeek(mondayOf(now))} />
           </>
         ) : (
           <>
@@ -85,9 +97,10 @@ export function AbsenceScreen({ state, dispatch, week, onWeek, view, onView }: P
             <button aria-label={ui.absences.next} onClick={() => setMonth(shiftMonth(month, 1))}>
               ▶
             </button>
-            {month !== now.slice(0, 7) && (
-              <button onClick={() => setMonth(now.slice(0, 7))}>{ui.absences.today}</button>
-            )}
+            <TodayButton
+              away={month !== now.slice(0, 7)}
+              onClick={() => setMonth(now.slice(0, 7))}
+            />
           </>
         )}
         <div className="kinds" role="group" aria-label={ui.absences.kindsLabel}>

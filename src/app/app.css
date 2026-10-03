@@ -138,6 +138,10 @@ input[type='checkbox'] {
   height: 20px;
   accent-color: var(--green);
 }
+/* Holds its place in a bar while hidden, so nothing beside it moves. */
+.invisible {
+  visibility: hidden;
+}
 input.duplicate {
   border-color: var(--orange);
 }
@@ -299,7 +303,19 @@ td {
   vertical-align: top;
 }
 .staff td {
+  position: relative;
   vertical-align: middle;
+}
+/* Floats under the name, so the row keeps its height while she types. */
+.staff .name-warning {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: 8px;
+  z-index: 1;
+  padding: 0 4px;
+  background: var(--surface);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 .staff tr.inactive {
   color: var(--grey);
@@ -616,6 +632,40 @@ td {
   margin: 10px 0;
   padding: 8px 12px;
   border: 2px dashed var(--green);
+  border-radius: 8px;
+  background: var(--surface);
+}
+/* What comes and goes after a click: sticky at the screen bottom, its space at the page end. */
+.action-dock {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 1000px;
+  max-height: 60vh;
+  margin: 12px auto 0;
+  padding: 4px;
+  overflow-y: auto;
+  pointer-events: none;
+}
+.action-dock > * {
+  margin: 0;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+  pointer-events: auto;
+}
+.action-dock .swap-bar {
+  border-style: solid;
+}
+.action-dock .refused {
+  border-color: var(--red);
+}
+.action-dock .stale {
+  position: static;
+}
+.action-dock .day-editor {
+  border: 2px solid var(--green);
   border-radius: 8px;
   background: var(--surface);
 }

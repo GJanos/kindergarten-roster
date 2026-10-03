@@ -110,7 +110,7 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                       value={s.displayName}
                       onChange={(e) => update(s.id, { displayName: e.target.value })}
                     />
-                    {duplicate && <div className="error">{ui.staff.duplicate}</div>}
+                    {duplicate && <div className="error name-warning">{ui.staff.duplicate}</div>}
                   </td>
                   <td className="center">
                     <input

@@ -108,6 +108,19 @@ export function sinceText(days: number): string {
 export const CALL_IN_ORDER: Record<AbsenceKind, number> = { leave: 0, other: 1, sick: 2 }
 
 /** The strict rules a swap can break (validate.ts rule names), most telling first. */
+// Where a solve stopped early: the solver stage, in her words.
+const STOPPED_AT: Record<string, string> = {
+  holes: 'a hiányoknál',
+  substitutions: 'a dajka helyetti óvónőknél',
+  keepPeople: 'a változtatások számánál',
+  keepHours: 'a változtatások számánál',
+  keepDuties: 'a változtatások számánál',
+  worstGap: 'az egyenlő elosztásnál',
+  totalGap: 'az egyenlő elosztásnál',
+  switches: 'a csoportváltásoknál',
+  turnarounds: 'a zárás utáni korai nyitásoknál',
+}
+
 const SWAP_REASONS: [rule: string, reason: string][] = [
   ['nannyInTeacherSeat', 'dajka nem ülhet óvónői helyre'],
   ['keyNotNanny', 'nyitni és zárni csak dajka tud'],
@@ -234,8 +247,15 @@ export const ui = {
     archived:
       'Ez a hét már elmúlt — a beosztás archív, nem módosítható. Nyomtatni és letölteni lehet.',
     archivedEmpty: 'Ehhez a héthez nincs mentett beosztás.',
-    stoppedEarly:
-      'A számolás időkorlát miatt hamarabb leállt (valószínűleg épp túl terhelt volt a gép). A beosztás érvényes, de lehet jobb is — érdemes újraszámolni.',
+    /** Undefined for the year balance: its leftover evens out next week by itself. */
+    stoppedEarly: (stage: string): string | undefined => {
+      if (stage === 'yearly') return undefined
+      const where = STOPPED_AT[stage] ?? 'az egyik szempontnál'
+      return (
+        `Nagy hét: ${where} a számolás az időkorlát miatt a legjobb addig talált megoldással ` +
+        'állt meg. A beosztás érvényes, minden szabályt betart.'
+      )
+    },
     staleTitle: 'Ez a beosztás elavult.',
     stale: 'A munkatársak, a távollétek vagy a csoportszám változott a számolás óta.',
     resolve: 'Újraszámol',

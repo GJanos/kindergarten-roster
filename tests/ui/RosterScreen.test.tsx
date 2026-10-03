@@ -206,6 +206,7 @@ describe('RosterScreen', () => {
   it('greys out an outdated roster and offers solving again right there', async () => {
     vi.mocked(solveInWorker).mockResolvedValue(roster)
     renderScreen(withRoster(base, 'old'))
+    expect(screen.getByRole('status').closest('.action-dock')).not.toBeNull()
     const banner = within(screen.getByRole('status'))
     expect(banner.getByText(/változott a számolás óta/)).toBeTruthy()
     expect(document.querySelector('.result')?.className).toBe('result outdated')
@@ -240,10 +241,23 @@ describe('RosterScreen', () => {
       inputKey: inputKey(solveInputFor(base, WEEK)),
     })
     renderScreen(early)
-    expect(screen.getByText(/időkorlát miatt hamarabb leállt/)).toBeTruthy()
+    const note = screen.getByText(/a csoportváltásoknál/)
+    expect(note.textContent).toMatch(/időkorlát/)
+    expect(note.textContent).not.toMatch(/terhelt/) // a big week, not a busy laptop
     cleanup()
     renderScreen(withRoster(base))
-    expect(screen.queryByText(/időkorlát miatt hamarabb leállt/)).toBeNull()
+    expect(screen.queryByText(/időkorlát/)).toBeNull()
+  })
+
+  it('says nothing when only the year balance ran out of time (an older roster)', () => {
+    const early = reducer(base, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: { ...roster, stoppedEarly: 'yearly' },
+      inputKey: inputKey(solveInputFor(base, WEEK)),
+    })
+    renderScreen(early)
+    expect(screen.queryByText(/időkorlát/)).toBeNull()
   })
 
   it('reports a failed solve in words', async () => {
@@ -410,7 +424,7 @@ describe('RosterScreen swap', () => {
     fireEvent.click(screenTable().getByText('DE: T2'))
     expect(screen.getByText('T2 kiválasztva (szerda) — kattints arra, akivel cserél.')).toBeTruthy()
     fireEvent.click(screenTable().getByText('DE: T1'))
-    expect(screen.getByText('Csere: T2 ↔ T1, szerda.')).toBeTruthy()
+    expect(screen.getByText('Csere: T2 ↔ T1, szerda.').closest('.action-dock')).not.toBeNull()
     expect(document.querySelectorAll('td.changed')).toHaveLength(2)
     expect(screen.getByText('kézzel módosítva')).toBeTruthy()
     fireEvent.click(screen.getByText('↶ Visszavonás'))
@@ -427,6 +441,23 @@ describe('RosterScreen swap', () => {
     ).toBeTruthy()
     expect(screen.queryByText('↶ Visszavonás')).toBeNull()
     expect(screenTable().getByText('Dajka: N1 (DE, nyit)')).toBeTruthy()
+  })
+
+  it('floats the pick bar and a refusal in the dock, so the page above the table never moves', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(screenTable().getByText('Dajka: N1 (DE, nyit)'))
+    expect(screen.getByText(/kiválasztva/).closest('.action-dock')).not.toBeNull()
+    fireEvent.click(screenTable().getByText('T4 (DE)'))
+    const refusal = screen.getByText(/Ez a csere nem lehetséges/)
+    expect(refusal.closest('.action-dock')).not.toBeNull()
+    fireEvent.click(within(refusal.closest('.action-dock') as HTMLElement).getByText('Rendben'))
+    expect(screen.queryByText(/Ez a csere nem lehetséges/)).toBeNull()
+  })
+
+  it('opens the day editor in the dock, not above the table', () => {
+    render(<Harness initial={withValid} />)
+    fireEvent.click(document.querySelector('.capacity button')!)
+    expect(document.querySelector('.day-editor')?.closest('.action-dock')).not.toBeNull()
   })
 
   it('drops the selection on Mégse, on Escape, or on the same name again', () => {
@@ -475,8 +506,10 @@ describe('RosterScreen week in progress', () => {
     render(<Harness initial={withValid} />)
     fireEvent.click(screen.getByText('Számol'))
     expect(
-      screen.getByText('A hét már elkezdődött — a korábbi napok változatlanok maradnak.'),
-    ).toBeTruthy()
+      screen
+        .getByText('A hét már elkezdődött — a korábbi napok változatlanok maradnak.')
+        .closest('.action-dock'),
+    ).not.toBeNull()
     expect(solveInWorker).not.toHaveBeenCalled()
     fireEvent.click(screen.getByText('Csak a szükséges változtatások'))
     await waitFor(() =>

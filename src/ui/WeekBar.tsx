@@ -27,12 +27,13 @@ export function WeekBar({ week, days, hasRoster, onWeek, groups, archived, edite
             •
           </span>
         )}
-        {archived && <span className="archived-badge">{ui.roster.archivedBadge}</span>}
-        {edited && <span className="edited-badge">{ui.roster.editedBadge}</span>}
       </h2>
       <button aria-label={ui.roster.nextWeek} onClick={() => onWeek(addDays(week, 7))}>
         {hasRoster(addDays(week, 7)) && '• '}▶
       </button>
+      {/* After the arrows, so a badge coming or going never moves them. */}
+      {archived && <span className="archived-badge">{ui.roster.archivedBadge}</span>}
+      {edited && <span className="edited-badge">{ui.roster.editedBadge}</span>}
       {groups && (
         <span className="groups">
           {ui.roster.groups}
