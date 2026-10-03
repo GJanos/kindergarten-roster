@@ -1,7 +1,15 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeInput, randomInput } from './fixtures'
-import { SolveError, solve, type LpSolver } from '../../src/core/solve'
+import {
+  STAGE_TIME_LIMIT,
+  SolveError,
+  YEARLY_TIME_LIMIT,
+  solve,
+  type LpSolver,
+} from '../../src/core/solve'
+import { balanceOf } from '../../src/core/fairness'
+import type { Roster, SolveInput } from '../../src/core/types'
 import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
@@ -29,7 +37,7 @@ describe('solve', () => {
     expect(roster.groupsPerDay).toEqual({ '2026-10-26': 0 })
   })
 
-  it('keeps the best roster so far when a later stage runs out of time', () => {
+  it('keeps the best roster so far when a stage runs out of time, and still runs the rest', () => {
     let calls = 0
     const slow: LpSolver = {
       solve: (lp, options) => {
@@ -41,8 +49,70 @@ describe('solve', () => {
     }
     const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
     const roster = solve(input, slow, TEST_META)
-    expect(calls).toBe(3)
-    expect(roster.stoppedEarly).toBe('totalGap') // holes, worstGap, then this one ran out
+    expect(calls).toBe(5) // holes, worstGap, totalGap (ran out), switches, turnarounds
+    expect(roster.stoppedEarly).toBe('totalGap')
+    expect(validateRoster(input, roster)).toEqual([])
+  })
+
+  it('never lets a later stage undo what a stage that ran out of time had', () => {
+    // Stages 2–3 find nothing in time: the stages after them keep the fairness they were handed.
+    const outAt = (stages: number[]): LpSolver => {
+      let calls = 0
+      return {
+        solve: (lp, options) => {
+          calls += 1
+          if (stages.includes(calls))
+            return { Status: 'Time limit reached', ObjectiveValue: 0, Columns: {}, Rows: [] }
+          return highs.solve(lp, options)
+        },
+      }
+    }
+    for (let seed = 1; seed <= 12; seed++) {
+      const input = randomInput(seed)
+      const gaps = (roster: Roster) =>
+        Object.values(balanceOf(input, roster))
+          .flatMap((kinds) => Object.values(kinds))
+          .reduce((sum, delta) => sum + Math.abs(delta), 0)
+      const handed = solve(input, outAt([2, 3, 4, 5, 6, 7, 8, 9, 10]), TEST_META)
+      const roster = solve(input, outAt([2, 3]), TEST_META)
+      expect(validateRoster(input, roster)).toEqual([])
+      expect(gaps(roster), `seed ${seed}`).toBeLessThanOrEqual(gaps(handed) + 1e-6)
+    }
+  })
+
+  it('gives the year balance a shorter limit, and its running out is no stopping early', () => {
+    // Its leftover carries into next week, and HiGHS can take forever to prove it (2026-10-02).
+    const limits: number[] = []
+    const yearlyOut: LpSolver = {
+      solve: (lp, options) => {
+        limits.push(Number(options?.time_limit))
+        const result = highs.solve(lp, options)
+        if (limits.length < 6 || result.Status !== 'Optimal') return result
+        // Out of time with the roster it found, as HiGHS reports it.
+        const Columns = Object.fromEntries(
+          Object.entries(result.Columns).map(([name, column]) => [
+            name,
+            { ...column, Primal: column.Primal },
+          ]),
+        )
+        return {
+          Status: 'Time limit reached',
+          ObjectiveValue: result.ObjectiveValue,
+          Columns,
+          Rows: [],
+        }
+      },
+    }
+    const input: SolveInput = {
+      ...makeInput({ teachers: 4, nannies: 3, groups: 2 }),
+      history: { t1: { morning: 0.5 }, t2: { morning: -0.5 } },
+    }
+    const roster = solve(input, yearlyOut, TEST_META)
+    expect(limits).toHaveLength(6) // holes, worstGap, totalGap, switches, turnarounds, yearly
+    expect(limits.slice(0, 5).every((limit) => limit === STAGE_TIME_LIMIT)).toBe(true)
+    expect(limits[5]).toBe(YEARLY_TIME_LIMIT)
+    expect(YEARLY_TIME_LIMIT).toBeLessThan(STAGE_TIME_LIMIT)
+    expect(roster.stoppedEarly).toBeUndefined()
     expect(validateRoster(input, roster)).toEqual([])
   })
 

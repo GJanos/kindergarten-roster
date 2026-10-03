@@ -29,9 +29,17 @@ export const HIGHS_OPTIONS = { random_seed: 0, mip_rel_gap: 0, output_flag: fals
 /**
  * Seconds per stage. Realistic weeks need about 3 s in all (6–7 s in a browser), the slowest stage
  * under 2 s; 15 s leaves room for a slow or busy laptop. A stage that runs out keeps the best
- * roster found so far, and the roster says so (`stoppedEarly`).
+ * roster found so far, the roster says so (`stoppedEarly`), and the later stages still run, held
+ * to what that roster reached.
  */
 export const STAGE_TIME_LIMIT = 15
+
+/**
+ * Seconds for the year-balance tie-break. Its leftover carries into next week's balance anyway,
+ * and on a big week HiGHS finds its roster in seconds yet may never prove it the best (6 groups:
+ * not in 900 s, 2026-10-02). So it gets less time, and running out of it is no stopping early.
+ */
+export const YEARLY_TIME_LIMIT = 10
 
 /** Slack when a fractional optimum becomes the next stage's bound; far below any real difference. */
 const TOLERANCE = 1e-6
@@ -68,7 +76,8 @@ export function solve(
     const objective = model.objectives[stage]
     if (objective.isEmpty()) continue
     const lp = toLpText(model.milp, objective, bounds)
-    const options = { ...HIGHS_OPTIONS, time_limit: STAGE_TIME_LIMIT }
+    const timeLimit = stage === 'yearly' ? YEARLY_TIME_LIMIT : STAGE_TIME_LIMIT
+    const options = { ...HIGHS_OPTIONS, time_limit: timeLimit }
     let result = highs.solve(lp, options)
     // A later stage is feasible by construction: the previous stage's roster meets every bound.
     // "Infeasible" there is HiGHS's presolve misjudging a bound that leaves only TOLERANCE of room
@@ -76,22 +85,22 @@ export function solve(
     if (result.Status === 'Infeasible' && columns) {
       result = highs.solve(lp, { ...options, presolve: 'off' })
     }
+    let value: number
     if (result.Status === 'Optimal') {
       columns = result.Columns
-      const optimum = result.ObjectiveValue
-      const rhs = INTEGRAL_STAGES.has(stage) ? Math.round(optimum) : optimum + TOLERANCE
-      bounds.push({ terms: objective.terms, op: '<=', rhs })
-      continue
-    }
-    // Out of time: every rule is a constraint, so the best roster found so far is valid.
-    if (result.Status === 'Time limit reached') {
+      value = result.ObjectiveValue
+    } else if (result.Status === 'Time limit reached') {
+      // Out of time: every rule is a constraint, so the best roster found so far is valid.
       if (hasSolution(result)) columns = result.Columns
-      if (columns) {
-        stoppedEarly = stage
-        break
-      }
+      if (!columns) throw new SolveError(stage, result.Status)
+      if (stage !== 'yearly') stoppedEarly ??= stage
+      // The later stages still run, held to what this roster reached here.
+      value = valueOf(objective.terms, columns)
+    } else {
+      throw new SolveError(stage, result.Status)
     }
-    throw new SolveError(stage, result.Status)
+    const rhs = INTEGRAL_STAGES.has(stage) ? Math.round(value) : value + TOLERANCE
+    bounds.push({ terms: objective.terms, op: '<=', rhs })
   }
   const roster = decode(input, model, columns ?? {}, meta)
   return stoppedEarly ? { ...roster, stoppedEarly } : roster
@@ -100,6 +109,13 @@ export function solve(
 /** Stopped before finding any roster, HiGHS reports an infinite objective yet fills every column. */
 function hasSolution(result: { ObjectiveValue: number; Columns: Columns }): boolean {
   return Number.isFinite(result.ObjectiveValue) && Object.keys(result.Columns).length > 0
+}
+
+/** An objective's value on a solution (without its constant, as the LP text has it). */
+function valueOf(terms: Map<string, number>, columns: Columns): number {
+  let value = 0
+  for (const [name, coef] of terms) value += coef * (columns[name]?.Primal ?? 0)
+  return value
 }
 
 function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: RosterMeta): Roster {

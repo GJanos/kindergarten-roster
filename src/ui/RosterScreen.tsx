@@ -15,6 +15,7 @@ import { inputKey, solveInputFor } from '../state/solveInput'
 import { SolveFailure, solveInWorker } from '../worker/client'
 import { changedCells } from './changedCells'
 import { changeSummary } from './changeSummary'
+import { ActionDock } from './ActionDock'
 import { DayChips } from './DayChips'
 import { DayEditor } from './DayEditor'
 import { today } from './dates'
@@ -75,6 +76,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
 
   // Swaps only in a current, open roster, and not while a solve runs.
   const editable = roster !== undefined && !archived && !stale && !solving
+  const earlyNote = roster?.stoppedEarly && ui.roster.stoppedEarly(roster.stoppedEarly)
   const nameOf = (id: string) => state.staff.find((s) => s.id === id)?.displayName ?? '?'
   // Re-solving throws hand edits away, so she is asked first.
   const mayDropEdits = () => !roster?.edited || window.confirm(ui.roster.confirmDropEdits)
@@ -264,15 +266,6 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {open && input.staff.length === 0 && <p>{ui.roster.noStaff}</p>}
 
         {open && <DayChips capacities={capacities} onEdit={setEditing} />}
-        {editingPlan && (
-          <DayEditor
-            plan={editingPlan}
-            onOverride={(count) =>
-              dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: count })
-            }
-            onDone={() => setEditing(undefined)}
-          />
-        )}
         {open && (
           <GroupLabels
             groups={groups}
@@ -290,91 +283,10 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
             {solving ? ui.roster.solving : ui.roster.solve}
           </button>
         )}
-        {error && <p className="error">{error}</p>}
-        {choosing && (
-          <div className="recalc-choice" role="group">
-            <span>{ui.recalc.started}</span>
-            <button
-              className="primary"
-              title={ui.recalc.minimalHint}
-              onClick={() => {
-                setChoosing(false)
-                void solve(state, undefined, 'minimal')
-              }}
-            >
-              {ui.recalc.minimal}
-            </button>
-            <button
-              title={ui.recalc.fullHint}
-              onClick={() => {
-                setChoosing(false)
-                if (mayDropEdits()) void solve(state, undefined, 'full')
-              }}
-            >
-              {ui.recalc.full}
-            </button>
-            <button onClick={() => setChoosing(false)}>{ui.roster.cancel}</button>
-          </div>
-        )}
         {!roster && canSolve && <p>{ui.roster.notSolved}</p>}
-        {lastChange && !archived && (
-          <UndoBar
-            change={lastChange}
-            busy={solving}
-            onUndo={() => history.undo(lastChange)}
-            onAccept={() => history.accept(week)}
-          />
-        )}
 
-        {picked && (
-          <div className="swap-bar" aria-live="polite">
-            <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
-            {from !== undefined && picked.date >= from && (
-              <button
-                onClick={() => {
-                  setSick({ ...picked, until: picked.date })
-                  setPicked(undefined)
-                }}
-              >
-                {ui.recalc.sick}
-              </button>
-            )}
-            <button onClick={() => setPicked(undefined)}>{ui.roster.cancel}</button>
-          </div>
-        )}
-        {sick && (
-          <div className="swap-bar" aria-live="polite">
-            <label>
-              {ui.recalc.sickUntil(nameOf(sick.staffId), sick.date)}{' '}
-              <input
-                type="date"
-                min={sick.date}
-                value={sick.until}
-                onChange={(event) => setSick({ ...sick, until: event.target.value || sick.date })}
-              />
-            </label>
-            <button className="primary" disabled={solving} onClick={() => reportSick(sick)}>
-              {ui.recalc.sickGo}
-            </button>
-            <button onClick={() => setSick(undefined)}>{ui.roster.cancel}</button>
-          </div>
-        )}
-        {swapError && <p className="error">{swapError}</p>}
         {roster && (
           <>
-            {stale && (
-              <div className="stale" role="status">
-                <span>
-                  <strong>{ui.roster.staleTitle}</strong> {ui.roster.stale}
-                </span>
-                <button className="primary" disabled={solving} onClick={askSolve}>
-                  {ui.roster.resolve}
-                </button>
-              </div>
-            )}
-            {roster.stoppedEarly && !archived && !stale && (
-              <p className="stopped-early">{ui.roster.stoppedEarly}</p>
-            )}
             <div className={stale ? 'result outdated' : 'result'}>
               <WarningsPanel
                 warnings={roster.warnings}
@@ -404,6 +316,107 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
           </>
         )}
       </section>
+      {/* Status, questions and the undo bar float here: a click never moves the page. */}
+      <ActionDock>
+        {roster && stale && (
+          <div className="stale" role="status">
+            <span>
+              <strong>{ui.roster.staleTitle}</strong> {ui.roster.stale}
+            </span>
+            <button className="primary" disabled={solving} onClick={askSolve}>
+              {ui.roster.resolve}
+            </button>
+          </div>
+        )}
+        {earlyNote && !archived && !stale && <p className="stopped-early">{earlyNote}</p>}
+        {lastChange && !archived && (
+          <UndoBar
+            change={lastChange}
+            busy={solving}
+            onUndo={() => history.undo(lastChange)}
+            onAccept={() => history.accept(week)}
+          />
+        )}
+        {error && (
+          <div className="swap-bar refused">
+            <span className="error">{error}</span>
+            <button onClick={() => setError(undefined)}>{ui.roster.accept}</button>
+          </div>
+        )}
+        {choosing && (
+          <div className="recalc-choice" role="group">
+            <span>{ui.recalc.started}</span>
+            <button
+              className="primary"
+              title={ui.recalc.minimalHint}
+              onClick={() => {
+                setChoosing(false)
+                void solve(state, undefined, 'minimal')
+              }}
+            >
+              {ui.recalc.minimal}
+            </button>
+            <button
+              title={ui.recalc.fullHint}
+              onClick={() => {
+                setChoosing(false)
+                if (mayDropEdits()) void solve(state, undefined, 'full')
+              }}
+            >
+              {ui.recalc.full}
+            </button>
+            <button onClick={() => setChoosing(false)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {editingPlan && (
+          <DayEditor
+            plan={editingPlan}
+            onOverride={(count) =>
+              dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: count })
+            }
+            onDone={() => setEditing(undefined)}
+          />
+        )}
+        {sick && (
+          <div className="swap-bar">
+            <label>
+              {ui.recalc.sickUntil(nameOf(sick.staffId), sick.date)}{' '}
+              <input
+                type="date"
+                min={sick.date}
+                value={sick.until}
+                onChange={(event) => setSick({ ...sick, until: event.target.value || sick.date })}
+              />
+            </label>
+            <button className="primary" disabled={solving} onClick={() => reportSick(sick)}>
+              {ui.recalc.sickGo}
+            </button>
+            <button onClick={() => setSick(undefined)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {picked && (
+          <div className="swap-bar">
+            <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
+            {from !== undefined && picked.date >= from && (
+              <button
+                onClick={() => {
+                  setSick({ ...picked, until: picked.date })
+                  setPicked(undefined)
+                }}
+              >
+                {ui.recalc.sick}
+              </button>
+            )}
+            <button onClick={() => setPicked(undefined)}>{ui.roster.cancel}</button>
+          </div>
+        )}
+        {swapError && (
+          <div className="swap-bar refused">
+            <span className="error">{swapError}</span>
+            <button onClick={() => setSwapError(undefined)}>{ui.roster.accept}</button>
+          </div>
+        )}
+      </ActionDock>
       {roster && (
         <PrintView
           roster={roster}

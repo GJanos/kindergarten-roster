@@ -229,7 +229,8 @@ describe('AbsenceScreen at a glance', () => {
 
   it('jumps back to the current month, offered only away from it', () => {
     render(<Screen state={state} dispatch={vi.fn()} />)
-    expect(screen.queryByText('Ma')).toBeNull()
+    expect(screen.getByText('Ma').className).toBe('invisible') // holds its place
+    expect(screen.queryByRole('button', { name: 'Ma' })).toBeNull()
     fireEvent.click(screen.getByLabelText('Következő hónap'))
     fireEvent.click(screen.getByLabelText('Következő hónap'))
     expect(screen.getByText('2026. december')).toBeTruthy()
@@ -274,7 +275,7 @@ describe('AbsenceScreen week view', () => {
     fireEvent.click(screen.getByText('Hét'))
     fireEvent.click(screen.getByText('Ma'))
     expect(screen.getByText('2026. október 5 – 9.')).toBeTruthy()
-    expect(screen.queryByText('Ma')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ma' })).toBeNull()
   })
 
   it('opens the month of the week when switching back', () => {
