@@ -72,7 +72,7 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
     if (hole.kind === 'duty') {
       add('DUTY_MISSING', hole.date, t.dutyMissing(hole.date), { action: t.dutyAction })
     } else if (hole.kind === 'teacherSeat') {
-      const groups = groupsWithoutTeacherHoles(c.teachers, c.nannies, c.groups)
+      const groups = groupsWithoutTeacherHoles(c)
       add(
         'TEACHER_SEAT_EMPTY',
         hole.date,

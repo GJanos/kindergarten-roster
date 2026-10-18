@@ -379,9 +379,10 @@ export const ui = {
     resetDay: 'Mint a többi nap',
     done: 'Kész',
     closed: 'zárva',
-    fewTeachers: (have: number, groups: number, need: number) =>
-      `csak ${have} óvónő — ${groups} csoporthoz ${need} kell`,
-    fewNannies: (have: number, need: number) => `csak ${have} dajka — ${need} kell`,
+    fewTeachers: (teachers: number, assistants: number, groups: number, need: number) =>
+      `csak ${teachers} óvónő${assistants > 0 ? ` + ${assistants} asszisztens` : ''} — ${groups} csoporthoz ${need} kell`,
+    fewNannies: (nannies: number, civils: number, need: number) =>
+      `csak ${nannies} dajka${civils > 0 ? ` + ${civils} civil` : ''} — ${need} kell`,
     manual: (groups: number) => `kézi: ${groups} cs.`,
     fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
   },

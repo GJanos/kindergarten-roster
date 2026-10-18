@@ -131,6 +131,50 @@ describe('warningDays', () => {
     )
     expect(days[0].fixes).toEqual([{ kind: 'callIn', date: MON, staffId: 't3', name: 'T3' }])
   })
+
+  it('offers an absent asszisztens for an empty teacher seat (v3-c)', () => {
+    const away = makeInput({
+      teachers: 4,
+      nannies: 3,
+      assistants: 1,
+      groups: 2,
+      absent: { t4: [MON], a1: [MON] },
+    })
+    const { days } = warningDays(
+      [seat(MON, 'Hétfő, 2. cs.: nincs délutános óvónő (10:30–17:00).')],
+      away,
+    )
+    expect(days[0].fixes).toEqual([
+      { kind: 'callIn', date: MON, staffId: 't4', name: 'T4' },
+      { kind: 'callIn', date: MON, staffId: 'a1', name: 'A1' },
+    ])
+  })
+
+  it('offers an absent civil when a teacher stands in as nanny', () => {
+    const away = makeInput({ teachers: 5, nannies: 1, civils: 1, groups: 2, absent: { c1: [MON] } })
+    const standIn = warning('SUBSTITUTION', MON, 'Hétfő, 2. cs.: dajka helyett óvónő — T5.', {
+      cells: [{ staffId: 't5', date: MON, group: 2 }],
+    })
+    expect(warningDays([standIn], away).days[0].fixes).toEqual([
+      { kind: 'callIn', date: MON, staffId: 'c1', name: 'C1' },
+    ])
+  })
+
+  it('offers an absent teacher, not a nanny, when an asszisztens stands in', () => {
+    const away = makeInput({
+      teachers: 4,
+      nannies: 3,
+      assistants: 1,
+      groups: 2,
+      absent: { t4: [MON], n3: [MON] },
+    })
+    const standIn = warning('SUBSTITUTION', MON, 'Hétfő: A1 10–18, mert a 2. csoport …', {
+      cells: [{ staffId: 'a1', date: MON, group: 2 }],
+    })
+    expect(warningDays([standIn], away).days[0].fixes).toEqual([
+      { kind: 'callIn', date: MON, staffId: 't4', name: 'T4' },
+    ])
+  })
 })
 
 describe('shownWarningCount', () => {

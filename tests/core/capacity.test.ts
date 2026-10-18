@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cover,
   dayCapacities,
   expectedHoles,
   gMax,
@@ -89,9 +90,18 @@ describe('shortage helpers', () => {
   })
 
   it('suggests the largest group count with every teacher seat filled', () => {
-    expect(groupsWithoutTeacherHoles(3, 2, 2)).toBe(1)
-    expect(groupsWithoutTeacherHoles(5, 1, 3)).toBe(2)
-    expect(groupsWithoutTeacherHoles(1, 3, 2)).toBeUndefined()
+    const day = (teachers: number, nannies: number, groups: number, assistants = 0) => ({
+      teachers,
+      nannies,
+      assistants,
+      civils: 0,
+      groups,
+    })
+    expect(groupsWithoutTeacherHoles(day(3, 2, 2))).toBe(1)
+    expect(groupsWithoutTeacherHoles(day(5, 1, 3))).toBe(2)
+    expect(groupsWithoutTeacherHoles(day(1, 3, 2))).toBeUndefined()
+    // An asszisztens fills a DU seat: 3 teachers and her cover 2 groups.
+    expect(groupsWithoutTeacherHoles(day(3, 3, 3, 1))).toBe(2)
   })
 })
 
@@ -122,5 +132,61 @@ describe('expectedHoles', () => {
       dayPlans: [{ date: D, requestedGroups: 2, override: 0 }],
     })[0]
     expect(expectedHoles(closed)).toBe(0)
+  })
+})
+
+describe('helpers in the headcount (v3-c)', () => {
+  it('counts civils with the nannies for g_max, never as teachers', () => {
+    expect(gMax(4, 0, 2)).toBe(3)
+    expect(gMax(2, 0, 4)).toBe(2)
+  })
+
+  it('counts the asszisztens and civils present', () => {
+    const input = makeInput({
+      teachers: 2,
+      nannies: 1,
+      assistants: 1,
+      civils: 2,
+      groups: 2,
+      days: [D],
+      absent: { c2: [D] },
+    })
+    expect(dayCapacities(input)[0]).toMatchObject({
+      teachers: 2,
+      nannies: 1,
+      assistants: 1,
+      civils: 1,
+      gMax: 2,
+      groups: 2,
+    })
+  })
+
+  it('lets an asszisztens cover a DU teacher seat, a civil a nanny seat', () => {
+    expect(cover({ teachers: 3, nannies: 1, assistants: 1, civils: 2 })).toEqual({
+      teachers: 4,
+      nannies: 3,
+    })
+  })
+})
+
+describe('expectedHoles with helpers (v3-c)', () => {
+  const day = (
+    spec: { teachers: number; nannies: number; groups: number } & Partial<
+      Record<'assistants' | 'civils', number>
+    >,
+  ) => dayCapacities(makeInput({ ...spec, days: [D] }))[0]
+
+  it('fills a missing DU teacher with an asszisztens, and the ügyelet with her', () => {
+    expect(expectedHoles(day({ teachers: 3, nannies: 2, assistants: 1, groups: 2 }))).toBe(0)
+    // Two seats short, one asszisztens: one seat stays empty; her group can be on duty.
+    expect(expectedHoles(day({ teachers: 2, nannies: 2, assistants: 1, groups: 2 }))).toBe(1)
+  })
+
+  it('seats civils as nannies before any teacher, and lets them hold the keys', () => {
+    expect(expectedHoles(day({ teachers: 4, nannies: 0, civils: 2, groups: 2 }))).toBe(0)
+  })
+
+  it('gives a civil no key while the nannies fill every seat', () => {
+    expect(expectedHoles(day({ teachers: 2, nannies: 1, civils: 1, groups: 1 }))).toBe(1)
   })
 })

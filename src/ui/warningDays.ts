@@ -77,16 +77,30 @@ function callIns(date: string, items: Warning[], input: SolveInput): DayFix[] {
   if (!c || c.closed) return []
   const codes = new Set(items.map((w) => w.code))
   const reduced = codes.has('GROUPS_REDUCED')
+  const { teachers, nannies, civils } = c
+  const more = (t: number, n: number, k: number) =>
+    reduced && gMax(teachers + t, nannies + n, civils + k) > gMax(teachers, nannies, civils)
+  // Who stands in today (v3-c): an asszisztens in a DU teacher seat; a teacher or civil as nanny.
+  const roleOf = new Map(input.staff.map((s) => [s.id, s.role]))
+  const standIns = new Set(
+    items
+      .filter((w) => w.code === 'SUBSTITUTION')
+      .map((w) => roleOf.get(w.cells[0]?.staffId ?? '') ?? 'teacher'),
+  )
   const helps: Record<Role, boolean> = {
     teacher:
       codes.has('NO_TEACHER') ||
       codes.has('TEACHER_SEAT_EMPTY') ||
-      (reduced && gMax(c.teachers + 1, c.nannies) > gMax(c.teachers, c.nannies)),
+      standIns.has('assistant') ||
+      more(1, 0, 0),
     nanny:
       codes.has('OPENER_MISSING') ||
       codes.has('CLOSER_MISSING') ||
-      codes.has('SUBSTITUTION') ||
-      (reduced && gMax(c.teachers, c.nannies + 1) > gMax(c.teachers, c.nannies)),
+      standIns.has('teacher') ||
+      standIns.has('civil') ||
+      more(0, 1, 0),
+    assistant: codes.has('TEACHER_SEAT_EMPTY') || codes.has('DUTY_MISSING'),
+    civil: standIns.has('teacher') || more(0, 0, 1),
   }
   const kindOf = new Map(
     input.absences.filter((a) => a.date === date).map((a) => [a.staffId, a.kind]),
