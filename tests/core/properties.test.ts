@@ -50,6 +50,6 @@ describe('every random period', () => {
         )
         expect(flagged).toBe(true)
       }
-    })
+    }, 300_000) // a few extreme short-staffed weeks take 1–2 min; she accepts that (2026-10-17)
   }
 })
