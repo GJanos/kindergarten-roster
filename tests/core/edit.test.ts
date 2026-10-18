@@ -5,7 +5,7 @@ import { makeRoster } from '../../src/core/pipeline'
 import { validateRoster } from '../../src/core/validate'
 import { balanceOf } from '../../src/core/fairness'
 import type { Roster } from '../../src/core/types'
-import { editRoster, swapDay } from '../../src/core/edit'
+import { editRoster, editShift, setShift, swapDay } from '../../src/core/edit'
 
 const WED = '2026-10-28'
 const staff = makeStaff(3, 3)
@@ -214,4 +214,61 @@ describe('random swaps on random periods', () => {
       }
     })
   }
+})
+
+describe('a helper shift by hand (v3-c)', () => {
+  const helperInput = makeInput({ teachers: 3, nannies: 3, assistants: 1, groups: 1, days: [WED] })
+  const helped: Roster = {
+    ...roster,
+    assignments: [
+      ...roster.assignments,
+      { staffId: 'a1', date: WED, shift: 'day', seat: { kind: 'helper', group: 1 } },
+    ],
+  }
+
+  it('changes only the hours, keeping the seat', () => {
+    const moved = setShift(helped, { date: WED, staffId: 'a1', shift: 'morning' })
+    expect(moved.assignments.find((a) => a.staffId === 'a1')).toEqual({
+      staffId: 'a1',
+      date: WED,
+      shift: 'morning',
+      seat: { kind: 'helper', group: 1 },
+    })
+  })
+
+  it('marks the roster edited, explained and balanced', () => {
+    const result = editShift(helperInput, helped, { date: WED, staffId: 'a1', shift: 'afternoon' })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.roster.edited).toBe(true)
+  })
+
+  it('refuses hours that break a stand-in', () => {
+    const standIn: Roster = {
+      ...helped,
+      assignments: helped.assignments.map((a) =>
+        a.staffId === 't2'
+          ? { ...a, seat: undefined }
+          : a.staffId === 'a1'
+            ? {
+                ...a,
+                shift: 'afternoon',
+                seat: { kind: 'teacher', group: 1, shift: 'afternoon' },
+                substitution: true,
+              }
+            : a,
+      ),
+    }
+    const result = editShift(helperInput, standIn, { date: WED, staffId: 'a1', shift: 'morning' })
+    expect(result.ok ? [] : result.violations.map((v) => v.rule)).toContain('assistantNotAfternoon')
+  })
+
+  it('flags a civil who takes a nanny seat in a swap as a stand-in', () => {
+    const staff = makeStaff(3, 3, 0, 1)
+    const withCivil: Roster = {
+      ...roster,
+      assignments: [...roster.assignments, { staffId: 'c1', date: WED, shift: 'morning' }],
+    }
+    const swapped = swapDay(withCivil, staff, { date: WED, a: 'n1', b: 'c1' })
+    expect(swapped.assignments.find((a) => a.staffId === 'c1')?.substitution).toBe(true)
+  })
 })

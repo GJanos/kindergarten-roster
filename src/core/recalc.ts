@@ -60,7 +60,7 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
   const declared = new Set(milp.binaries)
   const later = days.filter((day) => day.date >= anchor.from)
   const changedPerson = new Map<number, string>()
-  const isNanny = (p: number) => people[p].role === 'nanny'
+  const holdsKeys = (p: number, d: number) => declared.has(v.open(p, d))
 
   /** The variable of the anchor's seat, if this model has that seat. */
   const seatOf = (p: number, d: number, a: Assignment): string | undefined => {
@@ -68,9 +68,11 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
     const name =
       a.seat.kind === 'teacher'
         ? v.teacherSeat(p, d, a.seat.group, a.seat.shift)
-        : a.substitution
-          ? v.substitution(p, d, a.seat.group)
-          : v.nannySeat(p, d, a.seat.group)
+        : a.seat.kind === 'helper'
+          ? v.helperSeat(p, d, a.seat.group)
+          : a.substitution
+            ? v.substitution(p, d, a.seat.group)
+            : v.nannySeat(p, d, a.seat.group)
     return declared.has(name) ? name : undefined
   }
   /** 1 when the binary `name` is not `want`, else 0. */
@@ -92,12 +94,15 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
       if (day.date < anchor.from) {
         // recalcInput made the present exactly the anchor's people, so each has a day to keep.
         if (!a) throw new Error(`Nothing to keep for ${people[p].id} on ${day.date}`)
-        milp.constrain(new Lin().add(v.shift(p, d, a.shift)), '=', 1)
+        const shift = v.shift(p, d, a.shift)
+        if (!declared.has(shift))
+          throw new Error(`No ${a.shift} shift for ${people[p].id} on ${day.date}`)
+        milp.constrain(new Lin().add(shift), '=', 1)
         const seat = seatOf(p, d, a)
         if (a.seat && !seat) throw new Error(`No such seat for ${people[p].id} on ${day.date}`)
         if (seat) milp.constrain(new Lin().add(seat), '=', 1)
         else if (!seats[d][p].isEmpty()) milp.constrain(new Lin().plus(seats[d][p]), '=', 0)
-        if (isNanny(p)) {
+        if (holdsKeys(p, d)) {
           milp.constrain(new Lin().add(v.open(p, d)), '=', a.opener ? 1 : 0)
           milp.constrain(new Lin().add(v.close(p, d)), '=', a.closer ? 1 : 0)
         }
@@ -106,7 +111,13 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
       if (anchor.mode !== 'minimal' || !a) continue
 
       const hours = milp.nonNegative(v.keptHours(p, d))
-      milp.constrain(new Lin().add(hours), '>=', differs(v.shift(p, d, a.shift), true))
+      const kept = v.shift(p, d, a.shift)
+      // A shift this person can no longer have (a role changed since) is a change too.
+      milp.constrain(
+        new Lin().add(hours),
+        '>=',
+        declared.has(kept) ? differs(kept, true) : Lin.constant(1),
+      )
       // Ügyelet moves the hours by 30 minutes: a change is a phone call too.
       if (!duty[d][p].isEmpty()) {
         const dutyDiffers = a.duty
@@ -131,7 +142,7 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
           : Lin.constant(1) // the anchor's group is gone today
         : new Lin().plus(seats[d][p])
       milp.constrain(new Lin().add(duties), '>=', moved)
-      if (isNanny(p)) {
+      if (holdsKeys(p, d)) {
         milp.constrain(new Lin().add(duties), '>=', differs(v.open(p, d), a.opener === true))
         milp.constrain(new Lin().add(duties), '>=', differs(v.close(p, d), a.closer === true))
       }
