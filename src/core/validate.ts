@@ -17,6 +17,9 @@ export function validateRoster(input: SolveInput, roster: Roster): Violation[] {
   const people = new Map(input.staff.filter((s) => s.active).map((s) => [s.id, s]))
   const absent = new Set(input.absences.map((a) => `${a.staffId}|${a.date}`))
   const capacities = dayCapacities(input)
+  // Ügyelet (v3-b): a roster from before it has neither duty nor a duty hole, and is left alone.
+  const tracksDuty =
+    roster.assignments.some((a) => a.duty) || roster.holes.some((h) => h.kind === 'duty')
 
   if (roster.period.days.join() !== input.period.days.join()) fail('period')
   for (const a of roster.assignments) {
@@ -83,6 +86,20 @@ export function validateRoster(input: SolveInput, roster: Roster): Violation[] {
       const holders = today.filter((a) => a[key]).length
       const empty = holes.filter((h) => h.kind === key).length
       if (holders + empty !== 1) fail(`${key}NotExactlyOne`, date)
+    }
+    if (tracksDuty) {
+      for (const a of today) {
+        if (a.duty && a.seat?.kind !== 'teacher') fail('dutyOffTeacherSeat', date, a.staffId)
+      }
+      const dutyGroups = new Set(
+        today.flatMap((a) => (a.duty && a.seat?.kind === 'teacher' ? [a.seat.group] : [])),
+      )
+      const dutyHoles = holes.filter((h) => h.kind === 'duty').length
+      if (cap.groups > 0 && dutyGroups.size + dutyHoles !== 1) fail('dutyNotExactlyOne', date)
+      for (const g of dutyGroups) {
+        const seated = today.filter((a) => a.seat?.kind === 'teacher' && a.seat.group === g)
+        if (seated.length !== 2 || seated.some((a) => !a.duty)) fail('dutyGroupIncomplete', date)
+      }
     }
   }
 

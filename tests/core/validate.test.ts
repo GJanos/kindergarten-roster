@@ -147,3 +147,45 @@ describe('validateRoster', () => {
     expect(rules(input, { ...roster, groupsPerDay: { [D]: 0 } })).toContain('closedDayNotEmpty')
   })
 })
+
+describe('ügyelet (v3-b)', () => {
+  const withDuty = () => {
+    const { input, roster } = setup()
+    roster.assignments = roster.assignments.map((a) =>
+      a.seat?.kind === 'teacher' ? { ...a, duty: true } : a,
+    )
+    return { input, roster }
+  }
+
+  it("accepts the group's two teachers on duty", () => {
+    const { input, roster } = withDuty()
+    expect(validateRoster(input, roster)).toEqual([])
+  })
+
+  it('accepts a roster from before v3-b, with no duty at all', () => {
+    const { input, roster } = setup()
+    expect(validateRoster(input, roster)).toEqual([])
+  })
+
+  it('rejects duty on only one of the two teachers', () => {
+    const { input, roster } = withDuty()
+    roster.assignments = roster.assignments.map((a) =>
+      a.staffId === 't2' ? { ...a, duty: undefined } : a,
+    )
+    expect(validateRoster(input, roster).map((v) => v.rule)).toContain('dutyGroupIncomplete')
+  })
+
+  it('rejects duty outside a teacher seat', () => {
+    const { input, roster } = withDuty()
+    roster.assignments = roster.assignments.map((a) =>
+      a.staffId === 'n2' ? { ...a, duty: true } : a,
+    )
+    expect(validateRoster(input, roster).map((v) => v.rule)).toContain('dutyOffTeacherSeat')
+  })
+
+  it('rejects a day with both a duty group and a duty hole', () => {
+    const { input, roster } = withDuty()
+    roster.holes = [{ kind: 'duty', date: D }]
+    expect(validateRoster(input, roster).map((v) => v.rule)).toContain('dutyNotExactlyOne')
+  })
+})
