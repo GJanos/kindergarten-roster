@@ -25,6 +25,13 @@ describe('recalculation texts', () => {
     expect(ui.recalc.unchanged).toBe('Senki más beosztása nem változott.')
   })
 
+  it('names an ügyelet taken on, with its times', () => {
+    const was = at({ shift: 'morning', seat: { kind: 'teacher', group: 1, shift: 'morning' } })
+    expect(ui.recalc.day('teacher', was, { ...was, duty: true }, false)).toBe(
+      'szerda: DE ügyelet 6:30–13:00 (eddig nem ügyeletes), 1. cs.',
+    )
+  })
+
   it('gives new hours with the old shift, and the place', () => {
     const was = at({ shift: 'afternoon' })
     const now = at({ shift: 'morning', seat: { kind: 'teacher', group: 1, shift: 'morning' } })

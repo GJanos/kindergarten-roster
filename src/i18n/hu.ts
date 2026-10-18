@@ -361,9 +361,16 @@ export const ui = {
     day: (role: Role, was: Assignment, now: Assignment, isToday: boolean) => {
       const place = (a: Assignment) => (a.seat ? groupShort(a.seat.group) : 'csoporton kívül')
       const parts: string[] = []
-      if (now.shift !== was.shift) {
-        const times = shiftTimes(role, now.shift, now.date)
-        parts.push(`${shiftShort[now.shift]} ${times} (eddig ${shiftShort[was.shift]})`, place(now))
+      if (now.shift !== was.shift || !now.duty !== !was.duty) {
+        const times = shiftTimes(role, now.shift, now.date, now.duty)
+        const shift = `${shiftShort[now.shift]}${now.duty ? ' ügyelet' : ''}`
+        const before =
+          now.shift !== was.shift
+            ? `eddig ${shiftShort[was.shift]}${was.duty ? ' ügyelet' : ''}`
+            : was.duty
+              ? 'eddig ügyeletes'
+              : 'eddig nem ügyeletes'
+        parts.push(`${shift} ${times} (${before})`, place(now))
       } else if (place(now) !== place(was)) {
         parts.push(`${place(now)} (eddig ${place(was)})`)
       }

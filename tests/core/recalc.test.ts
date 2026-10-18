@@ -259,6 +259,14 @@ describe('makeRoster with an anchor', () => {
 })
 
 describe('scheduleChanges', () => {
+  it('counts a duty change as changed hours', () => {
+    const after = oneDay(
+      wall.assignments.map((a) => (a.staffId === 't1' ? { ...a, duty: undefined } : a)),
+    )
+    const t1 = scheduleChanges(wall, after, WED).find((c) => c.staffId === 't1')
+    expect(t1?.hours).toBe(true)
+  })
+
   it('lists the days from `from` on that someone still works, but differently', () => {
     const after = oneDay(
       wall.assignments

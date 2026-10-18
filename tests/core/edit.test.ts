@@ -38,6 +38,18 @@ const roster: Roster = {
 const dayOf = (r: Roster, id: string) => r.assignments.find((a) => a.staffId === id)
 
 describe('swapDay', () => {
+  it('hands ügyelet to whoever takes the duty seat', () => {
+    const withDuty: Roster = {
+      ...roster,
+      assignments: roster.assignments.map((a) =>
+        a.seat?.kind === 'teacher' ? { ...a, duty: true } : a,
+      ),
+    }
+    const swapped = swapDay(withDuty, staff, { date: WED, a: 't1', b: 't3' })
+    expect(dayOf(swapped, 't3')?.duty).toBe(true)
+    expect(dayOf(swapped, 't1')?.duty).toBeUndefined()
+  })
+
   it("exchanges two people's shift and seat", () => {
     const swapped = swapDay(roster, staff, { date: WED, a: 't1', b: 't3' })
     expect(dayOf(swapped, 't1')).toEqual({ staffId: 't1', date: WED, shift: 'afternoon' })
