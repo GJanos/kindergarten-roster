@@ -83,10 +83,12 @@ export function fairShares(input: SolveInput): Share[] {
     }
   }
 
-  // Ügyelet days (v3-b): two duty seats a day, on days with 2+ groups and every teacher seat
-  // fillable. A 1-group day's duty is forced, and a short day may have none, so both stay out.
+  // Ügyelet days (v3-b): two duty seats a day, on days with 2+ groups where one group can have
+  // both teachers. A short day counts too: a seat elsewhere stays empty, but the holes stage
+  // still places the duty (leaving those days out let one pair take it 3 days running). A
+  // 1-group day's duty is forced, and with too few teachers there is none: both stay out.
   const dutyDays = open
-    .filter((c) => c.groups >= 2 && c.teachers - Math.max(0, c.groups - c.nannies) >= 2 * c.groups)
+    .filter((c) => c.groups >= 2 && c.teachers - Math.max(0, c.groups - c.nannies) > c.groups)
     .map((c) => c.date)
   const dutyHolders = people
     .filter((s) => s.role === 'teacher')

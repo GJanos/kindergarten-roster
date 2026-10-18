@@ -43,11 +43,19 @@ describe('fairShares', () => {
     expect(duty[0].days).toEqual(WEEK.slice(0, 2))
   })
 
-  it('leaves out 1-group days (duty is forced) and days with an empty teacher seat', () => {
+  it('leaves out 1-group days (duty is forced) and days where no group can have both teachers', () => {
     const one = makeInput({ teachers: 3, nannies: 2, groups: 1, days: WEEK.slice(0, 2) })
     expect(fairShares(one).filter((s) => s.kind === 'duty')).toEqual([])
-    const short = makeInput({ teachers: 3, nannies: 2, groups: 2, days: WEEK.slice(0, 1) })
-    expect(fairShares(short).filter((s) => s.kind === 'duty')).toEqual([])
+    const none = makeInput({ teachers: 2, nannies: 2, groups: 2, days: WEEK.slice(0, 1) })
+    expect(fairShares(none).filter((s) => s.kind === 'duty')).toEqual([])
+  })
+
+  it('counts a short day too: a teacher seat stays empty, yet a group has both teachers', () => {
+    // 7 teachers for 4 groups (seen on the demo week, 2026-10-18: left out, one pair got 3 in a row).
+    const input = makeInput({ teachers: 7, nannies: 4, groups: 4, days: WEEK.slice(0, 2) })
+    const duty = fairShares(input).filter((s) => s.kind === 'duty')
+    expect(duty).toHaveLength(7)
+    expect(duty[0]).toMatchObject({ num: 2 * 2 * 2, den: 14, pool: 'duty' })
   })
 })
 

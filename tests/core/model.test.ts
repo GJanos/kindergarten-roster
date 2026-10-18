@@ -111,6 +111,16 @@ describe('ügyelet (v3-b)', () => {
     }
   })
 
+  it('spreads duty on a short week too: 7 teachers, 4 groups, an empty seat every day', () => {
+    const days = consecutiveDays('2026-10-26', 3)
+    const roster = solveValid(makeInput({ teachers: 7, nannies: 4, groups: 4, days }))
+    for (const id of ['t1', 't2', 't3', 't4', 't5', 't6', 't7']) {
+      expect(
+        roster.assignments.filter((a) => a.staffId === id && a.duty).length,
+      ).toBeLessThanOrEqual(1)
+    }
+  })
+
   it('reports a duty hole when no group has both teachers', () => {
     const roster = solveValid(makeInput({ teachers: 2, nannies: 2, groups: 2, days: [D] }))
     expect(roster.holes).toContainEqual({ kind: 'duty', date: D })
