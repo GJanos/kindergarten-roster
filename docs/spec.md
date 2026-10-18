@@ -59,7 +59,8 @@ from the shift. **Shift times are never stretched** — her rule: time limits ar
 - **Group count fixed for the period** (a per-day override exists for shortages, §6.6).
 - No personal requests. Ügyelet, nanny pairs and the daily DE/DU balance arrived in v3-b
   (`docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`), which also reorders §6.5's
-  stages.
+  stages. Helper roles — pedagógiai asszisztens and civil — arrived in v3-c
+  (`docs/specs/2026-10-17-v3-c-helper-roles-design.md`).
 - Good enough = a working roster that respects absences and the rules above.
 
 ## 3. Scope
@@ -249,7 +250,9 @@ balances counts.
 
 > Since v3-b the order is holes → substitutions → keep* → pairs → worstGap → totalGap → balance →
 > switches → turnarounds → keysSeated → keysGap → yearly. Opener/closer left the fairness stages
-> for keysGap (see `docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`).
+> for keysGap (see `docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`). v3-c adds
+> `helpers` after the keep* stages: an asszisztens on 8–16 sits beside a group. In substitutions a
+> civil or asszisztens stand-in weighs 1 and a teacher as nanny 3, so civils go first.
 
 Each stage's optimum becomes a constraint (plus a tiny float tolerance) for the next, so a later
 stage only chooses among rosters tied on every earlier one. Weighted sums were rejected: enough

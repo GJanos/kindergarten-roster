@@ -89,3 +89,24 @@ export function randomInput(seed: number): SolveInput {
   )
   return input
 }
+
+/** randomInput(seed) plus 0–2 asszisztens and 0–2 civils, from their own stream (v3-c). */
+export function randomHelperInput(seed: number): SolveInput {
+  const input = randomInput(seed)
+  const random = seededRandom(seed + 10_000)
+  const int = (lo: number, hi: number) => lo + Math.floor(random() * (hi - lo + 1))
+  const helpers = makeStaff(0, 0, int(0, 2), int(0, 2))
+  const days = input.period.days
+  return {
+    ...input,
+    staff: [...input.staff, ...helpers],
+    absences: [
+      ...input.absences,
+      ...helpers.flatMap((s) =>
+        days
+          .filter(() => random() < 0.2)
+          .map((date) => ({ staffId: s.id, date, kind: 'leave' as const })),
+      ),
+    ],
+  }
+}

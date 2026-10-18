@@ -23,6 +23,8 @@ const NANNIES = [
   'Orbán Olga',
   'Pintér Piroska',
 ]
+const ASSISTANTS = ['Rácz Réka']
+const CIVILS = ['Szabó Sára']
 
 function people(names: string[], role: Staff['role']): Staff[] {
   return names.map((fullName, i) => ({
@@ -34,7 +36,10 @@ function people(names: string[], role: Staff['role']): Staff[] {
   }))
 }
 
-/** A kindergarten of 16, three break groups, a few absences in the next break week. */
+/**
+ * A kindergarten of 18 (one asszisztens, one civil), three break groups, a few absences in the
+ * next break week.
+ */
 export function demoState(today: string): AppState {
   const week = defaultWeek(today)
   const days = periodForWeek(week).days
@@ -43,7 +48,12 @@ export function demoState(today: string): AppState {
   return {
     ...emptyState(),
     demo: true,
-    staff: [...people(TEACHERS, 'teacher'), ...people(NANNIES, 'nanny')],
+    staff: [
+      ...people(TEACHERS, 'teacher'),
+      ...people(NANNIES, 'nanny'),
+      ...people(ASSISTANTS, 'assistant'),
+      ...people(CIVILS, 'civil'),
+    ],
     absences: [
       ...away('demo-teacher-1', days),
       ...away('demo-teacher-3', days.slice(2, 4)),
