@@ -149,7 +149,7 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                       min={0}
                       className="allowance"
                       aria-label={ui.absences.carry(year)}
-                      value={s.leaveCarry?.[year] ?? ''}
+                      value={s.leaveCarry?.[year] ?? 0}
                       onChange={(e) => update(s.id, carryPatch(s, year, e.target.value))}
                     />
                   </td>

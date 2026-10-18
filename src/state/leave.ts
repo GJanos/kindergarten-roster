@@ -22,10 +22,14 @@ export function leaveBalance(
   return { used, total, remaining: total - used }
 }
 
-/** The patch that sets one year's typed carry-over (empty clears it), other years untouched. */
+/**
+ * The patch that sets one year's typed carry-over, other years untouched. Empty or 0 clears it:
+ * nothing carried over is stored as nothing, and shows as 0.
+ */
 export function carryPatch(person: Staff, year: string, value: string): Pick<Staff, 'leaveCarry'> {
   const carry = { ...person.leaveCarry }
-  if (value === '') delete carry[year]
-  else carry[year] = Math.max(0, Math.round(Number(value)))
+  const days = value === '' ? 0 : Math.max(0, Math.round(Number(value)))
+  if (days === 0) delete carry[year]
+  else carry[year] = days
   return { leaveCarry: Object.keys(carry).length > 0 ? carry : undefined }
 }

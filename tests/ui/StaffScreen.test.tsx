@@ -206,4 +206,11 @@ describe('StaffScreen', () => {
       vi.useRealTimers()
     }
   })
+
+  it('reads 0 carried over when nothing is', () => {
+    renderScreen(run(...person('a', 'Kiss Anna')))
+    const year = new Date().getFullYear()
+    const carry = screen.getByLabelText(`Áthozott napok (${year})`) as HTMLInputElement
+    expect(carry.value).toBe('0')
+  })
 })

@@ -194,7 +194,7 @@ export function AbsenceGrid({ state, dispatch, people, days, brush, wide }: Prop
               <input
                 type="number"
                 min={0}
-                value={carryPerson.leaveCarry?.[year] ?? ''}
+                value={carryPerson.leaveCarry?.[year] ?? 0}
                 onChange={(e) => setCarry(carryPerson, e.target.value)}
               />
             </label>

@@ -47,9 +47,10 @@ describe('carryPatch', () => {
     expect(carryPatch(both, '2026', '')).toEqual({ leaveCarry: { '2025': 2 } })
   })
 
-  it('rounds, never goes below zero, and drops an empty record', () => {
+  it('rounds, and drops zero, below zero and empty, leaving no empty record', () => {
     expect(carryPatch(anna, '2026', '2.6')).toEqual({ leaveCarry: { '2026': 3 } })
-    expect(carryPatch(anna, '2026', '-4')).toEqual({ leaveCarry: { '2026': 0 } })
+    expect(carryPatch(anna, '2026', '0')).toEqual({ leaveCarry: undefined })
+    expect(carryPatch(anna, '2026', '-4')).toEqual({ leaveCarry: undefined })
     expect(carryPatch(anna, '2026', '')).toEqual({ leaveCarry: undefined })
   })
 })
