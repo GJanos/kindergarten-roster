@@ -28,6 +28,7 @@ describe('App', () => {
     expect(screen.getByText('Visszatöltés fájlból')).toBeTruthy()
     fireEvent.click(screen.getByText('Bemutató adatok'))
     expect(screen.getByText('Bemutató adatok — nem valódi személyek')).toBeTruthy()
+    expect(screen.getByText('Verzió: test')).toBeTruthy() // which release she has, at a glance
     expect(screen.getByText('2026. október 26 – 30.')).toBeTruthy()
     expect(screen.getByText('Számol')).toBeTruthy()
     expect(screen.getByText('még nem volt').closest('footer')?.className).toBe('footer overdue')

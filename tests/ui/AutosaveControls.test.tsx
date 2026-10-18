@@ -66,11 +66,15 @@ describe('AutosaveControls', () => {
     expect(auto.retry).toHaveBeenCalled()
   })
 
-  it('says the demo is not saved, and shows nothing where the browser cannot', () => {
+  it('says the demo is not saved, and which browsers can, so it never just vanishes', () => {
     render(<AutosaveControls auto={stub('demo')} />)
     expect(screen.getByText('Bemutató módban nincs automatikus mentés.')).toBeTruthy()
     cleanup()
-    const { container } = render(<AutosaveControls auto={stub('unsupported')} />)
-    expect(container.textContent).toBe('')
+    render(<AutosaveControls auto={stub('unsupported')} />)
+    expect(
+      screen.getByText(
+        'Automatikus mentés: ebben a böngészőben nem érhető el — Chrome-ban vagy Edge-ben működik.',
+      ),
+    ).toBeTruthy()
   })
 })

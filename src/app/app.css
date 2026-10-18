@@ -237,6 +237,10 @@ main {
 .footer.overdue {
   background: var(--overdue-bg);
 }
+.footer .version {
+  margin-left: auto;
+  font-size: 0.8rem;
+}
 .autosave,
 .autosave-alert {
   display: inline-flex;

@@ -194,6 +194,7 @@ export const ui = {
     restore: 'Visszatöltés fájlból',
     notPersisted: 'A böngésző nem garantálja a tárolást — ments gyakrabban fájlba.',
     saveFailed: 'Nem sikerült menteni a böngészőbe — ments fájlba!',
+    version: (build: string) => `Verzió: ${build}`,
   },
   /** Autosave to a folder she picks (2026-10-18). */
   autosave: {
@@ -212,6 +213,8 @@ export const ui = {
     failed: 'Az automatikus mentés nem sikerült (megvan még a mappa?).',
     retry: 'Újra',
     demo: 'Bemutató módban nincs automatikus mentés.',
+    unsupported:
+      'Automatikus mentés: ebben a böngészőben nem érhető el — Chrome-ban vagy Edge-ben működik.',
   },
   confirmRestore: 'Ez felülírja a jelenlegi adatokat. Folytatod?',
   restoreFailed: 'A fájl nem olvasható. Semmi sem változott.',

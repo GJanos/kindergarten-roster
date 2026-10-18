@@ -5,7 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // GitHub Pages serves a project site from /<repo>/; CI sets BASE_PATH.
   base: process.env.BASE_PATH ?? '/',
-  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? 'dev') },
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? 'dev'),
+    // CI sets GITHUB_SHA; a local build says so instead.
+    __BUILD__: JSON.stringify(
+      `${new Date().toISOString().slice(0, 10)} · ${process.env.GITHUB_SHA?.slice(0, 7) ?? 'helyi'}`,
+    ),
+  },
   plugins: [
     react(),
     VitePWA({
