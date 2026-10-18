@@ -180,7 +180,11 @@ describe('AbsenceScreen kinds', () => {
     const dispatch = vi.fn<(action: Action) => void>()
     render(<Screen state={tracked} dispatch={dispatch} />)
     expect(screen.getByText('Szabadság 2026')).toBeTruthy()
-    fireEvent.click(screen.getByText('2 / 53'))
+    const balance = screen.getByText('51 maradt')
+    expect(balance.title).toBe(
+      'Szabadság 2026: 2 nap kivéve, 53 összesen (50 + 3 áthozott). Kattints az áthozott napokhoz.',
+    )
+    fireEvent.click(balance)
     const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
     expect(carry.value).toBe('3')
     fireEvent.change(carry, { target: { value: '5' } })
@@ -189,6 +193,16 @@ describe('AbsenceScreen kinds', () => {
       id: 'a',
       patch: { leaveCarry: { '2026': 5 } },
     })
+  })
+
+  it('says how far over the allowance someone is', () => {
+    const steps: Action[] = [
+      { type: 'updateStaff', id: 'a', patch: { leaveAllowance: 1 } },
+      on('leave', '2026-10-26'),
+      on('leave', '2026-10-27'),
+    ]
+    render(<Screen state={steps.reduce(reducer, state)} dispatch={vi.fn()} />)
+    expect(screen.getByText('1 nappal túllépve').className).toBe('leave-balance over')
   })
 })
 
