@@ -207,7 +207,8 @@ export const ui = {
     yearBalance: (year: number) =>
       `Éves egyenleg (${year}/${String((year + 1) % 100).padStart(2, '0')})`,
     yearBalanceHint:
-      'Az idei (szeptember 1. óta) mentett beosztásokból. Zárójelben: ennyivel több (+) vagy ' +
+      'Az idei nevelési év (szeptember 1-től) mentett beosztásaiból, az előre megtervezett ' +
+      'hetekkel együtt. Zárójelben: ennyivel több (+) vagy ' +
       'kevesebb (−) jutott neki az egyenlő résznél. Ahol egy hét nem osztható el egyenlően, a ' +
       'következő beosztás ezt egyenlíti ki.',
     yearBalanceEmpty:

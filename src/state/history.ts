@@ -35,12 +35,14 @@ export type YearCounts = Record<Shift | Exclude<GapKind, 'morning'>, number>
 export type YearRow = { staffId: string; counts: YearCounts; deltas: Balance[string] }
 
 /**
- * Each person's kindergarten year up to this week: days worked per shift, openings, closings,
- * reserve days and ügyelet days, counted from the saved rosters, plus their summed deltas. Teachers first. Every
- * active person has a row, zeros until their first saved day.
+ * Each person's kindergarten year: days per shift, openings, closings, reserve days and ügyelet
+ * days, counted from the year's saved rosters, plus their summed deltas. Weeks planned ahead count
+ * too: she rosters break weeks in advance, and a balance that ignored them never moved after a
+ * solve (2026-10-18). Teachers first. Every active person has a row, zeros until their first day.
  */
 export function yearTotals(state: AppState, today: string): YearRow[] {
   const from = yearStart(today)
+  const until = `${Number(from.slice(0, 4)) + 1}-09-01`
   const rows = new Map<string, YearRow>()
   const rowOf = (staffId: string): YearRow => {
     let row = rows.get(staffId)
@@ -56,7 +58,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
   }
   const deltas: Balance = {}
   for (const [monday, period] of Object.entries(state.periods)) {
-    if (monday < from || monday > today || !period.roster) continue
+    if (monday < from || monday >= until || !period.roster) continue
     for (const a of period.roster.assignments) {
       const { counts } = rowOf(a.staffId)
       counts[a.shift]++

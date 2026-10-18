@@ -56,7 +56,7 @@ describe('yearlyHistory', () => {
 })
 
 describe('yearTotals', () => {
-  it("counts the year's worked days per person up to this week, with the deltas", () => {
+  it("counts the kindergarten year's saved weeks per person, planned ones too, with the deltas", () => {
     const monday = '2026-10-26'
     const period = saved(monday, { t1: { morning: 0.5 }, n1: { opener: 0.5, reserve: -0.5 } })
     period.roster.assignments = [
@@ -79,13 +79,20 @@ describe('yearTotals', () => {
     const state: AppState = {
       ...emptyState(),
       staff: makeStaff(1, 1),
-      periods: { [monday]: period, '2026-11-09': saved('2026-11-09', { t1: { morning: 9 } }) },
+      periods: {
+        [monday]: period,
+        // Planned ahead (she rosters break weeks in advance): counts.
+        '2026-11-09': saved('2026-11-09', { t1: { morning: 9 } }),
+        // Another kindergarten year: doesn't.
+        '2026-08-24': saved('2026-08-24', { t1: { morning: 100 } }),
+        '2027-09-06': saved('2027-09-06', { t1: { morning: 100 } }),
+      },
     }
     expect(yearTotals(state, '2026-11-05')).toEqual([
       {
         staffId: 't1',
         counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 1 },
-        deltas: { morning: 0.5 },
+        deltas: { morning: 9.5 },
       },
       {
         staffId: 'n1',

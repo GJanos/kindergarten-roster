@@ -15,8 +15,9 @@ Three tabs, all in Hungarian.
 
 - The staff list: teachers and nannies, the short name that appears on the wall, and a yearly
   leave allowance with the days left this year. Someone who has left is hidden, not deleted, so old weeks keep their names.
-- The **yearly balance**: per person, the mornings, afternoons, openings, closings and reserve
-  days so far this kindergarten year, and how far each is from an even share.
+- The **yearly balance**: per person, the mornings, afternoons, openings, closings, reserve and
+  ügyelet days this kindergarten year, weeks planned ahead included, and how far each is from an
+  even share.
 
 **Távollétek (absences)**
 
