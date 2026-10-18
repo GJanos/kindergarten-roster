@@ -77,6 +77,11 @@ Four tabs, all in Hungarian.
 
 - Print (two A4 pages) and Excel export.
 - File backup and restore.
+- **Automatic backup** (Chrome and Edge): she switches it on in the footer and picks a folder.
+  Every 5 / 10 / 15 / 30 minutes, if something changed, the app writes the day's backup
+  (`ovoda-mentes-YYYY-MM-DD.json`) there, and again when the tab is hidden or closed. One file a
+  day, earlier days kept. If the browser wants the folder allowed again after a restart, the footer
+  turns orange until she clicks; it never stops in silence. The demo never autosaves.
 - A light or dark theme.
 - Works offline.
 - One editing window at a time, so two open windows never overwrite each other.

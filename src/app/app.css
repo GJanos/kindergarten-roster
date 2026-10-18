@@ -237,6 +237,17 @@ main {
 .footer.overdue {
   background: var(--overdue-bg);
 }
+.autosave,
+.autosave-alert {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.autosave-alert {
+  font-weight: bold;
+  color: var(--orange);
+}
 
 .error {
   color: var(--red);

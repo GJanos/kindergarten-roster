@@ -359,6 +359,9 @@ rename reaches rosters saved before it. Texts saved before v2 hold plain names a
 Base text 16 px, buttons ≥ 38 px (the main actions 46 px); light and dark theme, following the
 system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Four tabs: **Munkatársak · Távollétek · Beosztás · Egyenleg** (the fourth since 2026-10-18). Footer on
 every screen: *"Utolsó mentés: 3 napja"* + **Mentés fájlba**, orange after 7 days without a backup.
+Since 2026-10-18 also **Automatikus mentés…** (Chrome/Edge): the day's backup into a folder she
+picks, every few minutes when something changed; orange while the browser wants the folder allowed
+again (`docs/plans/2026-10-18-autosave.md`).
 First launch: **Új kezdés · Visszatöltés fájlból · Bemutató adatok**; demo mode shows a
 *"Bemutató adatok — nem valódi személyek"* banner.
 

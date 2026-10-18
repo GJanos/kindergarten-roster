@@ -4,7 +4,9 @@ import type { Action, AppState } from '../state/appState'
 import { backupFileName, backupJson, readBackup } from '../state/backup'
 import { daysBetween, today } from './dates'
 import { download } from './download'
+import { AutosaveControls } from './AutosaveControls'
 import { FileButton } from './FileButton'
+import { useAutosave } from './useAutosave'
 
 type Props = {
   state: AppState
@@ -14,11 +16,16 @@ type Props = {
   storageError: boolean
 }
 
-/** On every screen: when she last saved a backup, and the buttons to save or restore one. */
+/**
+ * On every screen: when she last saved a backup, the buttons to save or restore one, and autosave.
+ * Orange when a backup is overdue, or autosave is on but not saving.
+ */
 export function Footer({ state, dispatch, replace, persisted, storageError }: Props) {
   const [error, setError] = useState<string>()
+  const auto = useAutosave(state, dispatch)
   const age = state.lastBackupAt ? daysBetween(state.lastBackupAt.slice(0, 10), today()) : undefined
-  const overdue = age === undefined || age >= 7
+  const overdue =
+    age === undefined || age >= 7 || auto.status === 'paused' || auto.status === 'failed'
 
   const backup = () => {
     download(backupJson(state), backupFileName(today()), 'application/json')
@@ -44,6 +51,7 @@ export function Footer({ state, dispatch, replace, persisted, storageError }: Pr
       <FileButton accept=".json,.xlsx" onFile={(file) => void restore(file)}>
         {ui.footer.restore}
       </FileButton>
+      <AutosaveControls auto={auto} />
       {persisted === false && <span className="note">{ui.footer.notPersisted}</span>}
       {storageError && <span className="error">{ui.footer.saveFailed}</span>}
       {error && <span className="error">{error}</span>}
