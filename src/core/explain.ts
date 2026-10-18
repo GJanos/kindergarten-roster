@@ -1,7 +1,7 @@
 import { CALL_IN_ORDER, warningText as t } from '../i18n/hu'
 import { dayCapacities, groupsWithoutTeacherHoles } from './capacity'
 import { countFor, fairShares } from './fairness'
-import { groupSwitches, turnarounds } from './metrics'
+import { groupSwitches, pairClashes, shiftImbalances, turnarounds } from './metrics'
 import { nameRef } from './names'
 import { shiftTimes } from './shifts'
 import type { Roster, Severity, SolveInput, Warning, WarningCode } from './types'
@@ -126,7 +126,24 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
     })
   }
 
+  for (const c of pairClashes(input, roster)) {
+    add('PAIR_SAME', c.date, t.pairSame(c.date, c.group, c.shift), {
+      cells: [
+        { date: c.date, group: c.group },
+        { date: c.date, group: c.group + 1 },
+      ],
+    })
+  }
+
+  for (const s of shiftImbalances(input, roster)) {
+    const gap = Math.abs(s.morning - s.afternoon)
+    add('SHIFT_IMBALANCE', s.date, t.shiftImbalance(s.date, s.role, s.morning, s.afternoon), {
+      severity: gap >= 3 ? 'orange' : 'grey',
+    })
+  }
+
   for (const share of fairShares(input)) {
+    if (share.kind === 'opener' || share.kind === 'closer') continue // demoted in v3-b: not worth a warning
     const count = countFor(share, roster)
     const fair = share.num / share.den
     if (Math.abs(count - fair) < 1 - 1e-9) continue

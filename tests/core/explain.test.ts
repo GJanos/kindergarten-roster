@@ -195,3 +195,79 @@ describe('explain — comfort and fairness', () => {
     )
   })
 })
+
+describe('v3-b warnings', () => {
+  const input = makeInput({ teachers: 4, nannies: 4, groups: 2, days: [MON] })
+  const at = (
+    staffId: string,
+    shift: 'morning' | 'afternoon',
+    rest: Partial<Assignment> = {},
+  ): Assignment => ({ staffId, date: MON, shift, ...rest })
+  const roster = (assignments: Assignment[], holes: Roster['holes'] = []): Roster => ({
+    period: input.period,
+    groupsPerDay: { [MON]: 2 },
+    assignments,
+    holes,
+    warnings: [],
+    ...TEST_META,
+  })
+  const teachers = [
+    at('t1', 'morning', { seat: { kind: 'teacher', group: 1, shift: 'morning' }, duty: true }),
+    at('t2', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' }, duty: true }),
+    at('t3', 'morning', { seat: { kind: 'teacher', group: 2, shift: 'morning' } }),
+    at('t4', 'afternoon', { seat: { kind: 'teacher', group: 2, shift: 'afternoon' } }),
+  ]
+  const codes = (r: Roster) => explain(input, r).map((w) => w.code)
+
+  it('flags a pair whose nannies share a shift, and a lopsided day', () => {
+    const r = roster([
+      ...teachers,
+      at('n1', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+      at('n2', 'morning', { seat: { kind: 'nanny', group: 2 } }),
+      at('n3', 'morning'),
+      at('n4', 'afternoon', { closer: true }),
+    ])
+    const warnings = explain(input, r)
+    expect(warnings.find((w) => w.code === 'PAIR_SAME')?.text).toBe(
+      'Hétfő, 1–2. cs.: mindkét dajka DE.',
+    )
+    const lopsided = warnings.find((w) => w.code === 'SHIFT_IMBALANCE')
+    expect(lopsided?.text).toBe('Hétfő: dajkák 3 DE / 1 DU.')
+    expect(lopsided?.severity).toBe('grey')
+  })
+
+  it('turns orange at a gap of 3', () => {
+    const r = roster([
+      ...teachers,
+      at('n1', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+      at('n2', 'morning', { seat: { kind: 'nanny', group: 2 } }),
+      at('n3', 'morning'),
+      at('n4', 'morning'),
+    ])
+    expect(explain(input, r).find((w) => w.code === 'SHIFT_IMBALANCE')?.severity).toBe('orange')
+  })
+
+  it('stays quiet on a split pair and an even day', () => {
+    const r = roster([
+      ...teachers,
+      at('n1', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
+      at('n2', 'afternoon', { seat: { kind: 'nanny', group: 2 }, closer: true }),
+      at('n3', 'morning'),
+      at('n4', 'afternoon'),
+    ])
+    expect(codes(r)).not.toContain('PAIR_SAME')
+    expect(codes(r)).not.toContain('SHIFT_IMBALANCE')
+  })
+
+  it('reports a missing ügyelet in red', () => {
+    const r = roster(
+      teachers.map((a) => ({ ...a, duty: undefined })),
+      [{ kind: 'duty', date: MON }],
+    )
+    const missing = explain(input, r).find((w) => w.code === 'DUTY_MISSING')
+    expect(missing?.severity).toBe('red')
+    expect(missing?.text).toBe(
+      'Hétfőn nincs ügyeletes csoport: egy csoportban sincs meg mindkét óvónő.',
+    )
+  })
+})

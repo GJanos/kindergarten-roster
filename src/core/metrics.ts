@@ -1,5 +1,5 @@
 import { addDays } from './calendar'
-import type { Assignment, Roster, SolveInput } from './types'
+import type { Assignment, Role, Roster, Shift, SolveInput } from './types'
 
 export type GroupSwitch = {
   staffId: string
@@ -9,6 +9,8 @@ export type GroupSwitch = {
   toGroup: number
 }
 export type Turnaround = { staffId: string; late: string; early: string }
+export type PairClash = { date: string; group: number; shift: Shift }
+export type ShiftImbalance = { date: string; role: Role; morning: number; afternoon: number }
 
 /** Days the kindergarten is open: every period day except those she set to 0 groups. */
 function openDays(input: SolveInput, roster: Roster): string[] {
@@ -56,6 +58,42 @@ export function turnarounds(input: SolveInput, roster: Roster): Turnaround[] {
       ) {
         out.push({ staffId: person.id, late, early })
       }
+    }
+  }
+  return out
+}
+
+/** Groups 1–2, 3–4…: both nannies on the same shift (v3-b). */
+export function pairClashes(input: SolveInput, roster: Roster): PairClash[] {
+  const out: PairClash[] = []
+  for (const date of openDays(input, roster)) {
+    const nannyOf = (g: number) =>
+      roster.assignments.find(
+        (a) => a.date === date && a.seat?.kind === 'nanny' && a.seat.group === g,
+      )
+    for (let g = 1; g + 1 <= (roster.groupsPerDay[date] ?? 0); g += 2) {
+      const first = nannyOf(g)
+      const second = nannyOf(g + 1)
+      if (first && second && first.shift === second.shift) {
+        out.push({ date, group: g, shift: first.shift })
+      }
+    }
+  }
+  return out
+}
+
+/** A day whose teachers, or nannies, reserves included, split 2 or more apart between DE and DU (v3-b). */
+export function shiftImbalances(input: SolveInput, roster: Roster): ShiftImbalance[] {
+  const roleOf = new Map(input.staff.map((s) => [s.id, s.role]))
+  const out: ShiftImbalance[] = []
+  for (const date of openDays(input, roster)) {
+    for (const role of ['teacher', 'nanny'] as const) {
+      const today = roster.assignments.filter(
+        (a) => a.date === date && roleOf.get(a.staffId) === role,
+      )
+      const morning = today.filter((a) => a.shift === 'morning').length
+      const afternoon = today.length - morning
+      if (Math.abs(morning - afternoon) >= 2) out.push({ date, role, morning, afternoon })
     }
   }
   return out

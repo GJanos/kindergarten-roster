@@ -436,6 +436,10 @@ export const warningText = {
   dutyMissing: (date: string) =>
     `${capitalize(onDay(date))} nincs ügyeletes csoport: egy csoportban sincs meg mindkét óvónő.`,
   dutyAction: 'Hívj be egy óvónőt, vagy vond össze a csoportokat.',
+  pairSame: (date: string, group: number, shift: Shift) =>
+    `${capitalize(dayName(date))}, ${group}–${group + 1}. cs.: mindkét dajka ${shiftShort[shift]}.`,
+  shiftImbalance: (date: string, role: Role, morning: number, afternoon: number) =>
+    `${capitalize(dayName(date))}: ${role === 'teacher' ? 'óvónők' : 'dajkák'} ${morning} DE / ${afternoon} DU.`,
   openerAction: 'Valaki jöjjön 6:00-ra, vagy nyisson később az óvoda.',
   closerAction: 'Valaki maradjon 18:00-ig, vagy zárjon korábban az óvoda.',
   groupsReduced: (
