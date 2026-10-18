@@ -333,7 +333,7 @@ export const ui = {
       'Kattints egy napra, ha ott más csoportszám kell, vagy zárva van. „kézi” = ezen a napon kézzel állított csoportszám.',
     tableHint:
       'DE = délelőtt, DU = délután. nyit / zár = ő nyitja vagy zárja az óvodát (vastag betű). ' +
-      'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő. ' +
+      'BETÖLTETLEN = nincs rá ember. Narancs = valaki más helyett (óvónő a dajka, civil a dajka, asszisztens a DU óvónő helyett). ' +
       'Két nevet egymás után kattintva (ugyanazon a napon) a két ember helyet cserél.',
     undo: '↶ Visszavonás',
     undoHint: 'Visszaállítja, ami a módosítás előtt volt — a beosztással együtt.',
@@ -424,7 +424,8 @@ export const ui = {
       } else if (place(now) !== place(was)) {
         parts.push(`${place(now)} (eddig ${place(was)})`)
       }
-      if (now.substitution && !was.substitution) parts.push('dajka helyett')
+      if (now.substitution && !was.substitution)
+        parts.push(now.seat?.kind === 'teacher' ? 'óvónő helyett' : 'dajka helyett')
       if (!now.opener !== !was.opener) parts.push(now.opener ? 'nyit' : 'nem nyit')
       if (!now.closer !== !was.closer) parts.push(now.closer ? 'zár' : 'nem zár')
       if (parts.length === 0) parts.push(place(now))
@@ -547,4 +548,5 @@ export const LEGEND = [
   'Óvónő: DE 7:00–13:30, DU 10:30–17:00; pénteken és ledolgozós szombaton DE 7:00–13:00, DU 11:00–17:00.',
   'Dajka: DE 6:00–14:00, DU 10:00–18:00.',
   'Ügyelet: a csoport óvónői DE 6:30-tól, DU 17:30-ig dolgoznak, ugyanannyi órában.',
+  'Asszisztens, civil: NAP 8:00–16:00; ha valakit helyettesít, DE 6:00–14:00 vagy DU 10:00–18:00.',
 ]

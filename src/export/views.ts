@@ -1,6 +1,25 @@
-import type { Absence, Assignment, Role, Roster, Shift, Staff } from '../core/types'
-import { resolveNames } from '../core/names'
-import { ABSENCE_WORD, DUTY, HOLE, dutyMark, groupName, groupShort, shiftShort } from '../i18n/hu'
+import {
+  isHelper,
+  ROLES,
+  SHIFTS,
+  type Absence,
+  type Assignment,
+  type Role,
+  type Roster,
+  type Shift,
+  type Staff,
+} from '../core/types'
+import { resolveNames, rosterOrder } from '../core/names'
+import {
+  ABSENCE_WORD,
+  DUTY,
+  HOLE,
+  dutyMark,
+  groupName,
+  groupShort,
+  helperShort,
+  shiftShort,
+} from '../i18n/hu'
 
 /** The printout's two tables as plain data, shared by print and Excel. */
 
@@ -43,7 +62,23 @@ export function isDutyCell(lines: Line[]): boolean {
   return lines.some((line) => line.tone === 'duty')
 }
 
-/** Rows: each group, then the reserve teachers and nannies; columns: the days. */
+/** The row for helpers out of every seat (v3-c): asszisztens extras and civils. */
+export const HELPER_ROW = 'Asszisztens, civil'
+const HELPER_WORD: Partial<Record<Role, string>> = { assistant: 'Asszisztens', civil: 'Civil' }
+
+/** A week with a helper gets the helper row, so the group view has one more row. */
+export function hasHelperRow(roster: Roster, staff: Staff[]): boolean {
+  const role = new Map(staff.map((s) => [s.id, s.role]))
+  return roster.assignments.some((a) => {
+    const r = role.get(a.staffId)
+    return r !== undefined && isHelper(r)
+  })
+}
+
+/**
+ * Rows: each group, then the reserve teachers and nannies, then (v3-c) the helpers out of every
+ * seat; columns: the days.
+ */
 export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] = []): GroupView {
   const name = names(staff)
   const role = new Map(staff.map((s) => [s.id, s.role]))
@@ -60,25 +95,43 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
       if (g > roster.groupsPerDay[date]) {
         return [{ text: roster.groupsPerDay[date] > 0 ? 'összevonva' : '—', tone: 'muted' }]
       }
-      const lines: Line[] = (['morning', 'afternoon'] as const).map((shift) => {
+      const lines: Line[] = SHIFTS.map((shift): Line => {
         const a = today.find(
           (x) => x.seat?.kind === 'teacher' && x.seat.group === g && x.seat.shift === shift,
         )
-        return a
-          ? {
-              text: `${shiftShort[shift]}: ${name(a.staffId)}${a.duty ? dutyMark[shift] : ''}`,
-              staffId: a.staffId,
-            }
-          : { text: `${shiftShort[shift]}: ${HOLE}`, tone: 'hole' }
+        if (!a) return { text: `${shiftShort[shift]}: ${HOLE}`, tone: 'hole' }
+        if (a.substitution) {
+          // An asszisztens's hours don't move on ügyelet: no mark (v3-c).
+          return {
+            text: `${shiftShort[shift]}: ${name(a.staffId)} (asszisztens, ${helperShort[a.shift]})`,
+            tone: 'substitution',
+            staffId: a.staffId,
+          }
+        }
+        return {
+          text: `${shiftShort[shift]}: ${name(a.staffId)}${a.duty ? dutyMark[shift] : ''}`,
+          staffId: a.staffId,
+        }
       })
       if (today.some((x) => x.duty && x.seat?.kind === 'teacher' && x.seat.group === g)) {
         lines.unshift({ text: DUTY, bold: true, tone: 'duty' })
       }
+      const beside = today.find((x) => x.seat?.kind === 'helper' && x.seat.group === g)
+      if (beside) {
+        lines.push({
+          text: `Asszisztens: ${name(beside.staffId)} (${helperShort[beside.shift]})`,
+          staffId: beside.staffId,
+        })
+      }
       const nanny = today.find((x) => x.seat?.kind === 'nanny' && x.seat.group === g)
       if (nanny?.substitution) {
+        const civil = role.get(nanny.staffId) === 'civil'
         lines.push({
-          text: `Dajka: ${name(nanny.staffId)} (óvónő, ${shiftShort[nanny.shift]})`,
+          text: civil
+            ? `Dajka: ${name(nanny.staffId)} (civil, ${shiftShort[nanny.shift]}${key(nanny)})`
+            : `Dajka: ${name(nanny.staffId)} (óvónő, ${shiftShort[nanny.shift]})`,
           tone: 'substitution',
+          ...(civil ? bold(nanny) : {}),
           staffId: nanny.staffId,
         })
       } else if (nanny) {
@@ -109,6 +162,23 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
     )
     rows.push({ label, cells })
   }
+  if (hasHelperRow(roster, staff)) {
+    const order = (a: Assignment) => ROLES.indexOf(role.get(a.staffId) ?? 'teacher')
+    rows.push({
+      label: HELPER_ROW,
+      cells: days.map((date) =>
+        on(date)
+          .filter((a) => !a.seat && isHelper(role.get(a.staffId) ?? 'teacher'))
+          .sort(
+            (a, b) => order(a) - order(b) || name(a.staffId).localeCompare(name(b.staffId), 'hu'),
+          )
+          .map((a) => ({
+            text: `${HELPER_WORD[role.get(a.staffId)!]}: ${name(a.staffId)} (${helperShort[a.shift]})`,
+            staffId: a.staffId,
+          })),
+      ),
+    })
+  }
   return { days, rows }
 }
 
@@ -119,29 +189,27 @@ export function footnotes(roster: Roster, staff: Staff[]): string[] {
     .map((w) => resolveNames(`* ${w.text}${w.action ? ` ${w.action}` : ''}`, staff))
 }
 
-/** One row per person (teachers, then nannies): 'DE · 1. cs.', 'DU · tartalék', 'távol'. */
+/** One row per person, in `ROLES` order: 'DE · 1. cs.', 'DU · tartalék', 'távol'. */
 export function personView(roster: Roster, staff: Staff[], absences: Absence[]): PersonView {
   const days = roster.period.days
   const absent = new Map(absences.map((a) => [`${a.staffId}|${a.date}`, a.kind]))
   const at = new Map(roster.assignments.map((a) => [`${a.staffId}|${a.date}`, a]))
   const openDays = new Set(roster.assignments.map((a) => a.date))
   const inRoster = new Set(roster.assignments.map((a) => a.staffId))
-  const people = staff
-    .filter((s) => inRoster.has(s.id) || (s.active && days.some((d) => absent.has(`${s.id}|${d}`))))
-    .sort((a, b) =>
-      a.role === b.role
-        ? a.displayName.localeCompare(b.displayName, 'hu')
-        : a.role === 'teacher'
-          ? -1
-          : 1,
-    )
+  const people = rosterOrder(
+    staff.filter(
+      (s) => inRoster.has(s.id) || (s.active && days.some((d) => absent.has(`${s.id}|${d}`))),
+    ),
+  )
 
-  const cellFor = (staffId: string, date: string): PersonCell => {
-    const a = at.get(`${staffId}|${date}`)
+  const cellFor = (s: Staff, date: string): PersonCell => {
+    const a = at.get(`${s.id}|${date}`)
     if (a) {
-      const where = a.seat ? groupShort(a.seat.group) : 'tartalék'
+      const where = a.seat ? groupShort(a.seat.group) : s.role === 'civil' ? 'civil' : 'tartalék'
       const extra = a.substitution
-        ? ' (dajka helyett)'
+        ? a.seat?.kind === 'teacher'
+          ? ' (óvónő helyett)'
+          : ' (dajka helyett)'
         : a.opener
           ? ' · nyit'
           : a.closer
@@ -155,7 +223,7 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
       }
     }
     if (!openDays.has(date)) return { text: 'zárva', fill: 'closed' }
-    const kind = absent.get(`${staffId}|${date}`)
+    const kind = absent.get(`${s.id}|${date}`)
     if (kind) return { text: ABSENCE_WORD[kind], fill: 'absent' }
     return { text: '' }
   }
@@ -166,7 +234,7 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
       staffId: s.id,
       name: s.displayName,
       role: s.role,
-      cells: days.map((date) => cellFor(s.id, date)),
+      cells: days.map((date) => cellFor(s, date)),
     })),
   }
 }

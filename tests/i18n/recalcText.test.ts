@@ -65,4 +65,23 @@ describe('recalculation texts', () => {
       'Kati — ma: nem nyit · kedd: 1. cs. (eddig csoporton kívül)',
     )
   })
+
+  it('names an asszisztens standing in, with her new hours (v3-c)', () => {
+    const was = {
+      staffId: 'a1',
+      date: '2026-10-28',
+      shift: 'day' as const,
+      seat: { kind: 'helper' as const, group: 1 },
+    }
+    const now = {
+      staffId: 'a1',
+      date: '2026-10-28',
+      shift: 'afternoon' as const,
+      seat: { kind: 'teacher' as const, group: 2, shift: 'afternoon' as const },
+      substitution: true as const,
+    }
+    expect(ui.recalc.day('assistant', was, now, false)).toBe(
+      'szerda: DU 10:00–18:00 (eddig NAP), 2. cs., óvónő helyett',
+    )
+  })
 })
