@@ -97,6 +97,17 @@ export function monthLabel(month: string): string {
   return `${y}. ${MONTHS[m - 1]}`
 }
 
+/** A month's sorted dates as day numbers, consecutive days joined: '6–8., 20.' */
+export function compactDates(dates: string[]): string {
+  const runs: [number, number][] = []
+  for (const day of dates.map((date) => Number(date.slice(8)))) {
+    const last = runs.at(-1)
+    if (last && day === last[1] + 1) last[1] = day
+    else runs.push([day, day])
+  }
+  return runs.map(([from, to]) => (from === to ? `${from}.` : `${from}–${to}.`)).join(', ')
+}
+
 /** 'ma', 'tegnap', '3 napja' */
 export function sinceText(days: number): string {
   return days <= 0 ? 'ma' : days === 1 ? 'tegnap' : `${days} napja`
@@ -176,8 +187,9 @@ export const ui = {
       'Aki nem aktív, az nem kerül a beosztásba és a távolléti táblába. Bármikor visszakapcsolható.',
     leaveAllowance: 'Szabadság/év',
     leaveAllowanceHint:
-      'Éves szabadságkeret napokban. Üresen hagyva nem követjük. A Távollétek fülön látszik, ' +
-      'mennyi fogyott el belőle.',
+      'Éves szabadságkeret napokban. Üresen hagyva nem követjük. A Távollétek és a Munkatársak ' +
+      'fülön látszik, mennyi maradt belőle.',
+    leaveLeft: (year: string) => `Maradt (${year})`,
     confirmRemove: (name: string) => `Biztosan törlöd: ${name}?`,
     confirmRemoveRostered: (name: string) =>
       `${name} már szerepelt beosztásban. Ha csak egy ideig nem dolgozik, inkább vedd ki az ` +
@@ -201,7 +213,7 @@ export const ui = {
       'Törlés: végleges. Aki már szerepelt beosztásban, annak a neve a korábbi heteken megmarad.',
       'Megjelenő név: ez szerepel a beosztásban és a nyomtatásban. Legyen rövid, és ne legyen két egyforma.',
       'A → Dajka és → Óvónő gombbal lehet valakit a másik oszlopba tenni.',
-      'Szabadság/év: ha megadod, a Távollétek fülön látszik, mennyi fogyott el a keretből.',
+      'Szabadság/év: ha megadod, a Távollétek és a Munkatársak fülön látszik, mennyi maradt a keretből.',
     ],
   },
   absences: {
@@ -220,9 +232,20 @@ export const ui = {
     >,
     letters: { leave: 'Sz', sick: 'B', other: 'E' } satisfies Record<AbsenceKind, string>,
     leaveHeader: (year: string) => `Szabadság ${year}`,
-    balance: (used: number, total: number) => `${used} / ${total}`,
-    balanceHint: (year: string) =>
-      `Szabadság ${year}: kivett napok / éves keret és áthozott napok. Kattints az áthozott napokhoz.`,
+    balance: (remaining: number) =>
+      remaining >= 0 ? `${remaining} maradt` : `${-remaining} nappal túllépve`,
+    balanceHint: (year: string, used: number, allowance: number, carry: number) =>
+      `Szabadság ${year}: ${used} nap kivéve, ${allowance + carry} összesen` +
+      (carry > 0 ? ` (${allowance} + ${carry} áthozott)` : '') +
+      '. Kattints az áthozott napokhoz.',
+    report: {
+      open: 'Havi kimutatás',
+      title: (month: string) => `Távollétek — ${monthLabel(month)}`,
+      columns: ['Név', 'Szabadság', 'Beteg', 'Egyéb', 'Összesen', 'Napok', 'Szabadság maradt'],
+      made: (date: string) => `Készült: ${date.replaceAll('-', '.')}.`,
+      print: 'Nyomtatás',
+      close: 'Bezár',
+    },
     carry: (year: string) => `Áthozott napok (${year})`,
     away: { teacher: 'Távol (óvónő)', nanny: 'Távol (dajka)' } satisfies Record<Role, string>,
     shortHint:

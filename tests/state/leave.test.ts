@@ -21,7 +21,21 @@ const absences: Absence[] = [
 
 describe('leaveBalance', () => {
   it("counts the calendar year's leave days against allowance plus carry-over", () => {
-    expect(leaveBalance(absences, anna, '2026')).toEqual({ used: 2, total: 53 })
-    expect(leaveBalance(absences, anna, '2025')).toEqual({ used: 1, total: 50 })
+    expect(leaveBalance(absences, anna, '2026')).toEqual({ used: 2, total: 53, remaining: 51 })
+    expect(leaveBalance(absences, anna, '2025')).toEqual({ used: 1, total: 50, remaining: 49 })
+  })
+
+  it('counts only the days up to `until`, so a month-end figure ignores later leave', () => {
+    expect(leaveBalance(absences, anna, '2026', '2026-10-26')).toEqual({
+      used: 1,
+      total: 53,
+      remaining: 52,
+    })
+    expect(leaveBalance(absences, anna, '2026', '2026-09-30').remaining).toBe(53)
+  })
+
+  it('goes below zero past the allowance', () => {
+    const tight: Staff = { ...anna, leaveAllowance: 1, leaveCarry: undefined }
+    expect(leaveBalance(absences, tight, '2026').remaining).toBe(-1)
   })
 })

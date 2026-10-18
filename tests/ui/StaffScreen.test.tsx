@@ -155,4 +155,30 @@ describe('StaffScreen', () => {
     expect(screen.getByText('ⓘ Tudnivalók')).toBeTruthy()
     expect(screen.getByText(/csak az aktív munkatársak kerülnek a beosztásba/)).toBeTruthy()
   })
+
+  it("shows this calendar year's leave left next to the allowance, empty without one", () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 5, 12))
+    try {
+      renderScreen(
+        run(
+          ...person('a', 'Kiss Anna'),
+          { type: 'updateStaff', id: 'a', patch: { leaveAllowance: 40 } },
+          {
+            type: 'setAbsent',
+            staffId: 'a',
+            dates: ['2026-10-26', '2026-10-27'],
+            absent: true,
+            kind: 'leave',
+          },
+          ...person('n', 'Nagy Nóra', 'Nóra', 'nanny'),
+        ),
+      )
+      expect(column(/Óvónők/).getByText('Maradt (2026)')).toBeTruthy()
+      expect(column(/Óvónők/).getByText('38 maradt')).toBeTruthy()
+      expect(column(/Dajkák/).queryByText(/maradt$/)).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

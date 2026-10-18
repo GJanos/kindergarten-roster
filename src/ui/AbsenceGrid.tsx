@@ -106,13 +106,16 @@ export function AbsenceGrid({ state, dispatch, people, days, brush, wide }: Prop
                     {s.displayName || s.fullName}
                     {balance && (
                       <button
-                        className={
-                          balance.used > balance.total ? 'leave-balance over' : 'leave-balance'
-                        }
-                        title={ui.absences.balanceHint(year)}
+                        className={balance.remaining < 0 ? 'leave-balance over' : 'leave-balance'}
+                        title={ui.absences.balanceHint(
+                          year,
+                          balance.used,
+                          s.leaveAllowance ?? 0,
+                          s.leaveCarry?.[year] ?? 0,
+                        )}
                         onClick={() => setCarryOpen(carryOpen === s.id ? undefined : s.id)}
                       >
-                        {ui.absences.balance(balance.used, balance.total)}
+                        {ui.absences.balance(balance.remaining)}
                       </button>
                     )}
                   </th>

@@ -1,5 +1,6 @@
 import { ui } from '../i18n/hu'
 import { isRostered, type Action, type AppState } from '../state/appState'
+import { leaveBalance } from '../state/leave'
 import type { Role, Staff } from '../core/types'
 import { today } from './dates'
 import { Info } from './Info'
@@ -57,6 +58,7 @@ type ColumnProps = Props & {
 }
 
 function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps) {
+  const year = today().slice(0, 4)
   const title = role === 'teacher' ? ui.staff.teachers : ui.staff.nannies
   const headingId = `staff-${role}`
   const update = (id: string, patch: Partial<Omit<Staff, 'id'>>) =>
@@ -86,6 +88,7 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
               <th>
                 {ui.staff.leaveAllowance} <Info text={ui.staff.leaveAllowanceHint} />
               </th>
+              <th>{ui.staff.leaveLeft(year)}</th>
               <th />
               <th />
             </tr>
@@ -136,6 +139,10 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                         })
                       }
                     />
+                  </td>
+                  <td className="leave-left">
+                    {s.leaveAllowance !== undefined &&
+                      ui.absences.balance(leaveBalance(state.absences, s, year).remaining)}
                   </td>
                   <td>
                     <button

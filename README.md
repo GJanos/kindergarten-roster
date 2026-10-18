@@ -14,7 +14,7 @@ Three tabs, all in Hungarian.
 **Munkatársak (staff)**
 
 - The staff list: teachers and nannies, the short name that appears on the wall, and a yearly
-  leave allowance. Someone who has left is hidden, not deleted, so old weeks keep their names.
+  leave allowance with the days left this year. Someone who has left is hidden, not deleted, so old weeks keep their names.
 - The **yearly balance**: per person, the mornings, afternoons, openings, closings and reserve
   days so far this kindergarten year, and how far each is from an even share.
 
@@ -24,7 +24,11 @@ Three tabs, all in Hungarian.
   in wide cells, and its week is shared with the Beosztás tab.
 - Click, or drag along a row, to paint an absence. There are three kinds: _Szabadság_ (leave),
   _Beteg_ (sick) and _Egyéb_ (other). Each kind is a coloured bar with a letter.
-- Next to each name, the leave taken against the allowance plus days carried over.
+- Next to each name, the leave days left this calendar year (allowance plus days carried over,
+  minus leave taken), or how far over.
+- **Havi kimutatás** (month view): per person, the month's days away by kind, the dates and the
+  leave left at month end, in place of the grid. It prints on one A4 portrait page for the
+  accountant.
 - Today's column is outlined and school-break days are tinted.
 - A _Távol_ row per role counts who is away, and turns orange when too few are left for the
   week's groups.

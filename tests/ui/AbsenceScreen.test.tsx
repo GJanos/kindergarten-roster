@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptyState, reducer, type Action, type AppState } from '../../src/state/appState'
@@ -180,7 +180,11 @@ describe('AbsenceScreen kinds', () => {
     const dispatch = vi.fn<(action: Action) => void>()
     render(<Screen state={tracked} dispatch={dispatch} />)
     expect(screen.getByText('Szabadság 2026')).toBeTruthy()
-    fireEvent.click(screen.getByText('2 / 53'))
+    const balance = screen.getByText('51 maradt')
+    expect(balance.title).toBe(
+      'Szabadság 2026: 2 nap kivéve, 53 összesen (50 + 3 áthozott). Kattints az áthozott napokhoz.',
+    )
+    fireEvent.click(balance)
     const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
     expect(carry.value).toBe('3')
     fireEvent.change(carry, { target: { value: '5' } })
@@ -189,6 +193,53 @@ describe('AbsenceScreen kinds', () => {
       id: 'a',
       patch: { leaveCarry: { '2026': 5 } },
     })
+  })
+
+  it('says how far over the allowance someone is', () => {
+    const steps: Action[] = [
+      { type: 'updateStaff', id: 'a', patch: { leaveAllowance: 1 } },
+      on('leave', '2026-10-26'),
+      on('leave', '2026-10-27'),
+    ]
+    render(<Screen state={steps.reduce(reducer, state)} dispatch={vi.fn()} />)
+    expect(screen.getByText('1 nappal túllépve').className).toBe('leave-balance over')
+  })
+
+  it('shows the monthly report in place of the grid, prints it, and closes on a month change', () => {
+    const steps: Action[] = [
+      { type: 'updateStaff', id: 'a', patch: { leaveAllowance: 20 } },
+      on('leave', '2026-10-06'),
+      on('leave', '2026-10-07'),
+      on('sick', '2026-10-20'),
+    ]
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+    render(<Screen state={steps.reduce(reducer, state)} dispatch={vi.fn()} />)
+    fireEvent.click(screen.getByText('Havi kimutatás'))
+
+    const panel = within(screen.getByRole('region', { name: 'Távollétek — 2026. október' }))
+    const cells = (name: string) =>
+      [...panel.getByRole('rowheader', { name }).closest('tr')!.querySelectorAll('td')].map(
+        (td) => td.textContent,
+      )
+    expect(cells('Anna')).toEqual(['2', '1', '0', '3', '6–7., 20.', '18'])
+    expect(cells('Nóra')).toEqual(['0', '0', '0', '0', '', ''])
+    expect(document.querySelector('.absence-grid')).toBeNull()
+    expect(document.querySelector('.month-report-print')).toBeTruthy()
+
+    fireEvent.click(panel.getByText('Nyomtatás'))
+    expect(print).toHaveBeenCalledOnce()
+
+    fireEvent.click(screen.getByLabelText('Következő hónap'))
+    expect(screen.queryByRole('region', { name: /^Távollétek —/ })).toBeNull()
+    expect(document.querySelector('.absence-grid')).toBeTruthy()
+    print.mockRestore()
+  })
+
+  it('closes the report with Bezár', () => {
+    render(<Screen state={state} dispatch={vi.fn()} />)
+    fireEvent.click(screen.getByText('Havi kimutatás'))
+    fireEvent.click(screen.getByText('Bezár'))
+    expect(document.querySelector('.absence-grid')).toBeTruthy()
   })
 })
 

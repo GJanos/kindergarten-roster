@@ -797,3 +797,26 @@ td {
   border-left: 6px solid var(--orange);
   background: var(--warn-bg);
 }
+
+.month-report h3 {
+  margin: 0 0 8px;
+}
+.month-report-table {
+  border-collapse: collapse;
+  background: var(--surface);
+}
+.month-report-table th,
+.month-report-table td {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  text-align: right;
+}
+.month-report-table th:first-child,
+.month-report-table td.dates {
+  text-align: left;
+}
+.month-report-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
