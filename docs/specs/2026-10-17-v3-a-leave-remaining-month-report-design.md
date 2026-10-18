@@ -23,9 +23,11 @@ three v3 parts (a → b → c). No solver or data change.
 
 **Havi kimutatás (monthly report).**
 
-- In the **Hónap** view the Távollétek bar gets a **Havi kimutatás** button. It opens a panel
-  under the bar for the month on screen. It's a report only, so nothing gets locked.
-- The panel has a table with one row per person, teachers first, then nannies (`rosterOrder`).
+- In the **Hónap** view the Távollétek bar gets a **Havi kimutatás** button. It shows the
+  report **in place of the grid** for the month on screen. It's a toggle, like a view, so
+  nothing below it moves. It's a report only, so nothing gets locked.
+- The report has a table with one row per person, teachers first, then nannies (`rosterOrder`,
+  which moves from `AbsenceScreen` to `src/core/names.ts` so `state/` can use it).
   The columns are:
   - **Szabadság**, **Beteg**, **Egyéb**: days that month
   - **Összesen**
@@ -37,7 +39,7 @@ three v3 parts (a → b → c). No solver or data change.
   an empty *Napok* cell.
 - The title is *"Távollétek — 2026. október"*. Under the table: *"Készült: 2026.11.02."*
 - **Nyomtatás** prints only the report on one A4 portrait page (`print.css`, `print-only`, as
-  the roster printout does). **Bezár** closes the panel.
+  the roster printout does). **Bezár** brings the grid back.
 
 ## How it's built
 
@@ -50,7 +52,8 @@ three v3 parts (a → b → c). No solver or data change.
 - `src/ui/MonthReport.tsx` (new): the panel and its print block. `AbsenceScreen` holds an open
   flag, which resets when the month changes.
 - `src/ui/StaffScreen.tsx`: the *Maradt* column. `src/i18n/hu.ts`: the new strings, plus a
-  `compactDates` helper that turns runs of consecutive working days into `6–8.`.
+  `compactDates` helper that turns runs of consecutive calendar days into `6–8.`. Two
+  Mon–Fri weeks off read `5–9., 12–16.`, so no range ever hides a weekend.
 
 ## Decisions
 
