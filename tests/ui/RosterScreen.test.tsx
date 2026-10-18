@@ -503,6 +503,68 @@ describe('RosterScreen swap', () => {
   })
 })
 
+describe('RosterScreen helper hours (v3-c)', () => {
+  const helperState = { ...wedOnly, staff: makeStaff(4, 3, 1) }
+  const besideGroup1: Roster = {
+    ...valid,
+    assignments: [
+      ...valid.assignments,
+      { staffId: 'a1', date: WED, shift: 'day', seat: { kind: 'helper', group: 1 } },
+    ],
+  }
+  const saved = (r: Roster) =>
+    reducer(helperState, {
+      type: 'saveRoster',
+      week: WEEK,
+      roster: r,
+      inputKey: inputKey(solveInputFor(helperState, WEEK)),
+    })
+
+  it('moves a helper to 6–14 by hand, marks the cell, and undoes it', () => {
+    render(<Harness initial={saved(besideGroup1)} />)
+    fireEvent.click(screenTable().getByText('Asszisztens: A1 (8–16)'))
+    expect(screen.getByText('8–16').closest('button')?.disabled).toBe(true)
+    fireEvent.click(screen.getByText('6–14'))
+    expect(screenTable().getByText('Asszisztens: A1 (6–14)')).toBeTruthy()
+    expect(screen.getByText('A1: 6–14, szerda.')).toBeTruthy()
+    expect(document.querySelectorAll('td.changed')).toHaveLength(1)
+    expect(screen.getByText('kézzel módosítva')).toBeTruthy()
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screenTable().getByText('Asszisztens: A1 (8–16)')).toBeTruthy()
+  })
+
+  it('offers no hours for a teacher', () => {
+    render(<Harness initial={saved(besideGroup1)} />)
+    fireEvent.click(screenTable().getByText('DE: T2'))
+    expect(screen.queryByText('6–14')).toBeNull()
+  })
+
+  it('refuses hours that break her stand-in', () => {
+    const standIn: Roster = {
+      ...valid,
+      assignments: [
+        ...valid.assignments,
+        {
+          staffId: 'a1',
+          date: WED,
+          shift: 'afternoon',
+          seat: { kind: 'teacher', group: 2, shift: 'afternoon' },
+          substitution: true,
+        },
+      ],
+      holes: [],
+    }
+    render(<Harness initial={saved(standIn)} />)
+    fireEvent.click(screenTable().getByText('DU: A1 (asszisztens, 10–18)'))
+    fireEvent.click(screen.getByText('6–14'))
+    expect(
+      screen.getByText(
+        'Ez a műszak nem lehetséges: asszisztens csak délután, 10–18-ban állhat be óvónő helyett.',
+      ),
+    ).toBeTruthy()
+  })
+})
+
 describe('RosterScreen week in progress', () => {
   beforeEach(() => vi.setSystemTime(new Date(2026, 9, 28, 12))) // Wednesday
   const kept = (mode: 'minimal' | 'full') => ({ roster: valid, from: WED, mode })

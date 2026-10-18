@@ -331,3 +331,40 @@ describe('a group change later in a week in progress', () => {
     expect(scheduleChanges(before, after, WED).every((c) => c.date === FRI)).toBe(true)
   }, 120_000)
 })
+
+describe('helpers in a week in progress (v3-c)', () => {
+  const helperWeek = makeInput({
+    teachers: 4,
+    nannies: 2,
+    assistants: 1,
+    civils: 1,
+    groups: 2,
+    days: [MON, TUE, WED],
+  })
+  const helperPlan = solve(helperWeek, highs, TEST_META)
+
+  it("keeps a past by-hand 6–14, and plans today's 8–16 again", () => {
+    const byHand: Roster = {
+      ...helperPlan,
+      edited: true,
+      assignments: helperPlan.assignments.map((a) =>
+        a.staffId === 'a1' && a.date === MON ? { ...a, shift: 'morning' } : a,
+      ),
+    }
+    const result = makeRoster(helperWeek, highs, TEST_META, keeping(TUE, byHand))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const a1 = (date: string) =>
+      result.roster.assignments.find((a) => a.staffId === 'a1' && a.date === date)!
+    expect(a1(MON).shift).toBe('morning')
+    expect(a1(TUE).shift).toBe('day')
+  })
+
+  it('keeps her seat beside the group when nothing changed', () => {
+    const result = makeRoster(helperWeek, highs, TEST_META, keeping(TUE, helperPlan))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const seatOf = (r: Roster) => r.assignments.filter((a) => a.staffId === 'a1').map((a) => a.seat)
+    expect(seatOf(result.roster)).toEqual(seatOf(helperPlan))
+  })
+})

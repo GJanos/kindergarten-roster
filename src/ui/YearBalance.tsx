@@ -11,20 +11,20 @@ function signed(delta: number | undefined): string {
 }
 
 /**
- * The kindergarten year per person, folded away at the bottom of the Munkatársak tab. Shown from
- * the first staff member on, with zeros and a note until a roster is saved.
+ * The kindergarten year per person, on a tab of its own so it is never hidden (2026-10-18). Shown
+ * from the first staff member on, with zeros and a note until a roster is saved.
  */
 export function YearBalance({ state, today }: { state: AppState; today: string }) {
   const rows = yearTotals(state, today)
-  if (rows.length === 0) return null
+  if (rows.length === 0) return <p>{ui.staff.yearBalanceNoStaff}</p>
   const name = (id: string) => state.staff.find((s) => s.id === id)?.displayName ?? '?'
   const year = Number(yearStart(today).slice(0, 4))
   const empty = rows.every(({ counts }) => Object.values(counts).every((n) => n === 0))
   return (
-    <details className="tips year-balance">
-      <summary>
+    <section className="year-balance">
+      <h2>
         {ui.staff.yearBalance(year)} <Info text={ui.staff.yearBalanceHint} />
-      </summary>
+      </h2>
       {empty && <p className="hint">{ui.staff.yearBalanceEmpty}</p>}
       <table className="staff">
         <thead>
@@ -48,6 +48,6 @@ export function YearBalance({ state, today }: { state: AppState; today: string }
           ))}
         </tbody>
       </table>
-    </details>
+    </section>
   )
 }

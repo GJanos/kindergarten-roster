@@ -78,7 +78,7 @@ describe('StaffScreen', () => {
       id: 'a',
       patch: { fullName: 'Kiss Anna Mária' },
     })
-    fireEvent.click(screen.getByText('→ Dajka'))
+    fireEvent.change(screen.getByLabelText('Munkakör'), { target: { value: 'nanny' } })
     expect(dispatch).toHaveBeenCalledWith({
       type: 'updateStaff',
       id: 'a',
@@ -207,10 +207,45 @@ describe('StaffScreen', () => {
     }
   })
 
+  it('puts the helpers on a row of their own, under the teachers and nannies (v3-c)', () => {
+    renderScreen(emptyState())
+    const rows = [...document.querySelectorAll('.staff-columns')].map((row) =>
+      [...row.querySelectorAll('h3')].map((h) => h.textContent?.replace(/ \(\d+\)$/, '')),
+    )
+    expect(rows).toEqual([
+      ['Óvónők', 'Dajkák'],
+      ['Pedagógiai asszisztensek', 'Civilek'],
+    ])
+  })
+
+  it('leaves the yearly balance to its own tab', () => {
+    renderScreen(run(...person('a', 'Kiss Anna')))
+    expect(screen.queryByText(/Éves egyenleg/)).toBeNull()
+  })
+
   it('reads 0 carried over when nothing is', () => {
     renderScreen(run(...person('a', 'Kiss Anna')))
     const year = new Date().getFullYear()
     const carry = screen.getByLabelText(`Áthozott napok (${year})`) as HTMLInputElement
     expect(carry.value).toBe('0')
+  })
+
+  it('has four sections, each with its own add button (v3-c)', () => {
+    const dispatch = renderScreen(emptyState())
+    for (const title of [/Óvónők/, /Dajkák/, /Pedagógiai asszisztensek/, /Civilek/]) {
+      expect(screen.getByRole('region', { name: title })).toBeTruthy()
+    }
+    fireEvent.click(screen.getByText('+ Új asszisztens'))
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'addStaff',
+      id: expect.any(String),
+      role: 'assistant',
+    })
+    fireEvent.click(screen.getByText('+ Új civil'))
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'addStaff',
+      id: expect.any(String),
+      role: 'civil',
+    })
   })
 })

@@ -114,4 +114,19 @@ describe('yearTotals', () => {
       },
     ])
   })
+
+  it('leaves helpers out: no row, no counts (v3-c)', () => {
+    const monday = '2026-10-26'
+    const period = saved(monday, {})
+    period.roster.assignments = [
+      { staffId: 'a1', date: monday, shift: 'day', seat: { kind: 'helper', group: 1 } },
+      { staffId: 'c1', date: monday, shift: 'day' },
+    ]
+    const state: AppState = {
+      ...emptyState(),
+      staff: makeStaff(1, 0, 1, 1),
+      periods: { [monday]: period },
+    }
+    expect(yearTotals(state, '2026-11-05').map((row) => row.staffId)).toEqual(['t1'])
+  })
 })

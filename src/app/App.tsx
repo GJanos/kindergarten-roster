@@ -11,12 +11,13 @@ import { FirstLaunch } from '../ui/FirstLaunch'
 import { Footer } from '../ui/Footer'
 import { RosterScreen } from '../ui/RosterScreen'
 import { StaffScreen } from '../ui/StaffScreen'
+import { YearBalance } from '../ui/YearBalance'
 import { OtherWindow } from '../ui/OtherWindow'
 import { ThemeToggle } from '../ui/ThemeToggle'
 import { shownWarningCount } from '../ui/warningDays'
 
-type Tab = 'staff' | 'absences' | 'roster'
-const TABS: Tab[] = ['staff', 'absences', 'roster']
+type Tab = 'staff' | 'absences' | 'roster' | 'balance'
+const TABS: Tab[] = ['staff', 'absences', 'roster', 'balance']
 
 export function App() {
   const app = useAppState()
@@ -92,6 +93,7 @@ export function App() {
             history={history}
           />
         )}
+        {tab === 'balance' && <YearBalance state={state} today={today()} />}
       </main>
       <Footer
         state={state}

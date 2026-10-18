@@ -59,7 +59,8 @@ from the shift. **Shift times are never stretched** — her rule: time limits ar
 - **Group count fixed for the period** (a per-day override exists for shortages, §6.6).
 - No personal requests. Ügyelet, nanny pairs and the daily DE/DU balance arrived in v3-b
   (`docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`), which also reorders §6.5's
-  stages.
+  stages. Helper roles — pedagógiai asszisztens and civil — arrived in v3-c
+  (`docs/specs/2026-10-17-v3-c-helper-roles-design.md`).
 - Good enough = a working roster that respects absences and the rules above.
 
 ## 3. Scope
@@ -249,7 +250,9 @@ balances counts.
 
 > Since v3-b the order is holes → substitutions → keep* → pairs → worstGap → totalGap → balance →
 > switches → turnarounds → keysSeated → keysGap → yearly. Opener/closer left the fairness stages
-> for keysGap (see `docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`).
+> for keysGap (see `docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`). v3-c adds
+> `helpers` after the keep* stages: an asszisztens on 8–16 sits beside a group. In substitutions a
+> civil or asszisztens stand-in weighs 1 and a teacher as nanny 3, so civils go first.
 
 Each stage's optimum becomes a constraint (plus a tiny float tolerance) for the next, so a later
 stage only chooses among rosters tied on every earlier one. Weighted sums were rejected: enough
@@ -354,7 +357,7 @@ rename reaches rosters saved before it. Texts saved before v2 hold plain names a
 ## 8. UI — Hungarian, large
 
 Base text 16 px, buttons ≥ 38 px (the main actions 46 px); light and dark theme, following the
-system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Three tabs: **Munkatársak · Távollétek · Beosztás**. Footer on
+system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Four tabs: **Munkatársak · Távollétek · Beosztás · Egyenleg** (the fourth since 2026-10-18). Footer on
 every screen: *"Utolsó mentés: 3 napja"* + **Mentés fájlba**, orange after 7 days without a backup.
 First launch: **Új kezdés · Visszatöltés fájlból · Bemutató adatok**; demo mode shows a
 *"Bemutató adatok — nem valódi személyek"* banner.
@@ -371,7 +374,8 @@ someone already rostered recommends unticking Aktív instead. Deleting them anyw
 (`deleted: true`, inactive) but keeps the record, so past rosters keep the name. Someone never
 rostered is deleted outright.
 
-**Éves egyenleg (2026/27)** — a folded table at the bottom: per person the year's mornings,
+**Éves egyenleg (2026/27)** — the **Egyenleg** tab (until 2026-10-18 a folded table at the bottom
+of Munkatársak): per person the year's mornings,
 afternoons, openings, closings and reserve days from the saved rosters, each with its difference
 from an equal share, e.g. *12 (+1,5)*.
 

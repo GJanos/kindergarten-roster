@@ -1,4 +1,4 @@
-import type { Staff } from './types'
+import { ROLES, type Staff } from './types'
 
 const OPEN = ''
 const CLOSE = ''
@@ -19,13 +19,11 @@ export function resolveNames(text: string, staff: Staff[]): string {
   return text.replace(REFERENCE, (_, id: string) => names.get(id) ?? '?')
 }
 
-/** Teachers first, then nannies, each by name. */
+/** Teachers, nannies, asszisztens, then civils (v3-c), each by name. */
 export function rosterOrder(staff: Staff[]): Staff[] {
-  return [...staff].sort((a, b) =>
-    a.role === b.role
-      ? (a.displayName || a.fullName).localeCompare(b.displayName || b.fullName, 'hu')
-      : a.role === 'teacher'
-        ? -1
-        : 1,
+  return [...staff].sort(
+    (a, b) =>
+      ROLES.indexOf(a.role) - ROLES.indexOf(b.role) ||
+      (a.displayName || a.fullName).localeCompare(b.displayName || b.fullName, 'hu'),
   )
 }

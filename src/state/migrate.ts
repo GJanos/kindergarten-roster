@@ -1,3 +1,4 @@
+import { ROLES } from '../core/types'
 import { SCHEMA_VERSION, type AppState } from './appState'
 
 export class InvalidDataError extends Error {
@@ -19,7 +20,7 @@ const isStaff = (value: unknown) =>
   typeof value.id === 'string' &&
   typeof value.fullName === 'string' &&
   typeof value.displayName === 'string' &&
-  (value.role === 'teacher' || value.role === 'nanny') &&
+  ROLE_NAMES.includes(value.role) &&
   typeof value.active === 'boolean' &&
   (value.deleted === undefined || value.deleted === true) &&
   (value.leaveAllowance === undefined || isCount(value.leaveAllowance)) &&
@@ -27,6 +28,7 @@ const isStaff = (value: unknown) =>
     (isObject(value.leaveCarry) && Object.values(value.leaveCarry).every(isCount)))
 
 const KINDS: readonly unknown[] = ['leave', 'sick', 'other']
+const ROLE_NAMES: readonly unknown[] = ROLES
 
 const isAbsence = (value: unknown) =>
   isObject(value) &&

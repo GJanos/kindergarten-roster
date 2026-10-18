@@ -66,4 +66,16 @@ describe('highlightedCells', () => {
     expect(highlightedCells(roster, staff, warning([{ date: MON }])).size).toBe(4)
     expect(highlightedCells(roster, staff, undefined).size).toBe(0)
   })
+
+  it('points at the helper row, one past the reserve rows (v3-c)', () => {
+    const helped: Roster = {
+      ...roster,
+      assignments: [...roster.assignments, { staffId: 'c1', date: MON, shift: 'day' }],
+    }
+    const withCivil = makeStaff(1, 1, 0, 1)
+    expect([
+      ...highlightedCells(helped, withCivil, warning([{ staffId: 'c1', date: MON }])),
+    ]).toEqual([`4|${MON}`])
+    expect(highlightedCells(helped, withCivil, warning([{ date: MON }])).size).toBe(5)
+  })
 })

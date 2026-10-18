@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeStaff } from './fixtures'
-import { nameRef, resolveNames } from '../../src/core/names'
+import { nameRef, resolveNames, rosterOrder } from '../../src/core/names'
 
 const staff = makeStaff(2, 1) // t1, t2, n1 — display names T1, T2, N1
 
@@ -32,5 +32,12 @@ describe('name references', () => {
   it('wrap the id in two private-use characters that never reach the screen', () => {
     expect(nameRef('t1')).toBe('t1')
     expect(resolveNames(nameRef('t1'), staff)).not.toMatch(/[]/)
+  })
+})
+
+describe('rosterOrder', () => {
+  it('lists teachers, nannies, asszisztens, then civils, each by name', () => {
+    const staff = makeStaff(1, 1, 1, 1).reverse()
+    expect(rosterOrder(staff).map((s) => s.id)).toEqual(['t1', 'n1', 'a1', 'c1'])
   })
 })

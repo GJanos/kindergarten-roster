@@ -61,3 +61,14 @@ describe('warning texts', () => {
     )
   })
 })
+
+describe('helper stand-ins (v3-c)', () => {
+  it('names the hours and why', () => {
+    expect(t.helperStandIn('2026-10-26', 1, 'teacher', 'Bea', '10–18')).toBe(
+      'Hétfő: Bea 10–18, mert az 1. csoport DU óvónője hiányzik.',
+    )
+    expect(t.helperStandIn('2026-10-27', 2, 'nanny', 'Zsófi', '6–14')).toBe(
+      'Kedd: Zsófi 6–14, mert a 2. csoport dajkája hiányzik.',
+    )
+  })
+})

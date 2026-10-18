@@ -1,5 +1,5 @@
 import { dayCapacities } from './capacity'
-import { SHIFTS, type Roster, type SolveInput } from './types'
+import { SHIFTS, isHelper, type Roster, type SolveInput } from './types'
 
 export type Violation = { rule: string; date?: string; staffId?: string }
 
@@ -8,7 +8,7 @@ function groupNumbers(groups: number): number[] {
 }
 
 /**
- * Re-checks every strict rule (§6.2) on a finished roster, independently of the
+ * Re-checks every strict rule (§6.2, helpers since v3-c) on a finished roster, independently of the
  * solver. Any hit is a bug: the app never shows or prints such a roster.
  */
 export function validateRoster(input: SolveInput, roster: Roster): Violation[] {
@@ -46,34 +46,60 @@ export function validateRoster(input: SolveInput, roster: Roster): Violation[] {
 
     for (const a of today) {
       const role = people.get(a.staffId)?.role
+      if (a.shift === 'day' && !(role && isHelper(role))) fail('dayShiftNotHelper', date, a.staffId)
       if (!a.seat) {
         if (a.substitution) fail('substitutionWithoutSeat', date, a.staffId)
       } else if (a.seat.group < 1 || a.seat.group > cap.groups) {
         fail('seatInMissingGroup', date, a.staffId)
+      } else if (a.seat.kind === 'helper') {
+        // Beside the DE teacher, on any hours she was given (v3-c).
+        if (role !== 'assistant') fail('helperSeatNotAssistant', date, a.staffId)
+        if (a.substitution) fail('substitutionFlag', date, a.staffId)
       } else if (a.seat.kind === 'teacher') {
-        if (role !== 'teacher') fail('nannyInTeacherSeat', date, a.staffId)
+        if (role === 'nanny') fail('nannyInTeacherSeat', date, a.staffId)
+        if (role === 'civil') fail('civilInTeacherSeat', date, a.staffId)
+        if (role === 'assistant' && (a.seat.shift !== 'afternoon' || a.shift !== 'afternoon'))
+          fail('assistantNotAfternoon', date, a.staffId)
         if (a.seat.shift !== a.shift) fail('teacherSeatOffShift', date, a.staffId)
-      } else if ((role === 'teacher') !== (a.substitution === true)) {
-        fail('substitutionFlag', date, a.staffId)
+        if ((role === 'assistant') !== (a.substitution === true))
+          fail('substitutionFlag', date, a.staffId)
+      } else {
+        if (role === 'assistant') fail('assistantInNannySeat', date, a.staffId)
+        if (role === 'civil' && a.shift === 'day') fail('standInOnDay', date, a.staffId)
+        if ((role !== 'nanny') !== (a.substitution === true))
+          fail('substitutionFlag', date, a.staffId)
       }
-      if ((a.opener || a.closer) && role !== 'nanny') fail('keyNotNanny', date, a.staffId)
+      // A nanny holds a key, or a civil standing in for one (v3-c).
+      const keyHolder = role === 'nanny' || (role === 'civil' && a.seat?.kind === 'nanny')
+      if ((a.opener || a.closer) && !keyHolder) fail('keyNotNanny', date, a.staffId)
       if (a.opener && a.shift !== 'morning') fail('openerNotMorning', date, a.staffId)
       if (a.closer && a.shift !== 'afternoon') fail('closerNotAfternoon', date, a.staffId)
     }
 
     for (const g of groupNumbers(cap.groups)) {
-      let emptyTeacherSeats = 0
+      let teachersSeated = 0
       for (const t of SHIFTS) {
-        const holders = today.filter(
+        const seated = today.filter(
           (a) => a.seat?.kind === 'teacher' && a.seat.group === g && a.seat.shift === t,
-        ).length
+        )
         const empty = holes.filter(
           (h) => h.kind === 'teacherSeat' && h.group === g && h.shift === t,
         ).length
-        if (holders + empty !== 1) fail('teacherSeatNotFilledOnce', date)
-        emptyTeacherSeats += empty
+        if (seated.length + empty !== 1) fail('teacherSeatNotFilledOnce', date)
+        teachersSeated += seated.filter((a) => people.get(a.staffId)?.role === 'teacher').length
       }
-      if (emptyTeacherSeats > 1) fail('groupWithoutTeacher', date)
+      // Group minimum: a real teacher, whoever else stands in (v3-c).
+      if (teachersSeated === 0) fail('groupWithoutTeacher', date)
+      const besides = today.filter((a) => a.seat?.kind === 'helper' && a.seat.group === g)
+      if (besides.length > 1) fail('helperSeatTwice', date)
+      const deTeacher = today.some(
+        (a) =>
+          a.seat?.kind === 'teacher' &&
+          a.seat.group === g &&
+          a.seat.shift === 'morning' &&
+          people.get(a.staffId)?.role === 'teacher',
+      )
+      if (besides.length > 0 && !deTeacher) fail('helperWithoutTeacher', date)
       const nannies = today.filter((a) => a.seat?.kind === 'nanny' && a.seat.group === g).length
       if (nannies !== 1) fail('nannySeatNotFilledOnce', date)
     }

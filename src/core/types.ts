@@ -1,6 +1,18 @@
-export type Role = 'teacher' | 'nanny'
-export type Shift = 'morning' | 'afternoon'
-export const SHIFTS: readonly Shift[] = ['morning', 'afternoon']
+/** Óvónő, dajka; pedagógiai asszisztens and civil since v3-c. Her order: lists, sections, rows. */
+export type Role = 'teacher' | 'nanny' | 'assistant' | 'civil'
+export const ROLES: readonly Role[] = ['teacher', 'nanny', 'assistant', 'civil']
+
+/** The helpers (v3-c): outside every fairness count, the year balance and the DE/DU balance. */
+export function isHelper(role: Role): boolean {
+  return role === 'assistant' || role === 'civil'
+}
+
+/** A seat's shift: DE or DU. */
+export type SeatShift = 'morning' | 'afternoon'
+/** 'day' is a helper's 8:00–16:00 (v3-c); teachers and nannies work DE or DU only. */
+export type Shift = SeatShift | 'day'
+export const SHIFTS: readonly SeatShift[] = ['morning', 'afternoon']
+export const HELPER_SHIFTS: readonly Shift[] = ['day', 'morning', 'afternoon']
 
 /** The fairness counts (spec §6.3; 'duty' since v3-b). */
 export type GapKind = 'morning' | 'opener' | 'closer' | 'reserve' | 'duty'
@@ -24,23 +36,25 @@ export type Absence = { staffId: string; date: string; kind: AbsenceKind } // on
 export type Period = { start: string; days: string[] } // working days only, 1–6 of them
 export type DayPlan = { date: string; requestedGroups: number; override?: number } // override 0 = closed
 
-/** Groups are numbered from 1, as on the wall. */
+/** Groups are numbered from 1, as on the wall. A helper seat is an asszisztens beside the DE teacher (v3-c). */
 export type Seat =
-  { kind: 'teacher'; group: number; shift: Shift } | { kind: 'nanny'; group: number }
+  | { kind: 'teacher'; group: number; shift: SeatShift }
+  | { kind: 'nanny'; group: number }
+  | { kind: 'helper'; group: number }
 
 export type Assignment = {
   staffId: string
   date: string
   shift: Shift
   seat?: Seat // absent seat = reserve
-  substitution?: true // teacher in a nanny seat
+  substitution?: true // in another role's seat: a teacher or civil as nanny, an asszisztens as DU teacher (v3-c)
   opener?: true
   closer?: true
   duty?: true // ügyelet (v3-b): a teacher of the day's ügyelet group, shifted 30 minutes
 }
 
 export type Hole =
-  | { kind: 'teacherSeat'; date: string; group: number; shift: Shift }
+  | { kind: 'teacherSeat'; date: string; group: number; shift: SeatShift }
   | { kind: 'opener' | 'closer' | 'duty'; date: string }
 
 export type WarningCode =

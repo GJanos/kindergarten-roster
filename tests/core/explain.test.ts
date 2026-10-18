@@ -271,3 +271,14 @@ describe('v3-b warnings', () => {
     )
   })
 })
+
+describe('explain — helpers (v3-c)', () => {
+  const D = '2026-10-26'
+  it('gives a helper stand-in the hours and the reason, and the asszisztens beside a group nothing', () => {
+    const input = makeInput({ teachers: 3, nannies: 2, assistants: 2, groups: 2, days: [D] })
+    const roster = solve(input, highs, TEST_META)
+    const subs = explain(input, roster).filter((w) => w.code === 'SUBSTITUTION')
+    expect(subs).toHaveLength(1)
+    expect(resolveNames(subs[0].text, input.staff)).toMatch(/^Hétfő: A\d 10–18, mert /)
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TEST_META, makeInput } from './fixtures'
+import { TEST_META, makeInput, makeStaff } from './fixtures'
 import type { Assignment, Roster, SolveInput } from '../../src/core/types'
 import { validateRoster } from '../../src/core/validate'
 
@@ -187,5 +187,92 @@ describe('ügyelet (v3-b)', () => {
     const { input, roster } = withDuty()
     roster.holes = [{ kind: 'duty', date: D }]
     expect(validateRoster(input, roster).map((v) => v.rule)).toContain('dutyNotExactlyOne')
+  })
+})
+
+describe('helpers (v3-c)', () => {
+  // setup()'s day plus asszisztens a1 and civil c1, both on 8–16.
+  function helped(): { input: SolveInput; roster: Roster } {
+    const { input, roster } = setup()
+    input.staff = makeStaff(2, 2, 1, 1)
+    roster.assignments = [
+      ...roster.assignments,
+      { staffId: 'a1', date: D, shift: 'day', seat: { kind: 'helper', group: 1 } },
+      { staffId: 'c1', date: D, shift: 'day' },
+    ]
+    return { input, roster }
+  }
+
+  it('accepts an asszisztens beside the DE teacher and a civil on 8–16', () => {
+    const { input, roster } = helped()
+    expect(validateRoster(input, roster)).toEqual([])
+  })
+
+  it('keeps 8–16 for helpers', () => {
+    const { input, roster } = helped()
+    expect(rules(input, edit(roster, 'n2', { shift: 'day' }))).toContain('dayShiftNotHelper')
+  })
+
+  it('takes an asszisztens as DU teacher only, on 10–18, flagged', () => {
+    const { input, roster } = helped()
+    const duSeat = { kind: 'teacher' as const, group: 1, shift: 'afternoon' as const }
+    const standIn = edit(edit(roster, 't2', { seat: undefined }), 'a1', {
+      shift: 'afternoon',
+      seat: duSeat,
+      substitution: true,
+    })
+    expect(validateRoster(input, standIn)).toEqual([])
+    expect(rules(input, edit(standIn, 'a1', { shift: 'morning' }))).toContain(
+      'assistantNotAfternoon',
+    )
+    expect(rules(input, edit(standIn, 'a1', { substitution: undefined }))).toContain(
+      'substitutionFlag',
+    )
+  })
+
+  it('never leaves a group without a real teacher', () => {
+    const { input, roster } = helped()
+    const noTeacher: Roster = {
+      ...edit(edit(roster, 't1', { seat: undefined }), 't2', { seat: undefined }),
+      holes: [{ kind: 'teacherSeat', date: D, group: 1, shift: 'morning' }],
+    }
+    const duSeat = { kind: 'teacher' as const, group: 1, shift: 'afternoon' as const }
+    const alone = edit(noTeacher, 'a1', { shift: 'afternoon', seat: duSeat, substitution: true })
+    expect(rules(input, alone)).toContain('groupWithoutTeacher')
+  })
+
+  it('seats one asszisztens per group, beside a DE teacher', () => {
+    const { input, roster } = helped()
+    expect(rules(input, edit(roster, 'c1', { seat: { kind: 'helper', group: 1 } }))).toContain(
+      'helperSeatNotAssistant',
+    )
+    const noDe: Roster = {
+      ...edit(roster, 't1', { seat: undefined }),
+      holes: [{ kind: 'teacherSeat', date: D, group: 1, shift: 'morning' }],
+    }
+    expect(rules(input, noDe)).toContain('helperWithoutTeacher')
+  })
+
+  it('lets a civil stand in as nanny on 6–14 or 10–18, with a key', () => {
+    const { input, roster } = helped()
+    const standIn = edit(edit(roster, 'n1', { seat: undefined, opener: undefined }), 'c1', {
+      shift: 'morning',
+      seat: { kind: 'nanny', group: 1 },
+      substitution: true,
+      opener: true,
+    })
+    expect(validateRoster(input, standIn)).toEqual([])
+    expect(rules(input, edit(standIn, 'c1', { shift: 'day', opener: undefined }))).toContain(
+      'standInOnDay',
+    )
+  })
+
+  it('gives no key to a civil out of a nanny seat, nor to an asszisztens', () => {
+    const { input, roster } = helped()
+    const civilKey = edit(edit(roster, 'n1', { opener: undefined }), 'c1', {
+      shift: 'morning',
+      opener: true,
+    })
+    expect(rules(input, civilKey)).toContain('keyNotNanny')
   })
 })

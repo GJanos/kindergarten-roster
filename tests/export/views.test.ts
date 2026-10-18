@@ -166,3 +166,63 @@ describe('ügyelet (v3-b)', () => {
     expect(t1.cells[0].text).toBe('DE · 1. cs. · ügyelet')
   })
 })
+
+describe('helpers (v3-c)', () => {
+  const helperStaff = makeStaff(3, 2, 2, 1)
+  const helped: Roster = {
+    ...roster,
+    assignments: [
+      ...roster.assignments,
+      { staffId: 'a1', date: TUE, shift: 'day', seat: { kind: 'helper', group: 1 } },
+      { staffId: 'a2', date: TUE, shift: 'day' },
+      { staffId: 'c1', date: TUE, shift: 'day' },
+    ],
+  }
+
+  it('shows the asszisztens beside her group, and the rest on one helper row', () => {
+    const view = groupView(helped, helperStaff)
+    const tue = view.days.indexOf(TUE)
+    expect(view.rows[0].cells[tue].map((l) => l.text)).toContain('Asszisztens: A1 (8–16)')
+    const last = view.rows.at(-1)!
+    expect(last.label).toBe('Asszisztens, civil')
+    expect(last.cells[tue].map((l) => l.text)).toEqual([
+      'Asszisztens: A2 (8–16)',
+      'Civil: C1 (8–16)',
+    ])
+  })
+
+  it('shows a stand-in in the substitution tone, with hours', () => {
+    const standIn: Roster = {
+      ...roster,
+      assignments: [
+        ...roster.assignments,
+        {
+          staffId: 'a1',
+          date: TUE,
+          shift: 'afternoon',
+          seat: { kind: 'teacher', group: 2, shift: 'afternoon' },
+          substitution: true,
+        },
+      ],
+      holes: roster.holes.filter((h) => h.kind !== 'teacherSeat'),
+    }
+    const view = groupView(standIn, helperStaff)
+    expect(view.rows[1].cells[view.days.indexOf(TUE)]).toContainEqual({
+      text: 'DU: A1 (asszisztens, 10–18)',
+      tone: 'substitution',
+      staffId: 'a1',
+    })
+  })
+
+  it('has no helper row in a week without helpers', () => {
+    expect(groupView(roster, staff).rows.map((r) => r.label)).not.toContain('Asszisztens, civil')
+  })
+
+  it('lists helpers last in the person view, 8–16 as NAP with its own fill', () => {
+    const view = personView(helped, helperStaff, [])
+    expect(view.rows.map((r) => r.staffId).slice(-3)).toEqual(['a1', 'a2', 'c1'])
+    const tue = view.days.indexOf(TUE)
+    expect(view.rows.at(-3)!.cells[tue]).toEqual({ text: 'NAP · 1. cs.', fill: 'day' })
+    expect(view.rows.at(-1)!.cells[tue]).toEqual({ text: 'NAP · civil', fill: 'day' })
+  })
+})

@@ -1,4 +1,4 @@
-import { zeroHoleNeeds, type DayCapacity } from '../core/capacity'
+import { cover, zeroHoleNeeds, type DayCapacity } from '../core/capacity'
 import { dayHeader, ui } from '../i18n/hu'
 import { Info } from './Info'
 
@@ -7,9 +7,11 @@ function dayStatus(c: DayCapacity): { ok: boolean; text: string } {
   if (c.closed) return { ok: true, text: ui.roster.closed }
   const needs = zeroHoleNeeds(c.groups)
   const notes: string[] = []
-  if (c.teachers < needs.teachers)
-    notes.push(ui.roster.fewTeachers(c.teachers, c.groups, needs.teachers))
-  if (c.nannies < needs.nannies) notes.push(ui.roster.fewNannies(c.nannies, needs.nannies))
+  const have = cover(c)
+  if (have.teachers < needs.teachers)
+    notes.push(ui.roster.fewTeachers(c.teachers, c.assistants, c.groups, needs.teachers))
+  if (have.nannies < needs.nannies)
+    notes.push(ui.roster.fewNannies(c.nannies, c.civils, needs.nannies))
   if (c.override !== undefined) notes.push(ui.roster.manual(c.groups))
   return {
     ok: notes.length === 0 || (notes.length === 1 && c.override !== undefined),

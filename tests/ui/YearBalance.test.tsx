@@ -54,8 +54,8 @@ describe('YearBalance', () => {
     expect(screen.queryByText(/első mentett beosztás/)).toBeNull()
   })
 
-  it('shows nothing while there is no staff', () => {
+  it('points to Munkatársak while there is no staff', () => {
     const { container } = render(<YearBalance state={emptyState()} today="2026-11-05" />)
-    expect(container.textContent).toBe('')
+    expect(container.textContent).toBe('Még nincs munkatárs. A Munkatársak fülön veheted fel őket.')
   })
 })

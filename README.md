@@ -9,15 +9,15 @@ people).
 
 ## What she can do
 
-Three tabs, all in Hungarian.
+Four tabs, all in Hungarian.
 
 **Munkatársak (staff)**
 
-- The staff list: teachers and nannies, the short name that appears on the wall, and a yearly
-  leave allowance with the days left this year. Someone who has left is hidden, not deleted, so old weeks keep their names.
-- The **yearly balance**: per person, the mornings, afternoons, openings, closings, reserve and
-  ügyelet days this kindergarten year, weeks planned ahead included, and how far each is from an
-  even share.
+- The staff list in four sections: teachers, nannies, _pedagógiai asszisztensek_ (teacher's
+  helpers) and _civilek_. Each person has the short name that appears on the wall, a yearly leave
+  allowance, the days carried over into this year and the days left. A _Munkakör_ list moves
+  someone to another role. Someone who has left is hidden, not deleted, so old weeks keep their names.
+  Teachers and nannies sit side by side, the helpers on a row of their own below.
 
 **Távollétek (absences)**
 
@@ -31,8 +31,10 @@ Three tabs, all in Hungarian.
   leave left at month end, in place of the grid. It prints on one A4 portrait page for the
   accountant.
 - Today's column is outlined and school-break days are tinted.
-- A _Távol_ row per role counts who is away, and turns orange when too few are left for the
-  week's groups.
+- A _Távol_ row per role counts who is away. For teachers and nannies it turns orange when too
+  few are left for the week's groups, counting the helpers who can stand in. Hovering an orange
+  cell says how many are left and how many are needed, so a mark caused by a helper's absence
+  makes sense.
 
 **Beosztás (roster)**
 
@@ -49,6 +51,10 @@ Three tabs, all in Hungarian.
   outlined.
 - **Swap two people** by clicking one name, then another on the same day. A swap that would break
   a rule is refused, with the reason.
+- **Helpers.** An asszisztens works 8–16 beside a group's DE teacher, or 10–18 in the DU teacher
+  seat when a teacher is missing. A civil floats on 8–16, or takes a missing nanny's seat on 6–14
+  or 10–18, before any teacher would. A warning says why someone's hours moved. Clicking a
+  helper offers 8–16 / 6–14 / 10–18 by hand, with undo, like a swap.
 - **A week in progress keeps its past.** Once a week has started, Számol asks:
   - _only the needed changes_, the default: the fewest people change, and a reserve on the same
     shift fills in first;
@@ -60,6 +66,12 @@ Three tabs, all in Hungarian.
   with the fewest changes. The undo bar then lists whom to phone and what to tell them: people
   whose hours changed first, then those who only move group or key.
 - Weeks that are over are archived: read-only, but still printable.
+
+**Egyenleg (yearly balance)**
+
+- Per person, the mornings, afternoons, openings, closings, reserve and ügyelet days this
+  kindergarten year, weeks planned ahead included, and how far each is from an even share. Its own
+  tab since 2026-10-18, so it is one click away instead of folded under the staff list.
 
 **Everywhere**
 
@@ -79,18 +91,22 @@ Three tabs, all in Hungarian.
   Every day one group is on **ügyelet**: its two teachers work 30 minutes earlier (DE, from 6:30)
   and later (DU, until 17:30), at the same length.
   When staff are short, empty seats become explicit holes, so a roster always comes back.
-- **Priorities are solved in order** (lexicographic optimisation), in eleven stages:
+- **Helpers stand in only to fill a seat.** An asszisztens can take a DU teacher seat (never a
+  DE one, so a group always keeps a real teacher), a civil a nanny seat. Both stay on 8–16
+  otherwise, and both are outside every fairness count, the yearly balance and the DE/DU balance.
+- **Priorities are solved in order** (lexicographic optimisation), in twelve stages:
   1. holes (a missing ügyelet included);
-  2. substitutions;
-  3. nanny pairs: in groups 1–2, 3–4… one nanny works DE and the other DU;
-  4. the worst fairness gap (mornings, reserve days and ügyelet days, scaled by days worked);
-  5. the total fairness gap;
-  6. the daily balance: per role, reserves included, DE and DU at most one apart;
-  7. group switches;
-  8. late-then-early turnarounds;
-  9. openers and closers from seated nannies, not reserve ones;
-  10. an even split of openings and closings (minor to her: the hours are the same either way);
-  11. a tie-break that hands a week's leftover unit to whoever is behind this kindergarten year.
+  2. substitutions: a civil or asszisztens stand-in costs 1, a teacher as nanny 3;
+  3. helpers: an asszisztens on 8–16 sits beside a group;
+  4. nanny pairs: in groups 1–2, 3–4… one nanny works DE and the other DU;
+  5. the worst fairness gap (mornings, reserve days and ügyelet days, scaled by days worked);
+  6. the total fairness gap;
+  7. the daily balance: per role, reserves included, DE and DU at most one apart;
+  8. group switches;
+  9. late-then-early turnarounds;
+  10. openers and closers from seated nannies, not reserve ones;
+  11. an even split of openings and closings (minor to her: the hours are the same either way);
+  12. a tie-break that hands a week's leftover unit to whoever is behind this kindergarten year.
 - **A week in progress is re-planned, not replaced.** The days already over are fixed. In the
   default mode, three extra stages come before fairness: fewest people whose hours change, then
   fewest changed days (earlier days cost more), then fewest group or key moves.
@@ -197,10 +213,10 @@ When the user presses _Számol_:
      group, one opener and one closer a day, and so on.
    - Empty seats are explicit "hole" variables, so a solution always exists even on a
      short-staffed day. `g_max` caps the groups a day can actually start.
-5. **Eleven stages, in strict priority order:** fewest holes → fewest substitutions → nanny pairs
-   → the worst person's fairness gap → the total gap → the daily DE/DU balance → fewest group
-   switches → fewest turnarounds → keys from seated nannies → the key split → the yearly
-   tie-break.
+5. **Twelve stages, in strict priority order:** fewest holes → fewest substitutions (civils
+   before teachers) → asszisztens beside a group → nanny pairs → the worst person's fairness gap →
+   the total gap → the daily DE/DU balance → fewest group switches → fewest turnarounds → keys
+   from seated nannies → the key split → the yearly tie-break.
    - After each stage its best value is locked in as a new rule, so a later stage can only choose
      among rosters that are equally good on everything before it.
    - Each stage gets 30 s. Her real weeks need 10–25 s in all, and she is fine waiting a minute or
@@ -220,7 +236,7 @@ When the user presses _Számol_:
    - **In a week in progress** the saved roster travels along as an _anchor_ (`src/core/recalc.ts`):
      - The past days' variables are pinned to it.
      - In the fewest-changes mode, three stability stages (people, days, duties) go in right after
-       substitutions, so the solve can take up to fourteen stages.
+       substitutions, so the solve can take up to fifteen stages.
      - Who worked a past day is read from the anchor, so an absence typed in afterwards can't
        rewrite it.
 6. **Decode:** the solution is turned back into a roster: who works which shift, in which seat,

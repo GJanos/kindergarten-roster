@@ -1,6 +1,6 @@
 import { weekday } from '../core/calendar'
 import { shiftTimes } from '../core/shifts'
-import type { AbsenceKind, Assignment, Role, Shift } from '../core/types'
+import type { AbsenceKind, Assignment, Role, SeatShift, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -76,11 +76,20 @@ export function formatPeriod(days: string[]): string {
 
 export const groupName = (group: number) => `${group}. csoport`
 export const groupShort = (group: number) => `${group}. cs.`
-export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU' }
+export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU', day: 'NAP' }
+/** A helper's hours, short (v3-c): 'Asszisztens: Bea (8–16)'. */
+export const helperShort: Record<Shift, string> = {
+  day: '8–16',
+  morning: '6–14',
+  afternoon: '10–18',
+}
 
 /** Ügyelet in the group view: the teacher's shifted start, or end (v3-b). */
 export const DUTY = 'Ügyelet'
-export const dutyMark: Record<Shift, string> = { morning: ' 6:30-tól', afternoon: ' 17:30-ig' }
+export const dutyMark: Record<SeatShift, string> = {
+  morning: ' 6:30-tól',
+  afternoon: ' 17:30-ig',
+}
 
 export const HOLE = 'BETÖLTETLEN'
 
@@ -122,14 +131,14 @@ export function sinceText(days: number): string {
 /** Who to ask first when someone must come in: people on leave, then other absences, the sick last. */
 export const CALL_IN_ORDER: Record<AbsenceKind, number> = { leave: 0, other: 1, sick: 2 }
 
-/** The strict rules a swap can break (validate.ts rule names), most telling first. */
 // Where a solve stopped early: the solver stage, in her words.
 const STOPPED_AT: Record<string, string> = {
   holes: 'a hiányoknál',
-  substitutions: 'a dajka helyetti óvónőknél',
+  substitutions: 'a helyettesítéseknél',
   keepPeople: 'a változtatások számánál',
   keepHours: 'a változtatások számánál',
   keepDuties: 'a változtatások számánál',
+  helpers: 'az asszisztensek elhelyezésénél',
   worstGap: 'az egyenlő elosztásnál',
   totalGap: 'az egyenlő elosztásnál',
   pairs: 'a dajkapároknál',
@@ -139,17 +148,30 @@ const STOPPED_AT: Record<string, string> = {
   keysSeated: 'a nyitó és záró dajkáknál',
 }
 
-const SWAP_REASONS: [rule: string, reason: string][] = [
+/** The strict rules a hand edit can break (validate.ts rule names), most telling first. */
+const EDIT_REASONS: [rule: string, reason: string][] = [
   ['nannyInTeacherSeat', 'dajka nem ülhet óvónői helyre'],
+  ['civilInTeacherSeat', 'civil nem ülhet óvónői helyre'],
+  ['assistantNotAfternoon', 'asszisztens csak délután, 10–18-ban állhat be óvónő helyett'],
+  ['assistantInNannySeat', 'asszisztens nem ülhet dajka helyére'],
+  ['helperSeatNotAssistant', 'a csoport mellé csak asszisztens ülhet'],
+  ['groupWithoutTeacher', 'így egy csoportban nem maradna óvónő'],
+  ['helperWithoutTeacher', 'asszisztens csak óvónő mellett lehet csoportban'],
+  ['standInOnDay', 'dajka helyett csak 6–14 vagy 10–18 lehet'],
+  ['dayShiftNotHelper', '8–16 csak asszisztensnek és civilnek van'],
   ['keyNotNanny', 'nyitni és zárni csak dajka tud'],
+  ['openerNotMorning', 'aki nyit, annak 6:00-ra kell jönnie'],
+  ['closerNotAfternoon', 'aki zár, annak 18:00-ig kell maradnia'],
   ['openerEveryDay', 'így valaki minden nap nyitna'],
   ['closerEveryDay', 'így valaki minden nap zárna'],
 ]
+const refusal = (rules: string[]) =>
+  EDIT_REASONS.find(([rule]) => rules.includes(rule))?.[1] ?? 'megszegne egy szabályt'
 
 export const ui = {
   appName: 'Óvodai beosztás',
   loading: 'Betöltés…',
-  tabs: { staff: 'Munkatársak', absences: 'Távollétek', roster: 'Beosztás' },
+  tabs: { staff: 'Munkatársak', absences: 'Távollétek', roster: 'Beosztás', balance: 'Egyenleg' },
   firstLaunch: {
     intro: 'Hogyan kezdjük?',
     start: 'Új kezdés',
@@ -180,13 +202,25 @@ export const ui = {
     displayName: 'Megjelenő név',
     role: 'Munkakör',
     active: 'Aktív',
-    teacher: 'Óvónő',
-    nanny: 'Dajka',
-    teachers: 'Óvónők',
-    nannies: 'Dajkák',
-    add: { teacher: '+ Új óvónő', nanny: '+ Új dajka' },
-    move: { teacher: '→ Óvónő', nanny: '→ Dajka' },
-    moveHint: { teacher: 'Áthelyezés az óvónők közé', nanny: 'Áthelyezés a dajkák közé' },
+    roleHint: 'Ha valaki más munkakörbe kerül, itt állítsd át.',
+    roles: {
+      teacher: 'Óvónő',
+      nanny: 'Dajka',
+      assistant: 'Pedagógiai asszisztens',
+      civil: 'Civil',
+    } satisfies Record<Role, string>,
+    sections: {
+      teacher: 'Óvónők',
+      nanny: 'Dajkák',
+      assistant: 'Pedagógiai asszisztensek',
+      civil: 'Civilek',
+    } satisfies Record<Role, string>,
+    add: {
+      teacher: '+ Új óvónő',
+      nanny: '+ Új dajka',
+      assistant: '+ Új asszisztens',
+      civil: '+ Új civil',
+    } satisfies Record<Role, string>,
     remove: 'Törlés',
     removeHint:
       'Végleges. Ha valaki csak egy ideig nem dolgozik, inkább vedd ki az Aktív jelölést.',
@@ -207,7 +241,7 @@ export const ui = {
       `Aktív jelölést — úgy bármikor visszajöhet.\n\n` +
       `Biztosan törlöd? A korábbi heteken a neve megmarad.`,
     duplicate: 'Ez a név kétszer szerepel.',
-    empty: 'Még nincs munkatárs. Kattints az „Új óvónő” vagy az „Új dajka” gombra.',
+    empty: 'Még nincs munkatárs. Kattints valamelyik „Új …” gombra.',
     yearBalance: (year: number) =>
       `Éves egyenleg (${year}/${String((year + 1) % 100).padStart(2, '0')})`,
     yearBalanceHint:
@@ -215,6 +249,7 @@ export const ui = {
       'hetekkel együtt. Zárójelben: ennyivel több (+) vagy ' +
       'kevesebb (−) jutott neki az egyenlő résznél. Ahol egy hét nem osztható el egyenlően, a ' +
       'következő beosztás ezt egyenlíti ki.',
+    yearBalanceNoStaff: 'Még nincs munkatárs. A Munkatársak fülön veheted fel őket.',
     yearBalanceEmpty:
       'Még üres: az idei első mentett beosztás után itt látod, ki hányszor volt délelőttös, ' +
       'délutános, nyitó, záró, tartalék vagy ügyeletes.',
@@ -224,7 +259,7 @@ export const ui = {
       'Aktív: csak az aktív munkatársak kerülnek a beosztásba. Aki egy ideig nem dolgozik (például tartós szabadság), annál vedd ki a jelölést. A nem aktívak a lista alján, szürkén látszanak.',
       'Törlés: végleges. Aki már szerepelt beosztásban, annak a neve a korábbi heteken megmarad.',
       'Megjelenő név: ez szerepel a beosztásban és a nyomtatásban. Legyen rövid, és ne legyen két egyforma.',
-      'A → Dajka és → Óvónő gombbal lehet valakit a másik oszlopba tenni.',
+      'Munkakör: a listából lehet valakit másik munkakörbe tenni. Az asszisztens és a civil nem számít az egyenlő elosztásba.',
       'Szabadság/év: ha megadod, a Távollétek és a Munkatársak fülön látszik, mennyi maradt a keretből.',
     ],
   },
@@ -259,9 +294,19 @@ export const ui = {
       close: 'Bezár',
     },
     carry: (year: string) => `Áthozott napok (${year})`,
-    away: { teacher: 'Távol (óvónő)', nanny: 'Távol (dajka)' } satisfies Record<Role, string>,
+    away: {
+      teacher: 'Távol (óvónő)',
+      nanny: 'Távol (dajka)',
+      assistant: 'Távol (asszisztens)',
+      civil: 'Távol (civil)',
+    } satisfies Record<Role, string>,
     shortHint:
-      'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka).',
+      'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka). ' +
+      'Asszisztens egy délutános óvónőt, civil egy dajkát pótolhat. Vidd az egeret a narancs mezőre: kiírja, mennyien maradnak.',
+    shortTeachers: (teachers: number, assistants: number, groups: number, need: number) =>
+      `Kevés óvónő: ${teachers} óvónő${assistants > 0 ? ` + ${assistants} asszisztens` : ''} marad, ${groups} csoporthoz ${need} kell.`,
+    shortNannies: (nannies: number, civils: number, need: number) =>
+      `Kevés dajka: ${nannies} dajka${civils > 0 ? ` + ${civils} civil` : ''} marad, ${need} kell.`,
     today: 'Ma',
   },
   roster: {
@@ -301,7 +346,7 @@ export const ui = {
       'Kattints egy napra, ha ott más csoportszám kell, vagy zárva van. „kézi” = ezen a napon kézzel állított csoportszám.',
     tableHint:
       'DE = délelőtt, DU = délután. nyit / zár = ő nyitja vagy zárja az óvodát (vastag betű). ' +
-      'BETÖLTETLEN = nincs rá ember. Narancs = dajka helyett óvónő. ' +
+      'BETÖLTETLEN = nincs rá ember. Narancs = valaki más helyett (óvónő a dajka, civil a dajka, asszisztens a DU óvónő helyett). ' +
       'Két nevet egymás után kattintva (ugyanazon a napon) a két ember helyet cserél.',
     undo: '↶ Visszavonás',
     undoHint: 'Visszaállítja, ami a módosítás előtt volt — a beosztással együtt.',
@@ -312,13 +357,13 @@ export const ui = {
     didCallIn: (name: string, date: string) => `${name} mégis jön ${onDay(date)}.`,
     didSolve: 'Újraszámolva.',
     didSwap: (a: string, b: string, date: string) => `Csere: ${a} ↔ ${b}, ${dayName(date)}.`,
+    didShift: (name: string, hours: string, date: string) => `${name}: ${hours}, ${dayName(date)}.`,
+    shiftHint: 'Másik munkaidő ennek a segítőnek ezen a napon.',
     picked: (name: string, date: string) =>
       `${name} kiválasztva (${dayName(date)}) — kattints arra, akivel cserél.`,
     cancel: 'Mégse',
-    swapRefused: (rules: string[]) =>
-      `Ez a csere nem lehetséges: ${
-        SWAP_REASONS.find(([rule]) => rules.includes(rule))?.[1] ?? 'megszegne egy szabályt'
-      }.`,
+    swapRefused: (rules: string[]) => `Ez a csere nem lehetséges: ${refusal(rules)}.`,
+    shiftRefused: (rules: string[]) => `Ez a műszak nem lehetséges: ${refusal(rules)}.`,
     editedBadge: 'kézzel módosítva',
     confirmDropEdits: 'A kézi cserék elvesznek. Újraszámolod?',
     changedCount: (count: number) =>
@@ -348,9 +393,10 @@ export const ui = {
     resetDay: 'Mint a többi nap',
     done: 'Kész',
     closed: 'zárva',
-    fewTeachers: (have: number, groups: number, need: number) =>
-      `csak ${have} óvónő — ${groups} csoporthoz ${need} kell`,
-    fewNannies: (have: number, need: number) => `csak ${have} dajka — ${need} kell`,
+    fewTeachers: (teachers: number, assistants: number, groups: number, need: number) =>
+      `csak ${teachers} óvónő${assistants > 0 ? ` + ${assistants} asszisztens` : ''} — ${groups} csoporthoz ${need} kell`,
+    fewNannies: (nannies: number, civils: number, need: number) =>
+      `csak ${nannies} dajka${civils > 0 ? ` + ${civils} civil` : ''} — ${need} kell`,
     manual: (groups: number) => `kézi: ${groups} cs.`,
     fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
   },
@@ -391,7 +437,8 @@ export const ui = {
       } else if (place(now) !== place(was)) {
         parts.push(`${place(now)} (eddig ${place(was)})`)
       }
-      if (now.substitution && !was.substitution) parts.push('dajka helyett')
+      if (now.substitution && !was.substitution)
+        parts.push(now.seat?.kind === 'teacher' ? 'óvónő helyett' : 'dajka helyett')
       if (!now.opener !== !was.opener) parts.push(now.opener ? 'nyit' : 'nem nyit')
       if (!now.closer !== !was.closer) parts.push(now.closer ? 'zár' : 'nem zár')
       if (parts.length === 0) parts.push(place(now))
@@ -420,7 +467,7 @@ function numberList(numbers: number[]): string {
     : `${items.slice(0, -1).join(', ')} és ${items[items.length - 1]}`
 }
 
-const shiftAdjective: Record<Shift, string> = { morning: 'délelőttös', afternoon: 'délutános' }
+const shiftAdjective: Record<SeatShift, string> = { morning: 'délelőttös', afternoon: 'délutános' }
 
 export type UnevenDetail =
   | { kind: 'morning' | 'afternoon'; count: number; of: number }
@@ -443,7 +490,7 @@ export const warningText = {
     absentTeachers.length > 0
       ? `Hívj be valakit: ${absentTeachers.join(', ')} (távol).`
       : 'Hívj be valakit.',
-  teacherSeatEmpty: (date: string, group: number, shift: Shift, times: string) =>
+  teacherSeatEmpty: (date: string, group: number, shift: SeatShift, times: string) =>
     `${capitalize(dayName(date))}, ${groupShort(group)}: nincs ${shiftAdjective[shift]} óvónő (${times}).`,
   teacherSeatAction: 'Hívj be valakit, vagy vond össze a csoportot.',
   keyMissing: (date: string, key: 'opener' | 'closer', nannies: number) =>
@@ -477,6 +524,17 @@ export const warningText = {
     `${capitalize(dayName(date))}: ${groups} csoport (kézi beállítás).`,
   substitution: (date: string, group: number, name: string) =>
     `${capitalize(dayName(date))}, ${groupShort(group)}: dajka helyett óvónő — ${name}.`,
+  /** Why a helper's hours moved (v3-c): 'Hétfő: Bea 10–18, mert az 1. csoport DU óvónője hiányzik.' */
+  helperStandIn: (
+    date: string,
+    group: number,
+    seat: 'teacher' | 'nanny',
+    name: string,
+    hours: string,
+  ) =>
+    `${capitalize(dayName(date))}: ${name} ${hours}, mert ${article(group)} ${groupName(group)} ${
+      seat === 'teacher' ? 'DU óvónője' : 'dajkája'
+    } hiányzik.`,
   closedDay: (date: string) => `${capitalize(onDay(date))} zárva.`,
   groupSwitch: (name: string, date: string, from: number, to: number) =>
     `${name} ${onDay(date)} ${article(from)} ${from}. csoportból ${article(to)} ${to}. csoportba kerül.`,
@@ -503,4 +561,5 @@ export const LEGEND = [
   'Óvónő: DE 7:00–13:30, DU 10:30–17:00; pénteken és ledolgozós szombaton DE 7:00–13:00, DU 11:00–17:00.',
   'Dajka: DE 6:00–14:00, DU 10:00–18:00.',
   'Ügyelet: a csoport óvónői DE 6:30-tól, DU 17:30-ig dolgoznak, ugyanannyi órában.',
+  'Asszisztens, civil: NAP 8:00–16:00; ha valakit helyettesít, DE 6:00–14:00 vagy DU 10:00–18:00.',
 ]

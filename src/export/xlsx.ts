@@ -13,6 +13,7 @@ const CHUNK = 30_000
 const FILLS = {
   morning: 'FFFFF6D5',
   afternoon: 'FFDCEBFA',
+  day: 'FFE2F0D9',
   absent: 'FFE3E3E3',
   closed: 'FFF2F2F2',
   duty: 'FFF1ECFB',
