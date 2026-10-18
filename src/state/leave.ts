@@ -21,3 +21,11 @@ export function leaveBalance(
   const total = (person.leaveAllowance ?? 0) + (person.leaveCarry?.[year] ?? 0)
   return { used, total, remaining: total - used }
 }
+
+/** The patch that sets one year's typed carry-over (empty clears it), other years untouched. */
+export function carryPatch(person: Staff, year: string, value: string): Pick<Staff, 'leaveCarry'> {
+  const carry = { ...person.leaveCarry }
+  if (value === '') delete carry[year]
+  else carry[year] = Math.max(0, Math.round(Number(value)))
+  return { leaveCarry: Object.keys(carry).length > 0 ? carry : undefined }
+}

@@ -187,6 +187,9 @@ describe('AbsenceScreen kinds', () => {
     fireEvent.click(balance)
     const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
     expect(carry.value).toBe('3')
+    // It floats in the dock, named, so the grid keeps its rows and nothing moves.
+    expect(carry.closest('table')).toBeNull()
+    expect(carry.closest('.action-dock')?.textContent).toContain('Anna')
     fireEvent.change(carry, { target: { value: '5' } })
     expect(dispatch).toHaveBeenLastCalledWith({
       type: 'updateStaff',

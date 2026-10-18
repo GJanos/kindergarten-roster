@@ -375,7 +375,9 @@ rostered is deleted outright.
 afternoons, openings, closings and reserve days from the saved rosters, each with its difference
 from an equal share, e.g. *12 (+1,5)*.
 
-**Szabadság/év** — optional yearly leave allowance in days (empty = not tracked).
+**Szabadság/év** — optional yearly leave allowance in days (empty = not tracked). Beside it,
+**Áthozott (year)** types the days carried into the current calendar year, and **Maradt (year)**
+shows the days left.
 
 ### 8.2 Távollétek
 
@@ -387,8 +389,9 @@ updated yearly by a push.
 **Three kinds** — *Szabadság, Beteg, Egyéb* — picked above the grid; clicking or dragging paints
 the chosen kind, clicking a day of that kind clears it, another kind is repainted. Bars carry the
 kind in colour (green, orange, grey) and a letter (*Sz, B, E*). For people with an allowance, the
-name shows *"kivett / keret"* for the shown month's calendar year (allowance + carry-over, orange
-when over); clicking it opens the year's *Áthozott napok* field. The solver ignores the kind.
+name shows the days left, *"5 maradt"*, for the shown month's calendar year (allowance + carry-over,
+orange *"2 nappal túllépve"* when over); clicking it opens that year's *Áthozott napok* field in the
+dock at the screen bottom, so the grid never moves. The solver ignores the kind.
 Call-in suggestions list people on leave first and the sick last, marked *(beteg)*. The person view
 of the printout says *szabadság / beteg / távol*.
 
