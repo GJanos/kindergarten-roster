@@ -1,7 +1,7 @@
 import type { CellRichTextValue, Font, Workbook, Worksheet } from 'exceljs'
 import type { Absence, Roster, Staff } from '../core/types'
 import { LEGEND, dayHeader, formatPeriod } from '../i18n/hu'
-import { groupView, personView, type Line, type Tone } from './views'
+import { groupView, isDutyCell, personView, type Line, type Tone } from './views'
 
 export type XlsxExtras = { groupLabels?: string[]; footnotes?: string[]; backupJson?: string }
 
@@ -10,11 +10,18 @@ export const BACKUP_SHEET = 'adatok'
 /** Excel caps a cell at 32,767 characters. */
 const CHUNK = 30_000
 
-const FILLS = { morning: 'FFFFF6D5', afternoon: 'FFDCEBFA', absent: 'FFE3E3E3', closed: 'FFF2F2F2' }
+const FILLS = {
+  morning: 'FFFFF6D5',
+  afternoon: 'FFDCEBFA',
+  absent: 'FFE3E3E3',
+  closed: 'FFF2F2F2',
+  duty: 'FFF1ECFB',
+}
 const COLORS: Record<Tone, string> = {
   hole: 'FFC00000',
   substitution: 'FFD46A00',
   muted: 'FF808080',
+  duty: 'FF6A4FB3',
 }
 
 export function rosterFileName(roster: Roster): string {
@@ -107,6 +114,14 @@ function addGroupSheet(
     const excelRow = sheet.addRow([row.label, ...row.cells.map(richText)])
     excelRow.alignment = { vertical: 'top', wrapText: true }
     excelRow.getCell(1).font = { bold: true }
+    row.cells.forEach((lines, i) => {
+      if (!isDutyCell(lines)) return
+      excelRow.getCell(i + 2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: FILLS.duty },
+      }
+    })
     excelRow.height = 16 * Math.max(1, ...row.cells.map((cell) => cell.length))
   }
   addFooter(sheet, extras.footnotes)

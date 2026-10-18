@@ -1,5 +1,5 @@
 import type { Absence, Roster, Staff } from '../core/types'
-import { footnotes, groupView, personView } from '../export/views'
+import { footnotes, groupView, isDutyCell, personView } from '../export/views'
 import { LEGEND, dayHeader, formatPeriod, ui } from '../i18n/hu'
 import { lineClass } from './RosterTable'
 
@@ -38,7 +38,7 @@ export function PrintView({ roster, staff, absences, labels }: Props) {
               <tr key={row.label}>
                 <th>{row.label}</th>
                 {row.cells.map((lines, i) => (
-                  <td key={groups.days[i]}>
+                  <td key={groups.days[i]} className={isDutyCell(lines) ? 'duty-cell' : undefined}>
                     {lines.map((line, j) => (
                       <div key={j} className={lineClass(line)}>
                         {line.text}

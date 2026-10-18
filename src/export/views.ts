@@ -1,10 +1,10 @@
 import type { Absence, Assignment, Role, Roster, Staff } from '../core/types'
 import { resolveNames } from '../core/names'
-import { ABSENCE_WORD, HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
+import { ABSENCE_WORD, DUTY, HOLE, dutyMark, groupName, groupShort, shiftShort } from '../i18n/hu'
 
 /** The printout's two tables as plain data, shared by print and Excel. */
 
-export type Tone = 'hole' | 'substitution' | 'muted'
+export type Tone = 'hole' | 'substitution' | 'muted' | 'duty'
 export type Line = { text: string; bold?: boolean; tone?: Tone; staffId?: string }
 export type GroupView = { days: string[]; rows: { label: string; cells: Line[][] }[] }
 
@@ -38,6 +38,11 @@ const byShiftThenName =
         ? -1
         : 1
 
+/** The day's ügyelet group cell: it opens with the Ügyelet line (v3-b). */
+export function isDutyCell(lines: Line[]): boolean {
+  return lines.some((line) => line.tone === 'duty')
+}
+
 /** Rows: each group, then the reserve teachers and nannies; columns: the days. */
 export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] = []): GroupView {
   const name = names(staff)
@@ -60,9 +65,15 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
           (x) => x.seat?.kind === 'teacher' && x.seat.group === g && x.seat.shift === shift,
         )
         return a
-          ? { text: `${shiftShort[shift]}: ${name(a.staffId)}`, staffId: a.staffId }
+          ? {
+              text: `${shiftShort[shift]}: ${name(a.staffId)}${a.duty ? dutyMark[shift] : ''}`,
+              staffId: a.staffId,
+            }
           : { text: `${shiftShort[shift]}: ${HOLE}`, tone: 'hole' }
       })
+      if (today.some((x) => x.duty && x.seat?.kind === 'teacher' && x.seat.group === g)) {
+        lines.unshift({ text: DUTY, bold: true, tone: 'duty' })
+      }
       const nanny = today.find((x) => x.seat?.kind === 'nanny' && x.seat.group === g)
       if (nanny?.substitution) {
         lines.push({
@@ -137,7 +148,7 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
             ? ' · zár'
             : ''
       return {
-        text: `${shiftShort[a.shift]} · ${where}${extra}`,
+        text: `${shiftShort[a.shift]} · ${where}${extra}${a.duty ? ' · ügyelet' : ''}`,
         fill: a.shift,
         ...bold(a),
         ...(a.substitution ? { tone: 'substitution' as const } : {}),

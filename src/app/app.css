@@ -19,6 +19,8 @@
   --off-stripe: #e2e2e2;
   --hover: #eef5f1;
   --changed-bg: #e3f3ea;
+  --duty: #6a4fb3; /* ügyelet (v3-b): the day's duty group */
+  --duty-bg: #f1ecfb;
   --today-bg: #eef7f1;
   --off-text: #a0a0a0;
   color-scheme: light;
@@ -53,6 +55,8 @@
     --off-stripe: #2e3237;
     --hover: #24302a;
     --changed-bg: #1d3327;
+    --duty: #b7a1ee;
+    --duty-bg: #2a2440;
     --today-bg: #1b2a22;
     --off-text: #70767c;
     color-scheme: dark;
@@ -80,6 +84,8 @@
     --off-stripe: #2e3237;
     --hover: #24302a;
     --changed-bg: #1d3327;
+    --duty: #b7a1ee;
+    --duty-bg: #2a2440;
     --today-bg: #1b2a22;
     --off-text: #70767c;
     color-scheme: dark;
@@ -540,6 +546,22 @@ td {
   margin: 10px 0;
   background: var(--surface);
 }
+/* The day's ügyelet group: a soft tint with an accent bar, and a small label on top. */
+.roster-table td.duty-cell {
+  background: var(--duty-bg);
+  box-shadow: inset 4px 0 0 var(--duty);
+}
+.roster-table .duty,
+.print-only .duty {
+  display: inline-block;
+  margin-bottom: 2px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--duty);
+  color: var(--on-accent);
+  font-size: 0.8em;
+  letter-spacing: 0.03em;
+}
 .roster-table td.highlight {
   outline: 3px solid var(--orange);
   background: var(--warn-bg);
@@ -819,4 +841,21 @@ td {
   display: flex;
   gap: 12px;
   margin-top: 12px;
+}
+
+/* Quick fixes in one go (2026-10-18): a picked fix stays pressed; the card estimates the day. */
+.fixes button.on {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--on-accent);
+}
+.fixes button.on::before {
+  content: '✓ ';
+}
+.warning-day .estimate {
+  color: var(--orange);
+  font-size: 0.8rem;
+}
+.warning-day .estimate.ok {
+  color: var(--green);
 }

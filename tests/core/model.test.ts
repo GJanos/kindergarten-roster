@@ -83,3 +83,84 @@ describe('strict rules', () => {
     }
   })
 })
+
+describe('ügyelet (v3-b)', () => {
+  const dutyGroupOf = (roster: ReturnType<typeof solveValid>, date: string) => {
+    const groups = roster.assignments
+      .filter((a) => a.date === date && a.duty)
+      .map((a) => (a.seat?.kind === 'teacher' ? a.seat.group : 0))
+    return [...new Set(groups)]
+  }
+
+  it('puts exactly one group on duty every day, both its teachers', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 8, nannies: 5, groups: 4, days: consecutiveDays('2026-10-26', 3) }),
+    )
+    for (const date of roster.period.days) {
+      expect(dutyGroupOf(roster, date)).toHaveLength(1)
+      expect(roster.assignments.filter((a) => a.date === date && a.duty)).toHaveLength(2)
+    }
+    expect(roster.holes).toEqual([])
+  })
+
+  it('spreads duty evenly: 6 teachers, 3 days, 6 duty days → one each', () => {
+    const days = consecutiveDays('2026-10-26', 3)
+    const roster = solveValid(makeInput({ teachers: 6, nannies: 4, groups: 3, days }))
+    for (const id of ['t1', 't2', 't3', 't4', 't5', 't6']) {
+      expect(roster.assignments.filter((a) => a.staffId === id && a.duty)).toHaveLength(1)
+    }
+  })
+
+  it('spreads duty on a short week too: 7 teachers, 4 groups, an empty seat every day', () => {
+    const days = consecutiveDays('2026-10-26', 3)
+    const roster = solveValid(makeInput({ teachers: 7, nannies: 4, groups: 4, days }))
+    for (const id of ['t1', 't2', 't3', 't4', 't5', 't6', 't7']) {
+      expect(
+        roster.assignments.filter((a) => a.staffId === id && a.duty).length,
+      ).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('reports a duty hole when no group has both teachers', () => {
+    const roster = solveValid(makeInput({ teachers: 2, nannies: 2, groups: 2, days: [D] }))
+    expect(roster.holes).toContainEqual({ kind: 'duty', date: D })
+  })
+})
+
+describe('her v3-b soft rules', () => {
+  const nannyShift = (roster: ReturnType<typeof solveValid>, date: string, g: number) =>
+    roster.assignments.find(
+      (a) => a.date === date && a.seat?.kind === 'nanny' && a.seat.group === g,
+    )?.shift
+
+  it('splits each pair of groups: one nanny DE, the other DU', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 8, nannies: 5, groups: 4, days: consecutiveDays('2026-10-26', 3) }),
+    )
+    for (const date of roster.period.days) {
+      expect(nannyShift(roster, date, 1)).not.toBe(nannyShift(roster, date, 2))
+      expect(nannyShift(roster, date, 3)).not.toBe(nannyShift(roster, date, 4))
+    }
+  })
+
+  it('keeps each day within one between DE and DU, per role', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 9, nannies: 6, groups: 4, days: consecutiveDays('2026-10-26', 3) }),
+    )
+    for (const date of roster.period.days) {
+      for (const prefix of ['t', 'n']) {
+        const today = roster.assignments.filter((a) => a.date === date && a.staffId[0] === prefix)
+        const morning = today.filter((a) => a.shift === 'morning').length
+        expect(Math.abs(2 * morning - today.length)).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('takes the keys from seated nannies when one is on the right shift', () => {
+    // One day, so "nobody opens every day" can't force a reserve nanny onto a key.
+    const roster = solveValid(makeInput({ teachers: 4, nannies: 3, groups: 2, days: [D] }))
+    for (const a of roster.assignments.filter((x) => x.opener || x.closer)) {
+      expect(a.seat).toBeDefined()
+    }
+  })
+})

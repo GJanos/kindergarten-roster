@@ -57,7 +57,9 @@ from the shift. **Shift times are never stretched** — her rule: time limits ar
   year.
 - **Same group all period** — soft.
 - **Group count fixed for the period** (a per-day override exists for shortages, §6.6).
-- No personal requests, no pairing rules, no ügyelet.
+- No personal requests. Ügyelet, nanny pairs and the daily DE/DU balance arrived in v3-b
+  (`docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`), which also reorders §6.5's
+  stages.
 - Good enough = a working roster that respects absences and the rules above.
 
 ## 3. Scope
@@ -244,6 +246,10 @@ balances counts.
   12 h rest — legal, but a comfort penalty.
 
 ### 6.5 Staged solve — priorities in strict order
+
+> Since v3-b the order is holes → substitutions → keep* → pairs → worstGap → totalGap → balance →
+> switches → turnarounds → keysSeated → keysGap → yearly. Opener/closer left the fairness stages
+> for keysGap (see `docs/specs/2026-10-17-v3-b-duty-and-shift-balance-design.md`).
 
 Each stage's optimum becomes a constraint (plus a tiny float tolerance) for the next, so a later
 stage only chooses among rosters tied on every earlier one. Weighted sums were rejected: enough

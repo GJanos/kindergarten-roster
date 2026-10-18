@@ -78,6 +78,10 @@ export const groupName = (group: number) => `${group}. csoport`
 export const groupShort = (group: number) => `${group}. cs.`
 export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU' }
 
+/** Ügyelet in the group view: the teacher's shifted start, or end (v3-b). */
+export const DUTY = 'Ügyelet'
+export const dutyMark: Record<Shift, string> = { morning: ' 6:30-tól', afternoon: ' 17:30-ig' }
+
 export const HOLE = 'BETÖLTETLEN'
 
 /** An absence as the printout and Excel name it. */
@@ -128,8 +132,11 @@ const STOPPED_AT: Record<string, string> = {
   keepDuties: 'a változtatások számánál',
   worstGap: 'az egyenlő elosztásnál',
   totalGap: 'az egyenlő elosztásnál',
+  pairs: 'a dajkapároknál',
+  balance: 'a délelőtt–délután egyensúlynál',
   switches: 'a csoportváltásoknál',
   turnarounds: 'a zárás utáni korai nyitásoknál',
+  keysSeated: 'a nyitó és záró dajkáknál',
 }
 
 const SWAP_REASONS: [rule: string, reason: string][] = [
@@ -200,13 +207,14 @@ export const ui = {
     yearBalance: (year: number) =>
       `Éves egyenleg (${year}/${String((year + 1) % 100).padStart(2, '0')})`,
     yearBalanceHint:
-      'Az idei (szeptember 1. óta) mentett beosztásokból. Zárójelben: ennyivel több (+) vagy ' +
+      'Az idei nevelési év (szeptember 1-től) mentett beosztásaiból, az előre megtervezett ' +
+      'hetekkel együtt. Zárójelben: ennyivel több (+) vagy ' +
       'kevesebb (−) jutott neki az egyenlő résznél. Ahol egy hét nem osztható el egyenlően, a ' +
       'következő beosztás ezt egyenlíti ki.',
     yearBalanceEmpty:
       'Még üres: az idei első mentett beosztás után itt látod, ki hányszor volt délelőttös, ' +
-      'délutános, nyitó, záró vagy tartalék.',
-    yearColumns: ['Név', 'Délelőtt', 'Délután', 'Nyit', 'Zár', 'Tartalék'],
+      'délutános, nyitó, záró, tartalék vagy ügyeletes.',
+    yearColumns: ['Név', 'Délelőtt', 'Délután', 'Nyit', 'Zár', 'Tartalék', 'Ügyelet'],
     legendTitle: 'ⓘ Tudnivalók',
     legend: [
       'Aktív: csak az aktív munkatársak kerülnek a beosztásba. Aki egy ideig nem dolgozik (például tartós szabadság), annál vedd ki a jelölést. A nem aktívak a lista alján, szürkén látszanak.',
@@ -258,7 +266,7 @@ export const ui = {
     nextWeek: 'Következő hét',
     saved: 'van mentett beosztás',
     solve: 'Számol',
-    solving: 'Számolok… ez eltarthat néhány másodpercig.',
+    solving: 'Számolok… ez akár egy-két percig is eltarthat.',
     print: 'Nyomtatás',
     excel: 'Excel letöltés',
     warnings: 'Figyelmeztetések',
@@ -317,9 +325,17 @@ export const ui = {
     otherNotes: (count: number) => `Egyéb megjegyzések (${count})`,
     callIn: (name: string, sick?: boolean) => `${name} mégis jön${sick ? ' (beteg)' : ''}`,
     callInHint: (name: string, date: string) =>
-      `Törli ${name} távollétét ${onDay(date)}, és újraszámol.`,
+      `Kijelöli: törli ${name} távollétét ${onDay(date)}. A kijelöltek egyszerre számolódnak újra.`,
     fixHint: (date: string, groups: number) =>
-      `${capitalize(onDay(date))} ${groups} csoport indul, így nem marad üres óvónői hely. Újraszámol.`,
+      `Kijelöli: ${onDay(date)} ${groups} csoport indul, így nem marad üres óvónői hely. A kijelöltek egyszerre számolódnak újra.`,
+    /** Quick fixes in one go (2026-10-18): what the selections leave, and the dock bar. */
+    expected: (holes: number) =>
+      holes === 0 ? '→ várhatóan rendben' : `→ várhatóan ${holes} hiány`,
+    expectedHint: 'A kijelölt változtatásokkal, a létszám alapján — még nincs újraszámolva.',
+    pendingTitle: (count: number) => `${count} változtatás kijelölve:`,
+    pendingCallIn: (name: string, date: string) => `${name} mégis jön ${onDay(date)}`,
+    applyFixes: 'Alkalmaz és újraszámol',
+    didFixes: (parts: string[]) => `${parts.length} változtatás: ${parts.join(' · ')}.`,
     errorGeneric: 'Hiba történt — frissítsd az oldalt.',
     errorInvalid: 'Hiba történt a beosztás készítésekor.',
     groupLabel: (group: number) => `${groupName(group)} neve (nem kötelező)`,
@@ -358,9 +374,16 @@ export const ui = {
     day: (role: Role, was: Assignment, now: Assignment, isToday: boolean) => {
       const place = (a: Assignment) => (a.seat ? groupShort(a.seat.group) : 'csoporton kívül')
       const parts: string[] = []
-      if (now.shift !== was.shift) {
-        const times = shiftTimes(role, now.shift, now.date)
-        parts.push(`${shiftShort[now.shift]} ${times} (eddig ${shiftShort[was.shift]})`, place(now))
+      if (now.shift !== was.shift || !now.duty !== !was.duty) {
+        const times = shiftTimes(role, now.shift, now.date, now.duty)
+        const shift = `${shiftShort[now.shift]}${now.duty ? ' ügyelet' : ''}`
+        const before =
+          now.shift !== was.shift
+            ? `eddig ${shiftShort[was.shift]}${was.duty ? ' ügyelet' : ''}`
+            : was.duty
+              ? 'eddig ügyeletes'
+              : 'eddig nem ügyeletes'
+        parts.push(`${shift} ${times} (${before})`, place(now))
       } else if (place(now) !== place(was)) {
         parts.push(`${place(now)} (eddig ${place(was)})`)
       }
@@ -397,7 +420,7 @@ const shiftAdjective: Record<Shift, string> = { morning: 'délelőttös', aftern
 
 export type UnevenDetail =
   | { kind: 'morning' | 'afternoon'; count: number; of: number }
-  | { kind: 'opener' | 'closer' | 'reserve'; count: number; of: number }
+  | { kind: 'opener' | 'closer' | 'reserve' | 'duty'; count: number; of: number }
 
 /** "2 délutánnal több": the instrumental of each count, after a number. */
 const yearNoun: Record<UnevenDetail['kind'], string> = {
@@ -406,6 +429,7 @@ const yearNoun: Record<UnevenDetail['kind'], string> = {
   opener: 'nyitással',
   closer: 'zárással',
   reserve: 'tartaléknappal',
+  duty: 'ügyelettel',
 }
 
 export const warningText = {
@@ -422,6 +446,13 @@ export const warningText = {
     `${capitalize(onDay(date))} nincs ${key === 'opener' ? 'nyitó' : 'záró'} — ${
       nannies === 0 ? 'nincs dajka' : 'csak 1 dajka dolgozik'
     }.`,
+  dutyMissing: (date: string) =>
+    `${capitalize(onDay(date))} nincs ügyeletes csoport: egy csoportban sincs meg mindkét óvónő.`,
+  dutyAction: 'Hívj be egy óvónőt, vagy vond össze a csoportokat.',
+  pairSame: (date: string, group: number, shift: Shift) =>
+    `${capitalize(dayName(date))}, ${group}–${group + 1}. cs.: mindkét dajka ${shiftShort[shift]}.`,
+  shiftImbalance: (date: string, role: Role, morning: number, afternoon: number) =>
+    `${capitalize(dayName(date))}: ${role === 'teacher' ? 'óvónők' : 'dajkák'} ${morning} DE / ${afternoon} DU.`,
   openerAction: 'Valaki jöjjön 6:00-ra, vagy nyisson később az óvoda.',
   closerAction: 'Valaki maradjon 18:00-ig, vagy zárjon korábban az óvoda.',
   groupsReduced: (
@@ -454,6 +485,7 @@ export const warningText = {
       opener: `${detail.count} napon nyit`,
       closer: `${detail.count} napon zár`,
       reserve: `${detail.count} napon tartalék`,
+      duty: `${detail.count} napon ügyeletes`,
     }[detail.kind]
     const text = `Egyenlő elosztás nem volt lehetséges: ${name} ${what} ${outOf(detail.of)}.`
     if (yearly === undefined || Math.abs(yearly) < 1) return text
@@ -466,4 +498,5 @@ export const LEGEND = [
   'DE = délelőtt, DU = délután. Félkövér: nyit (6:00) vagy zár (18:00).',
   'Óvónő: DE 7:00–13:30, DU 10:30–17:00; pénteken és ledolgozós szombaton DE 7:00–13:00, DU 11:00–17:00.',
   'Dajka: DE 6:00–14:00, DU 10:00–18:00.',
+  'Ügyelet: a csoport óvónői DE 6:30-tól, DU 17:30-ig dolgoznak, ugyanannyi órában.',
 ]

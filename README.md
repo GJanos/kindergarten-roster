@@ -15,8 +15,9 @@ Three tabs, all in Hungarian.
 
 - The staff list: teachers and nannies, the short name that appears on the wall, and a yearly
   leave allowance with the days left this year. Someone who has left is hidden, not deleted, so old weeks keep their names.
-- The **yearly balance**: per person, the mornings, afternoons, openings, closings and reserve
-  days so far this kindergarten year, and how far each is from an even share.
+- The **yearly balance**: per person, the mornings, afternoons, openings, closings, reserve and
+  ügyelet days this kindergarten year, weeks planned ahead included, and how far each is from an
+  even share.
 
 **Távollétek (absences)**
 
@@ -39,8 +40,10 @@ Three tabs, all in Hungarian.
   - Day chips show each day's capacity. A day can be set to fewer groups or closed.
   - Groups can carry names.
   - **Számol** solves the week.
-- **Warnings**, grouped by day and explained in plain Hungarian, with one-click fixes: run
-  fewer groups that day, or call in someone who is away (people on leave before the sick).
+- **Warnings**, grouped by day and explained in plain Hungarian, with quick fixes: run fewer
+  groups that day, or call in someone who is away (people on leave before the sick). She picks
+  as many as she needs, each day card estimates what they leave (_→ várhatóan rendben_), and
+  one _Alkalmaz és újraszámol_ applies them all in a single solve and a single undo step.
   Hovering a warning highlights its cells.
 - **Undo** for every fix, call-in, re-solve and swap. The cells the last change altered are
   outlined.
@@ -73,16 +76,21 @@ Three tabs, all in Hungarian.
   laptop.
 - **Strict rules are constraints.** Every group gets a morning teacher, an afternoon teacher and a
   nanny; one nanny opens at 6:00 and another closes at 18:00; nobody opens or closes on every day.
+  Every day one group is on **ügyelet**: its two teachers work 30 minutes earlier (DE, from 6:30)
+  and later (DU, until 17:30), at the same length.
   When staff are short, empty seats become explicit holes, so a roster always comes back.
-- **Priorities are solved in order** (lexicographic optimisation), in seven stages:
-  1. holes;
+- **Priorities are solved in order** (lexicographic optimisation), in eleven stages:
+  1. holes (a missing ügyelet included);
   2. substitutions;
-  3. the worst fairness gap (mornings, openings, closings and reserve days, scaled by days
-     worked);
-  4. the total fairness gap;
-  5. group switches;
-  6. late-then-early turnarounds;
-  7. a tie-break that hands a week's leftover unit to whoever is behind this kindergarten year.
+  3. nanny pairs: in groups 1–2, 3–4… one nanny works DE and the other DU;
+  4. the worst fairness gap (mornings, reserve days and ügyelet days, scaled by days worked);
+  5. the total fairness gap;
+  6. the daily balance: per role, reserves included, DE and DU at most one apart;
+  7. group switches;
+  8. late-then-early turnarounds;
+  9. openers and closers from seated nannies, not reserve ones;
+  10. an even split of openings and closings (minor to her: the hours are the same either way);
+  11. a tie-break that hands a week's leftover unit to whoever is behind this kindergarten year.
 - **A week in progress is re-planned, not replaced.** The days already over are fixed. In the
   default mode, three extra stages come before fairness: fewest people whose hours change, then
   fewest changed days (earlier days cost more), then fewest group or key moves.
@@ -178,7 +186,7 @@ When the user presses _Számol_:
    working days from the Hungarian calendar (holidays out, working Saturdays in) and the group
    counts.
 2. **The worker:** it sends the input to a **Web Worker**, a second thread, so the page never
-   freezes. A 180 s watchdog, longer than all stages together, replaces the worker if it hangs.
+   freezes. An 8-minute watchdog, longer than all stages together, replaces the worker if it hangs.
 3. **The solver:** inside the worker runs **HiGHS**, an open-source C++ optimisation solver
    compiled to WebAssembly. It is loaded once and reused.
 4. **The model** (`src/core/model.ts`):
@@ -189,17 +197,21 @@ When the user presses _Számol_:
      group, one opener and one closer a day, and so on.
    - Empty seats are explicit "hole" variables, so a solution always exists even on a
      short-staffed day. `g_max` caps the groups a day can actually start.
-5. **Seven stages, in strict priority order:** fewest holes → fewest substitutions → the worst
-   person's fairness gap → the total gap → fewest group switches → fewest turnarounds → the
-   yearly tie-break.
+5. **Eleven stages, in strict priority order:** fewest holes → fewest substitutions → nanny pairs
+   → the worst person's fairness gap → the total gap → the daily DE/DU balance → fewest group
+   switches → fewest turnarounds → keys from seated nannies → the key split → the yearly
+   tie-break.
    - After each stage its best value is locked in as a new rule, so a later stage can only choose
      among rosters that are equally good on everything before it.
-   - Each stage gets 15 s (a week needs about 3 s in all). A stage that runs out of time keeps the
+   - Each stage gets 30 s. Her real weeks need 10–25 s in all, and she is fine waiting a minute or
+     more. A stage that runs out of time keeps the
      best roster found so far (if HiGHS found none, the previous stage's), locks in what that
      roster reached and lets the later stages run; the screen names the stage that ran out.
-   - The yearly tie-break gets 10 s, and running out of it is not shown: its leftover evens out
-     next week, and on a big week (6 groups, 16 people) HiGHS finds its roster in seconds but
-     cannot prove it the best even in 15 minutes.
+   - The two tie-breaks (the key split and the yearly balance) get 20 s, and running out of them is
+     not shown. HiGHS finds their roster in seconds but often can't prove it the best: the yearly
+     one not even in 15 minutes on a 6-group week, the keys not in 30 s on the demo week.
+   - The fairness stages get a proven floor, the smallest gap whole counts allow, so they stop as
+     soon as they reach it instead of proving it for the whole time limit.
    - A later stage can never really be infeasible, because the previous stage's roster meets
      every bound. If HiGHS says it is anyway, that is its presolve misjudging a fairness bound
      that leaves 1e-6 of room (seen on real data). The stage is then solved again without
@@ -208,7 +220,7 @@ When the user presses _Számol_:
    - **In a week in progress** the saved roster travels along as an _anchor_ (`src/core/recalc.ts`):
      - The past days' variables are pinned to it.
      - In the fewest-changes mode, three stability stages (people, days, duties) go in right after
-       substitutions, so the solve can take up to ten stages.
+       substitutions, so the solve can take up to fourteen stages.
      - Who worked a past day is read from the anchor, so an absence typed in afterwards can't
        rewrite it.
 6. **Decode:** the solution is turned back into a roster: who works which shift, in which seat,
@@ -216,7 +228,7 @@ When the user presses _Számol_:
 7. **Check:** `validateRoster` re-checks every hard rule independently of the model. A roster
    that fails is never shown; the user sees an error message instead.
 8. **Explain:** `explain` writes the Hungarian warnings (red, orange, grey), some with a
-   one-click fix such as _Szerdán 1 csoport_.
+   quick fix such as _Szerdán 1 csoport_.
 9. **Save:** the roster is saved with a fingerprint of its input and its fairness deltas. If
    staff, absences or group counts change later, the screen says the roster is out of date.
 

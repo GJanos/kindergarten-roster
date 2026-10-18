@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { addDays, periodForWeek } from '../core/calendar'
-import { dayCapacities } from '../core/capacity'
+import { dayCapacities, expectedHoles } from '../core/capacity'
 import { editRoster, type Swap } from '../core/edit'
 import { recalcInput } from '../core/recalc'
 import type { Anchor, Warning } from '../core/types'
@@ -21,6 +21,7 @@ import { DayEditor } from './DayEditor'
 import { today } from './dates'
 import { XLSX_TYPE, download } from './download'
 import { GroupLabels } from './GroupLabels'
+import { fixActions, toggleFix } from './pendingFixes'
 import { PrintView } from './PrintView'
 import { RosterTable } from './RosterTable'
 import { UndoBar } from './UndoBar'
@@ -49,6 +50,9 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const [swapError, setSwapError] = useState<string>()
   const [choosing, setChoosing] = useState(false)
   const [sick, setSick] = useState<{ staffId: string; date: string; until: string }>()
+  // Quick fixes picked on the warning cards, applied together with one solve (2026-10-18).
+  const [pending, setPending] = useState<DayFix[]>([])
+  useEffect(() => setPending([]), [week])
 
   const days = periodForWeek(week).days
   const period = periodState(state, week)
@@ -127,6 +131,7 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     const anchor = mode ? anchorFor(mode, before?.roster) : undefined
     setSolving(true)
     setError(undefined)
+    setPending([])
     try {
       const meta = { solvedAt: new Date().toISOString(), appVersion: __APP_VERSION__ }
       const result = await (anchor
@@ -166,31 +171,27 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     }
   }
 
-  // One click: reduce the day or call someone in, then solve again.
-  const fix = (dayFix: DayFix) => {
-    // In a week in progress a fix changes as little as it can, so it need not ask about edits.
+  // The picked fixes by day, as the dock lists them and the undo bar names them.
+  const picks = [...pending].sort((a, b) => a.date.localeCompare(b.date))
+
+  // Reduce days and call people in, all at once, then solve again.
+  const applyFixes = () => {
+    // In a week in progress the fixes change as little as they can, so they need not ask.
     if (!started && !mayDropEdits()) return
-    const { date } = dayFix
-    let action: Action, inverse: Action, label: string
-    if (dayFix.kind === 'setGroups') {
-      const previous = period.dayPlans.find((d) => d.date === date)?.override
-      action = { type: 'setOverride', week, date, groups: dayFix.groups }
-      inverse = { type: 'setOverride', week, date, groups: previous }
-      label = ui.roster.didSetGroups(date, dayFix.groups)
-    } else {
-      const { staffId } = dayFix
-      // Undo puts the absence back as it was: leave stays leave, sick stays sick.
-      const kind = state.absences.find((a) => a.staffId === staffId && a.date === date)?.kind
-      action = { type: 'setAbsent', staffId, dates: [date], absent: false }
-      inverse = { type: 'setAbsent', staffId, dates: [date], absent: true, kind }
-      label = ui.roster.didCallIn(dayFix.name, date)
+    const { actions, inverse, label } = fixActions(state, week, picks)
+    for (const action of actions) dispatch(action)
+    void solve(actions.reduce(reducer, state), { label, inverse }, started ? 'minimal' : undefined)
+  }
+
+  // What each picked day would be left with: counted from the headcount, no solve needed.
+  const estimates: Record<string, number> = {}
+  if (picks.length > 0) {
+    const preview = fixActions(state, week, picks).actions.reduce(reducer, state)
+    const capacities = dayCapacities(solveInputFor(preview, week))
+    for (const { date } of picks) {
+      const day = capacities.find((c) => c.date === date)
+      if (day) estimates[date] = expectedHoles(day)
     }
-    dispatch(action)
-    void solve(
-      reducer(state, action),
-      { label, inverse: [inverse] },
-      started ? 'minimal' : undefined,
-    )
   }
 
   // Számol and Újraszámol: a week in progress first asks how much may change.
@@ -293,8 +294,10 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
                 input={input}
                 staff={state.staff}
                 onHover={setHovered}
-                onFix={archived ? undefined : fix}
+                onFix={archived ? undefined : (fix) => setPending((p) => toggleFix(p, fix))}
                 fixFrom={started ? from : undefined}
+                pending={pending}
+                estimates={estimates}
               />
               <RosterTable
                 pick={editable ? { picked, onPick: pick } : undefined}
@@ -326,6 +329,24 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
             <button className="primary" disabled={solving} onClick={askSolve}>
               {ui.roster.resolve}
             </button>
+          </div>
+        )}
+        {picks.length > 0 && (
+          <div className="swap-bar pending-fixes" role="group">
+            <span>
+              <strong>{ui.roster.pendingTitle(picks.length)}</strong>{' '}
+              {picks
+                .map((f) =>
+                  f.kind === 'setGroups'
+                    ? ui.roster.fix(f.date, f.groups)
+                    : ui.roster.pendingCallIn(f.name, f.date),
+                )
+                .join(' · ')}
+            </span>
+            <button className="primary" disabled={solving} onClick={applyFixes}>
+              {ui.roster.applyFixes}
+            </button>
+            <button onClick={() => setPending([])}>{ui.roster.cancel}</button>
           </div>
         )}
         {earlyNote && !archived && !stale && <p className="stopped-early">{earlyNote}</p>}

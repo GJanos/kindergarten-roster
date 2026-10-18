@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeStaff } from '../core/fixtures'
 import type { Roster } from '../../src/core/types'
-import { groupView, personView } from '../../src/export/views'
+import { groupView, isDutyCell, personView } from '../../src/export/views'
 
 const [MON, TUE, WED] = ['2026-10-26', '2026-10-27', '2026-10-28']
 const staff = makeStaff(3, 2)
@@ -116,5 +116,53 @@ describe('personView', () => {
       personView(roster, staff, [{ staffId: 'n2', date: MON, kind }]).rows[4].cells[0]
     expect(on('leave')).toEqual({ text: 'szabadság', fill: 'absent' })
     expect(on('sick')).toEqual({ text: 'beteg', fill: 'absent' })
+  })
+})
+
+describe('ügyelet (v3-b)', () => {
+  const dutyDay: Roster = {
+    period: { start: MON, days: [MON] },
+    groupsPerDay: { [MON]: 1 },
+    assignments: [
+      {
+        staffId: 't1',
+        date: MON,
+        shift: 'morning',
+        seat: { kind: 'teacher', group: 1, shift: 'morning' },
+        duty: true,
+      },
+      {
+        staffId: 't2',
+        date: MON,
+        shift: 'afternoon',
+        seat: { kind: 'teacher', group: 1, shift: 'afternoon' },
+        duty: true,
+      },
+      {
+        staffId: 'n1',
+        date: MON,
+        shift: 'morning',
+        seat: { kind: 'nanny', group: 1 },
+        opener: true,
+      },
+      { staffId: 'n2', date: MON, shift: 'afternoon', closer: true },
+    ],
+    holes: [],
+    warnings: [],
+    ...TEST_META,
+  }
+
+  it('heads the duty group with Ügyelet and shows the shifted start and end', () => {
+    const cell = groupView(dutyDay, staff).rows[0].cells[0]
+    expect(cell[0]).toEqual({ text: 'Ügyelet', bold: true, tone: 'duty' })
+    expect(isDutyCell(cell)).toBe(true)
+    expect(isDutyCell([{ text: 'DE: T1' }])).toBe(false)
+    expect(cell[1].text).toBe('DE: T1 6:30-tól')
+    expect(cell[2].text).toBe('DU: T2 17:30-ig')
+  })
+
+  it('marks the day in the person view', () => {
+    const t1 = personView(dutyDay, staff, []).rows.find((r) => r.staffId === 't1')!
+    expect(t1.cells[0].text).toBe('DE · 1. cs. · ügyelet')
   })
 })

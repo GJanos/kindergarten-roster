@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   dayCapacities,
+  expectedHoles,
   gMax,
   groupsWithoutTeacherHoles,
   zeroHoleNeeds,
@@ -91,5 +92,35 @@ describe('shortage helpers', () => {
     expect(groupsWithoutTeacherHoles(3, 2, 2)).toBe(1)
     expect(groupsWithoutTeacherHoles(5, 1, 3)).toBe(2)
     expect(groupsWithoutTeacherHoles(1, 3, 2)).toBeUndefined()
+  })
+})
+
+describe('expectedHoles', () => {
+  const day = (teachers: number, nannies: number, groups: number) =>
+    dayCapacities(makeInput({ teachers, nannies, groups, days: [D] }))[0]
+
+  it('is zero for a fully staffed day', () => {
+    expect(expectedHoles(day(4, 2, 2))).toBe(0)
+  })
+
+  it('counts empty teacher seats, and the ügyelet once no group has both teachers', () => {
+    expect(expectedHoles(day(3, 2, 2))).toBe(1) // one seat; group 1 still has both teachers
+    expect(expectedHoles(day(2, 2, 2))).toBe(3) // two seats and the ügyelet
+  })
+
+  it('counts the keys a lone nanny cannot hold', () => {
+    expect(expectedHoles(day(2, 1, 1))).toBe(1)
+  })
+
+  it('says a day without teachers is one problem', () => {
+    expect(expectedHoles(day(0, 2, 2))).toBe(1)
+  })
+
+  it('has nothing on a closed day', () => {
+    const closed = dayCapacities({
+      ...makeInput({ teachers: 4, nannies: 2, groups: 2, days: [D] }),
+      dayPlans: [{ date: D, requestedGroups: 2, override: 0 }],
+    })[0]
+    expect(expectedHoles(closed)).toBe(0)
   })
 })

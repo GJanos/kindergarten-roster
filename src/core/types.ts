@@ -2,8 +2,8 @@ export type Role = 'teacher' | 'nanny'
 export type Shift = 'morning' | 'afternoon'
 export const SHIFTS: readonly Shift[] = ['morning', 'afternoon']
 
-/** The four fairness counts (spec §6.3). */
-export type GapKind = 'morning' | 'opener' | 'closer' | 'reserve'
+/** The fairness counts (spec §6.3; 'duty' since v3-b). */
+export type GapKind = 'morning' | 'opener' | 'closer' | 'reserve' | 'duty'
 
 /** Per person (staff id), per kind: count minus fair share — one roster's, or a year's sum. */
 export type Balance = Record<string, Partial<Record<GapKind, number>>>
@@ -36,11 +36,12 @@ export type Assignment = {
   substitution?: true // teacher in a nanny seat
   opener?: true
   closer?: true
+  duty?: true // ügyelet (v3-b): a teacher of the day's ügyelet group, shifted 30 minutes
 }
 
 export type Hole =
   | { kind: 'teacherSeat'; date: string; group: number; shift: Shift }
-  | { kind: 'opener' | 'closer'; date: string }
+  | { kind: 'opener' | 'closer' | 'duty'; date: string }
 
 export type WarningCode =
   | 'NO_TEACHER'
@@ -54,6 +55,9 @@ export type WarningCode =
   | 'GROUP_SWITCH'
   | 'TURNAROUND'
   | 'UNEVEN'
+  | 'DUTY_MISSING'
+  | 'PAIR_SAME'
+  | 'SHIFT_IMBALANCE'
 
 export type Severity = 'red' | 'orange' | 'grey'
 

@@ -56,3 +56,18 @@ export function groupsWithoutTeacherHoles(
   }
   return undefined
 }
+
+/**
+ * The red problems a solved day shows: empty teacher seats, missing keys, a missing ügyelet, or
+ * no teacher at all. Holes are the solve's first stage, so they follow from the headcount alone;
+ * the quick-fix preview counts on that (2026-10-18), and the property tests hold it to the solver.
+ */
+export function expectedHoles(c: DayCapacity): number {
+  if (c.closed) return 0
+  const keys = Math.max(0, 2 - c.nannies) // a nanny opens or closes, never both
+  if (c.gMax === 0) return 1 + keys
+  const seated = c.teachers - Math.max(0, c.groups - c.nannies) // the rest stand in as nannies
+  const seats = Math.max(0, 2 * c.groups - seated)
+  const duty = seated > c.groups ? 0 : 1 // ügyelet needs one group with both its teachers
+  return seats + keys + duty
+}

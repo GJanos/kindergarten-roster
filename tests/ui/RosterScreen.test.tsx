@@ -31,6 +31,12 @@ afterEach(() => {
 
 const WEEK = '2026-10-26'
 const WED = '2026-10-28'
+
+/** A quick fix: select it, then apply (since 2026-10-18 fixes are batched). */
+const applyFix = (text: string) => {
+  fireEvent.click(screen.getByText(text))
+  fireEvent.click(screen.getByText('Alkalmaz és újraszámol'))
+}
 const DAYS = ['2026-10-26', '2026-10-27', WED, '2026-10-29', '2026-10-30']
 const base: AppState = { ...emptyState(), staff: makeStaff(4, 3) }
 
@@ -152,7 +158,7 @@ describe('RosterScreen', () => {
     vi.mocked(solveInWorker).mockResolvedValue(roster)
     const state = withRoster(base)
     const dispatch = renderScreen(state)
-    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    applyFix('Szerdán 1 csoport')
     const action: Action = { type: 'setOverride', week: WEEK, date: WED, groups: 1 }
     expect(dispatch).toHaveBeenCalledWith(action)
     const reduced = solveInputFor(reducer(state, action), WEEK)
@@ -165,7 +171,7 @@ describe('RosterScreen', () => {
       reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true }),
     )
     const dispatch = renderScreen(state)
-    fireEvent.click(screen.getByText('T4 mégis jön'))
+    applyFix('T4 mégis jön')
     const action: Action = { type: 'setAbsent', staffId: 't4', dates: [WED], absent: false }
     expect(dispatch).toHaveBeenCalledWith(action)
     const back = solveInputFor(reducer(state, action), WEEK)
@@ -310,7 +316,7 @@ describe('RosterScreen undo', () => {
   it('marks what a quick fix changed, and undoes it with one click', async () => {
     vi.mocked(solveInWorker).mockResolvedValue(fixed)
     render(<Harness initial={withRoster(base)} />)
-    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    applyFix('Szerdán 1 csoport')
     expect(await screen.findByText('Szerdán 1 csoport beállítva.')).toBeTruthy()
     expect(screen.getByText('2 cella változott — kiemelve a táblázatban.')).toBeTruthy()
     expect(document.querySelectorAll('td.changed')).toHaveLength(2)
@@ -331,7 +337,7 @@ describe('RosterScreen undo', () => {
       kind: 'sick',
     })
     render(<Harness initial={withRoster(away)} />)
-    fireEvent.click(screen.getByText('T4 mégis jön (beteg)'))
+    applyFix('T4 mégis jön (beteg)')
     expect(await screen.findByText('T4 mégis jön szerdán.')).toBeTruthy()
     fireEvent.click(screen.getByText('↶ Visszavonás'))
     expect(screen.getByText('T4 mégis jön (beteg)')).toBeTruthy()
@@ -341,7 +347,7 @@ describe('RosterScreen undo', () => {
     vi.mocked(solveInWorker).mockResolvedValue(fixed)
     const away = reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true })
     render(<Harness initial={withRoster(away)} />)
-    fireEvent.click(screen.getByText('T4 mégis jön'))
+    applyFix('T4 mégis jön')
     expect(await screen.findByText('T4 mégis jön szerdán.')).toBeTruthy()
     fireEvent.click(screen.getByText('↶ Visszavonás'))
     expect(screen.getByText('T4 mégis jön')).toBeTruthy()
@@ -547,7 +553,7 @@ describe('RosterScreen week in progress', () => {
   it('applies a quick fix with as few changes as possible, without asking', async () => {
     vi.mocked(solveInWorker).mockResolvedValue(fixed)
     render(<Harness initial={withRoster(base)} />)
-    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    applyFix('Szerdán 1 csoport')
     await waitFor(() =>
       expect(solveInWorker).toHaveBeenCalledWith(expect.any(Object), expect.any(Object), {
         roster,
@@ -614,5 +620,53 @@ describe('RosterScreen sick call', () => {
     fireEvent.click(screenTable().getByText('DE: T2'))
     expect(screen.getByText(/kiválasztva/)).toBeTruthy()
     expect(screen.queryByText('Beteg lett…')).toBeNull()
+  })
+})
+
+describe('RosterScreen quick fixes in one go', () => {
+  const away = reducer(base, { type: 'setAbsent', staffId: 't4', dates: [WED], absent: true })
+
+  it('selects a fix without solving, shows it in the dock and estimates the day', () => {
+    renderScreen(withRoster(base))
+    const button = screen.getByText('Szerdán 1 csoport')
+    fireEvent.click(button)
+    expect(solveInWorker).not.toHaveBeenCalled()
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText(/1 változtatás kijelölve:/)).toBeTruthy()
+    expect(screen.getByText('→ várhatóan rendben')).toBeTruthy()
+    fireEvent.click(button)
+    expect(screen.queryByText(/változtatás kijelölve/)).toBeNull()
+  })
+
+  it('applies several fixes in one solve and one undo step', async () => {
+    vi.mocked(solveInWorker).mockResolvedValue(fixed)
+    const initial = withRoster(away)
+    render(<Harness initial={initial} />)
+    fireEvent.click(screen.getByText('T4 mégis jön'))
+    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    expect(screen.getByText(/2 változtatás kijelölve:/)).toBeTruthy()
+    fireEvent.click(screen.getByText('Alkalmaz és újraszámol'))
+    expect(
+      await screen.findByText('2 változtatás: T4 mégis jön szerdán · Szerdán 1 csoport beállítva.'),
+    ).toBeTruthy()
+    expect(solveInWorker).toHaveBeenCalledTimes(1)
+    const both = [
+      { type: 'setAbsent', staffId: 't4', dates: [WED], absent: false },
+      { type: 'setOverride', week: WEEK, date: WED, groups: 1 },
+    ] as Action[]
+    expect(vi.mocked(solveInWorker).mock.calls[0][0]).toEqual(
+      solveInputFor(both.reduce(reducer, initial), WEEK),
+    )
+    fireEvent.click(screen.getByText('↶ Visszavonás'))
+    expect(screen.getByText('T4 mégis jön')).toBeTruthy() // the absence is back
+    expect(screen.queryByText(/változott a számolás óta/)).toBeNull()
+  })
+
+  it('drops the selection with Mégse', () => {
+    renderScreen(withRoster(base))
+    fireEvent.click(screen.getByText('Szerdán 1 csoport'))
+    fireEvent.click(screen.getByText('Mégse'))
+    expect(screen.queryByText(/változtatás kijelölve/)).toBeNull()
+    expect(solveInWorker).not.toHaveBeenCalled()
   })
 })

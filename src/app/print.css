@@ -74,6 +74,14 @@
   .hole {
     color: #c00000;
   }
+  .duty-cell {
+    background: #f1ecfb;
+    border-left: 3pt solid #6a4fb3;
+  }
+  .print-only .duty {
+    background: #6a4fb3;
+    color: #fff;
+  }
   .substitution {
     color: #d46a00;
   }
