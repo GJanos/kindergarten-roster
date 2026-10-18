@@ -125,5 +125,12 @@ fine, and her laptop is slow. Correctness comes before speed:
 - **Shifted, not stretched.** Her "time limits are always kept" (§2) holds, since the length
   stays 6.5 h / 6 h.
 - **Asszisztens ügyelet** (v3-c) doesn't count in the teachers' ügyelet fairness.
+- **No UNEVEN warning for opener/closer splits** any more: they're demoted, so a warning would
+  only be noise. Morning, reserve and ügyelet splits still warn.
+- **Rosters saved before v3-b** have no ügyelet. Validate leaves them alone (no duty and no duty
+  hole), so old weeks still open, swap and recalculate. A recalc pins their past days as a duty
+  hole.
+- **A day with no teacher** (0 groups) gets no ügyelet and no duty hole. `NO_TEACHER` already
+  says it all.
 - **No pairing across days.** The pair rule is per day. Group persistence (switches) already
   keeps the same nanny in a group.
