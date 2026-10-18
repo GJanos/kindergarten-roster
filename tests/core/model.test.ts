@@ -164,3 +164,82 @@ describe('her v3-b soft rules', () => {
     }
   })
 })
+
+describe('helpers (v3-c)', () => {
+  const on = (roster: ReturnType<typeof solveValid>, id: string, date = D) =>
+    roster.assignments.find((a) => a.staffId === id && a.date === date)
+
+  it('keeps an asszisztens on 8–16 beside a DE teacher when no teacher is missing', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 4, nannies: 2, assistants: 1, groups: 2, days: consecutiveDays(D, 3) }),
+    )
+    for (const date of roster.period.days) {
+      const a1 = on(roster, 'a1', date)!
+      expect(a1.shift).toBe('day')
+      expect(a1.seat?.kind).toBe('helper')
+      const de = roster.assignments.find(
+        (a) =>
+          a.date === date &&
+          a.seat?.kind === 'teacher' &&
+          a.seat.shift === 'morning' &&
+          a.seat.group === a1.seat!.group,
+      )
+      expect(de?.staffId[0]).toBe('t')
+    }
+    // The switches stage keeps her in one group.
+    expect(
+      new Set(roster.assignments.filter((a) => a.staffId === 'a1').map((a) => a.seat?.group)).size,
+    ).toBe(1)
+  })
+
+  it('moves her to 10–18 only for a missing DU teacher, and the group keeps its DE teacher', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 3, nannies: 2, assistants: 1, groups: 2, days: [D] }),
+    )
+    expect(roster.holes).toEqual([])
+    const a1 = on(roster, 'a1')!
+    expect(a1).toMatchObject({ shift: 'afternoon', substitution: true })
+    expect(a1.seat).toMatchObject({ kind: 'teacher', shift: 'afternoon' })
+  })
+
+  it('puts a civil in a nanny seat before a teacher, on 6–14 or 10–18', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 5, nannies: 1, civils: 1, groups: 2, days: [D] }),
+    )
+    expect(roster.assignments.filter((a) => a.substitution).map((a) => a.staffId)).toEqual(['c1'])
+    expect(on(roster, 'c1')!.shift).not.toBe('day')
+  })
+
+  it('lets a civil stand-in hold the key a lone nanny cannot', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 4, nannies: 1, civils: 1, groups: 2, days: [D] }),
+    )
+    expect(roster.holes).toEqual([])
+    const c1 = on(roster, 'c1')!
+    expect(c1.opener || c1.closer).toBe(true)
+  })
+
+  it('keeps a civil on 8–16, out of every seat, while the nannies suffice', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 4, nannies: 3, civils: 1, groups: 2, days: [D] }),
+    )
+    expect(on(roster, 'c1')).toEqual({ staffId: 'c1', date: D, shift: 'day' })
+  })
+
+  it('leaves the extra asszisztens in no group', () => {
+    const roster = solveValid(
+      makeInput({ teachers: 2, nannies: 1, assistants: 2, groups: 1, days: [D] }),
+    )
+    const seats = ['a1', 'a2'].map((id) => on(roster, id)!.seat?.kind)
+    expect(seats.sort()).toEqual(['helper', undefined])
+  })
+
+  it('lets her DU stand-in group be the ügyelet', () => {
+    // 2 teachers, 2 groups: no group has both teachers; her group can.
+    const roster = solveValid(
+      makeInput({ teachers: 2, nannies: 2, assistants: 1, groups: 2, days: [D] }),
+    )
+    expect(roster.holes.filter((h) => h.kind === 'duty')).toEqual([])
+    expect(on(roster, 'a1')!.duty).toBe(true)
+  })
+})

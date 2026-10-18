@@ -135,10 +135,11 @@ export const CALL_IN_ORDER: Record<AbsenceKind, number> = { leave: 0, other: 1, 
 // Where a solve stopped early: the solver stage, in her words.
 const STOPPED_AT: Record<string, string> = {
   holes: 'a hiányoknál',
-  substitutions: 'a dajka helyetti óvónőknél',
+  substitutions: 'a helyettesítéseknél',
   keepPeople: 'a változtatások számánál',
   keepHours: 'a változtatások számánál',
   keepDuties: 'a változtatások számánál',
+  helpers: 'az asszisztensek elhelyezésénél',
   worstGap: 'az egyenlő elosztásnál',
   totalGap: 'az egyenlő elosztásnál',
   pairs: 'a dajkapároknál',

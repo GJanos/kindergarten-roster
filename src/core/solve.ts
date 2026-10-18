@@ -69,7 +69,7 @@ export function solve(
   meta: RosterMeta,
   anchor?: Anchor,
 ): Roster {
-  const model = buildModel(input)
+  const model = buildModel(input, anchor?.from)
   if (anchor) anchorModel(model, anchor)
   const bounds: Row[] = []
   let columns: Columns | undefined
@@ -131,13 +131,20 @@ function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: R
       const assignment: Assignment = {
         staffId: model.people[p].id,
         date: day.date,
-        shift: on(v.shift(p, d, 'morning')) ? 'morning' : 'afternoon',
+        shift: on(v.shift(p, d, 'morning'))
+          ? 'morning'
+          : on(v.shift(p, d, 'day'))
+            ? 'day'
+            : 'afternoon',
       }
       for (const g of groups) {
         for (const t of SHIFTS) {
-          if (on(v.teacherSeat(p, d, g, t)))
+          if (on(v.teacherSeat(p, d, g, t))) {
             assignment.seat = { kind: 'teacher', group: g, shift: t }
+            if (model.people[p].role === 'assistant') assignment.substitution = true
+          }
         }
+        if (on(v.helperSeat(p, d, g))) assignment.seat = { kind: 'helper', group: g }
         if (on(v.nannySeat(p, d, g))) assignment.seat = { kind: 'nanny', group: g }
         if (on(v.substitution(p, d, g))) {
           assignment.seat = { kind: 'nanny', group: g }
