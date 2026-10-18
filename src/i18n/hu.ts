@@ -128,8 +128,11 @@ const STOPPED_AT: Record<string, string> = {
   keepDuties: 'a változtatások számánál',
   worstGap: 'az egyenlő elosztásnál',
   totalGap: 'az egyenlő elosztásnál',
+  pairs: 'a dajkapároknál',
+  balance: 'a délelőtt–délután egyensúlynál',
   switches: 'a csoportváltásoknál',
   turnarounds: 'a zárás utáni korai nyitásoknál',
+  keysSeated: 'a nyitó és záró dajkáknál',
 }
 
 const SWAP_REASONS: [rule: string, reason: string][] = [
@@ -258,7 +261,7 @@ export const ui = {
     nextWeek: 'Következő hét',
     saved: 'van mentett beosztás',
     solve: 'Számol',
-    solving: 'Számolok… ez eltarthat néhány másodpercig.',
+    solving: 'Számolok… ez akár egy-két percig is eltarthat.',
     print: 'Nyomtatás',
     excel: 'Excel letöltés',
     warnings: 'Figyelmeztetések',
@@ -423,6 +426,9 @@ export const warningText = {
     `${capitalize(onDay(date))} nincs ${key === 'opener' ? 'nyitó' : 'záró'} — ${
       nannies === 0 ? 'nincs dajka' : 'csak 1 dajka dolgozik'
     }.`,
+  dutyMissing: (date: string) =>
+    `${capitalize(onDay(date))} nincs ügyeletes csoport: egy csoportban sincs meg mindkét óvónő.`,
+  dutyAction: 'Hívj be egy óvónőt, vagy vond össze a csoportokat.',
   openerAction: 'Valaki jöjjön 6:00-ra, vagy nyisson később az óvoda.',
   closerAction: 'Valaki maradjon 18:00-ig, vagy zárjon korábban az óvoda.',
   groupsReduced: (

@@ -1,6 +1,6 @@
 import { dayCapacities } from './capacity'
 import { Lin } from './lp'
-import { v, type RosterModel } from './model'
+import { groupNumbers, v, type RosterModel } from './model'
 import type { Absence, Anchor, Assignment, DayPlan, Roster, SolveInput } from './types'
 
 /**
@@ -55,7 +55,7 @@ export function recalcInput(input: SolveInput, anchor: Anchor): SolveInput | und
  * moves at unchanged hours. Someone the anchor had off (a call-in) is placed freely.
  */
 export function anchorModel(model: RosterModel, anchor: Anchor): void {
-  const { milp, objectives, people, days, seats } = model
+  const { milp, objectives, people, days, seats, duty } = model
   const planned = new Map(anchor.roster.assignments.map((a) => [`${a.staffId}|${a.date}`, a]))
   const declared = new Set(milp.binaries)
   const later = days.filter((day) => day.date >= anchor.from)
@@ -79,6 +79,14 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
 
   for (const day of days) {
     const d = day.index
+    if (day.date < anchor.from && day.groups > 0) {
+      // The anchor's ügyelet group that day; none (a pre-v3-b roster, or a duty hole) pins the hole.
+      const dutyGroup = anchor.roster.assignments.find((a) => a.date === day.date && a.duty)?.seat
+        ?.group
+      for (const g of groupNumbers(day.groups)) {
+        milp.constrain(new Lin().add(v.dutyGroup(d, g)), '=', g === dutyGroup ? 1 : 0)
+      }
+    }
     for (const p of day.present) {
       const a = planned.get(`${people[p].id}|${day.date}`)
       if (day.date < anchor.from) {
@@ -99,6 +107,13 @@ export function anchorModel(model: RosterModel, anchor: Anchor): void {
 
       const hours = milp.nonNegative(v.keptHours(p, d))
       milp.constrain(new Lin().add(hours), '>=', differs(v.shift(p, d, a.shift), true))
+      // Ügyelet moves the hours by 30 minutes: a change is a phone call too.
+      if (!duty[d][p].isEmpty()) {
+        const dutyDiffers = a.duty
+          ? Lin.constant(1).plus(duty[d][p], -1)
+          : new Lin().plus(duty[d][p])
+        milp.constrain(new Lin().add(hours), '>=', dutyDiffers)
+      }
       objectives.keepHours.add(hours, later.length - later.indexOf(day))
       let person = changedPerson.get(p)
       if (!person) {
@@ -130,7 +145,7 @@ export type ScheduleChange = {
   date: string
   before: Assignment
   after: Assignment
-  hours: boolean // the shift changed, not just the seat or the key
+  hours: boolean // the shift or the ügyelet changed, not just the seat or the key
 }
 
 const seatKey = (a: Assignment) =>
@@ -141,6 +156,7 @@ const sameDay = (a: Assignment, b: Assignment) =>
   seatKey(a) === seatKey(b) &&
   !a.opener === !b.opener &&
   !a.closer === !b.closer &&
+  !a.duty === !b.duty &&
   !a.substitution === !b.substitution
 
 /** Days from `from` on that someone works both before and after, but differently. */
@@ -155,7 +171,7 @@ export function scheduleChanges(before: Roster, after: Roster, from: string): Sc
         date: now.date,
         before: then,
         after: now,
-        hours: then.shift !== now.shift,
+        hours: then.shift !== now.shift || !then.duty !== !now.duty,
       },
     ]
   })

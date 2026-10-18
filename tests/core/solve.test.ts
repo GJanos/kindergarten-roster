@@ -4,15 +4,21 @@ import { TEST_META, makeInput, randomInput } from './fixtures'
 import {
   STAGE_TIME_LIMIT,
   SolveError,
-  YEARLY_TIME_LIMIT,
+  TIE_BREAKS,
+  TIE_BREAK_TIME_LIMIT,
   solve,
   type LpSolver,
 } from '../../src/core/solve'
 import { balanceOf } from '../../src/core/fairness'
+import { STAGES, buildModel } from '../../src/core/model'
 import type { Roster, SolveInput } from '../../src/core/types'
 import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
+
+/** The stages a solve of `input` runs: those with something to optimise. */
+const stagesRun = (input: SolveInput) =>
+  STAGES.filter((stage) => !buildModel(input).objectives[stage].isEmpty())
 
 describe('solve', () => {
   it('gives the same roster for the same input', () => {
@@ -49,8 +55,8 @@ describe('solve', () => {
     }
     const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
     const roster = solve(input, slow, TEST_META)
-    expect(calls).toBe(5) // holes, worstGap, totalGap (ran out), switches, turnarounds
-    expect(roster.stoppedEarly).toBe('totalGap')
+    expect(calls).toBe(stagesRun(input).length)
+    expect(roster.stoppedEarly).toBe(stagesRun(input)[2])
     expect(validateRoster(input, roster)).toEqual([])
   })
 
@@ -73,21 +79,23 @@ describe('solve', () => {
         Object.values(balanceOf(input, roster))
           .flatMap((kinds) => Object.values(kinds))
           .reduce((sum, delta) => sum + Math.abs(delta), 0)
-      const handed = solve(input, outAt([2, 3, 4, 5, 6, 7, 8, 9, 10]), TEST_META)
+      const everyStage = Array.from({ length: STAGES.length }, (_, i) => i + 2)
+      const handed = solve(input, outAt(everyStage), TEST_META)
       const roster = solve(input, outAt([2, 3]), TEST_META)
       expect(validateRoster(input, roster)).toEqual([])
       expect(gaps(roster), `seed ${seed}`).toBeLessThanOrEqual(gaps(handed) + 1e-6)
     }
   })
 
-  it('gives the year balance a shorter limit, and its running out is no stopping early', () => {
+  it('gives the tie-breaks a shorter limit, and their running out is no stopping early', () => {
     // Its leftover carries into next week, and HiGHS can take forever to prove it (2026-10-02).
     const limits: number[] = []
     const yearlyOut: LpSolver = {
       solve: (lp, options) => {
         limits.push(Number(options?.time_limit))
         const result = highs.solve(lp, options)
-        if (limits.length < 6 || result.Status !== 'Optimal') return result
+        if (options?.time_limit !== TIE_BREAK_TIME_LIMIT || result.Status !== 'Optimal')
+          return result
         // Out of time with the roster it found, as HiGHS reports it.
         const Columns = Object.fromEntries(
           Object.entries(result.Columns).map(([name, column]) => [
@@ -108,10 +116,11 @@ describe('solve', () => {
       history: { t1: { morning: 0.5 }, t2: { morning: -0.5 } },
     }
     const roster = solve(input, yearlyOut, TEST_META)
-    expect(limits).toHaveLength(6) // holes, worstGap, totalGap, switches, turnarounds, yearly
-    expect(limits.slice(0, 5).every((limit) => limit === STAGE_TIME_LIMIT)).toBe(true)
-    expect(limits[5]).toBe(YEARLY_TIME_LIMIT)
-    expect(YEARLY_TIME_LIMIT).toBeLessThan(STAGE_TIME_LIMIT)
+    expect(limits).toEqual(
+      stagesRun(input).map((s) => (TIE_BREAKS.has(s) ? TIE_BREAK_TIME_LIMIT : STAGE_TIME_LIMIT)),
+    )
+    expect(limits.at(-1)).toBe(TIE_BREAK_TIME_LIMIT)
+    expect(TIE_BREAK_TIME_LIMIT).toBeLessThan(STAGE_TIME_LIMIT)
     expect(roster.stoppedEarly).toBeUndefined()
     expect(validateRoster(input, roster)).toEqual([])
   })

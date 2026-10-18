@@ -83,3 +83,35 @@ describe('strict rules', () => {
     }
   })
 })
+
+describe('ügyelet (v3-b)', () => {
+  const dutyGroupOf = (roster: ReturnType<typeof solveValid>, date: string) => {
+    const groups = roster.assignments
+      .filter((a) => a.date === date && a.duty)
+      .map((a) => (a.seat?.kind === 'teacher' ? a.seat.group : 0))
+    return [...new Set(groups)]
+  }
+
+  it('puts exactly one group on duty every day, both its teachers', () => {
+    const roster = solveValid(makeInput({ teachers: 8, nannies: 5, groups: 4 }))
+    for (const date of roster.period.days) {
+      expect(dutyGroupOf(roster, date)).toHaveLength(1)
+      expect(roster.assignments.filter((a) => a.date === date && a.duty)).toHaveLength(2)
+    }
+    expect(roster.holes).toEqual([])
+  })
+
+  it('spreads duty evenly: 8 teachers, 5 days, 10 duty days → each has 1 or 2', () => {
+    const roster = solveValid(makeInput({ teachers: 8, nannies: 5, groups: 4 }))
+    const perTeacher = ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'].map(
+      (id) => roster.assignments.filter((a) => a.staffId === id && a.duty).length,
+    )
+    expect(Math.min(...perTeacher)).toBeGreaterThanOrEqual(1)
+    expect(Math.max(...perTeacher)).toBeLessThanOrEqual(2)
+  })
+
+  it('reports a duty hole when no group has both teachers', () => {
+    const roster = solveValid(makeInput({ teachers: 2, nannies: 2, groups: 2, days: [D] }))
+    expect(roster.holes).toContainEqual({ kind: 'duty', date: D })
+  })
+})

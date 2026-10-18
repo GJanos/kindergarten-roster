@@ -82,6 +82,27 @@ export function fairShares(input: SolveInput): Share[] {
       })
     }
   }
+
+  // Ügyelet days (v3-b): two duty seats a day, on days with 2+ groups and every teacher seat
+  // fillable. A 1-group day's duty is forced, and a short day may have none, so both stay out.
+  const dutyDays = open
+    .filter((c) => c.groups >= 2 && c.teachers - Math.max(0, c.groups - c.nannies) >= 2 * c.groups)
+    .map((c) => c.date)
+  const dutyHolders = people
+    .filter((s) => s.role === 'teacher')
+    .map((s) => ({ staffId: s.id, days: presentOn(s.id, dutyDays) }))
+    .filter((m) => m.days.length > 0)
+  const dutyHolderDays = dutyHolders.reduce((sum, m) => sum + m.days.length, 0)
+  for (const { staffId, days } of dutyHolders) {
+    shares.push({
+      staffId,
+      kind: 'duty',
+      days,
+      num: 2 * dutyDays.length * days.length,
+      den: dutyHolderDays,
+      pool: 'duty',
+    })
+  }
   return shares
 }
 
@@ -117,6 +138,33 @@ export function apportionmentFloor(nums: number[], den: number): number {
     worst = Math.max(worst, i < roundUp ? den - r : r)
   })
   return worst / den
+}
+
+/** Like `apportionmentFloor`, but the smallest possible sum of the |count − share|s. */
+export function apportionmentTotal(nums: number[], den: number): number {
+  const remainders = nums.map((num) => num % den).sort((a, b) => b - a)
+  const roundUp = remainders.reduce((sum, r) => sum + r, 0) / den
+  return remainders.reduce((sum, r, i) => sum + (i < roundUp ? den - r : r), 0) / den
+}
+
+/**
+ * A lower bound on the summed gaps any roster can reach, so a total-gap stage can stop as soon as
+ * it gets there instead of proving it for the whole time limit (v3-b: 30 s on the demo week).
+ */
+export function totalGapFloor(shares: Share[]): number {
+  let floor = 0
+  const pools = new Map<string, Share[]>()
+  for (const share of shares) {
+    if (share.pool) pools.set(share.pool, [...(pools.get(share.pool) ?? []), share])
+    else floor += Math.min(share.num % share.den, share.den - (share.num % share.den)) / share.den
+  }
+  for (const members of pools.values()) {
+    floor += apportionmentTotal(
+      members.map((m) => m.num),
+      members[0].den,
+    )
+  }
+  return floor
 }
 
 /** A lower bound on the worst gap any roster can reach: stage 3 may stop as soon as it gets there. */

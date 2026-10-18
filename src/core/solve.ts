@@ -27,19 +27,21 @@ export type LpSolver = Pick<LegacyHighs, 'solve'>
 export const HIGHS_OPTIONS = { random_seed: 0, mip_rel_gap: 0, output_flag: false } as const
 
 /**
- * Seconds per stage. Realistic weeks need about 3 s in all (6–7 s in a browser), the slowest stage
- * under 2 s; 15 s leaves room for a slow or busy laptop. A stage that runs out keeps the best
+ * Seconds per stage. She is fine waiting a minute or more (2026-10-17) and her laptop is slow, so
+ * this is generous: a realistic week needs a few seconds in all. A stage that runs out keeps the best
  * roster found so far, the roster says so (`stoppedEarly`), and the later stages still run, held
  * to what that roster reached.
  */
-export const STAGE_TIME_LIMIT = 15
+export const STAGE_TIME_LIMIT = 30
 
 /**
- * Seconds for the year-balance tie-break. Its leftover carries into next week's balance anyway,
- * and on a big week HiGHS finds its roster in seconds yet may never prove it the best (6 groups:
- * not in 900 s, 2026-10-02). So it gets less time, and running out of it is no stopping early.
+ * Seconds for the tie-breaks: the year balance and the opener/closer split (demoted in v3-b, a
+ * minor thing to her). HiGHS finds their roster in seconds yet may never prove it the best (6
+ * groups: not in 900 s, 2026-10-02; the keys on the demo week: not in 30 s, 2026-10-18). So they
+ * get less time, and running out of it is no stopping early.
  */
-export const YEARLY_TIME_LIMIT = 10
+export const TIE_BREAK_TIME_LIMIT = 20
+export const TIE_BREAKS: ReadonlySet<Stage> = new Set(['keysGap', 'yearly'])
 
 /** Slack when a fractional optimum becomes the next stage's bound; far below any real difference. */
 const TOLERANCE = 1e-6
@@ -76,7 +78,7 @@ export function solve(
     const objective = model.objectives[stage]
     if (objective.isEmpty()) continue
     const lp = toLpText(model.milp, objective, bounds)
-    const timeLimit = stage === 'yearly' ? YEARLY_TIME_LIMIT : STAGE_TIME_LIMIT
+    const timeLimit = TIE_BREAKS.has(stage) ? TIE_BREAK_TIME_LIMIT : STAGE_TIME_LIMIT
     const options = { ...HIGHS_OPTIONS, time_limit: timeLimit }
     let result = highs.solve(lp, options)
     // A later stage is feasible by construction: the previous stage's roster meets every bound.
@@ -93,7 +95,7 @@ export function solve(
       // Out of time: every rule is a constraint, so the best roster found so far is valid.
       if (hasSolution(result)) columns = result.Columns
       if (!columns) throw new SolveError(stage, result.Status)
-      if (stage !== 'yearly') stoppedEarly ??= stage
+      if (!TIE_BREAKS.has(stage)) stoppedEarly ??= stage
       // The later stages still run, held to what this roster reached here.
       value = valueOf(objective.terms, columns)
     } else {
@@ -146,6 +148,11 @@ function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: R
       if (on(v.close(p, d))) assignment.closer = true
       assignments.push(assignment)
     }
+    const dutyGroup = groups.find((g) => on(v.dutyGroup(d, g)))
+    for (const a of assignments) {
+      if (a.date === day.date && a.seat?.kind === 'teacher' && a.seat.group === dutyGroup)
+        a.duty = true
+    }
     for (const g of groups) {
       for (const t of SHIFTS) {
         if (on(v.holeTeacher(d, g, t))) {
@@ -155,6 +162,7 @@ function decode(input: SolveInput, model: RosterModel, columns: Columns, meta: R
     }
     if (on(v.holeOpen(d))) holes.push({ kind: 'opener', date: day.date })
     if (on(v.holeClose(d))) holes.push({ kind: 'closer', date: day.date })
+    if (on(v.holeDuty(d))) holes.push({ kind: 'duty', date: day.date })
   }
   return {
     period: input.period,

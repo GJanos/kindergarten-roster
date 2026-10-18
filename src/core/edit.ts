@@ -9,7 +9,7 @@ import { validateRoster } from './validate'
 export type Swap = { date: string; a: string; b: string }
 
 /**
- * Exchanges two people's day: shift, seat, opener and closer. `substitution` follows the new
+ * Exchanges two people's day: shift, seat, opener, closer and ügyelet. `substitution` follows the new
  * holder's role (a teacher in a nanny seat), so the result reads like a solver roster. Checks no
  * rule — `editRoster` does that.
  */
@@ -32,6 +32,7 @@ export function swapDay(roster: Roster, staff: Staff[], swap: Swap): Roster {
     }
     if (from.opener) next.opener = true
     if (from.closer) next.closer = true
+    if (from.duty) next.duty = true // ügyelet belongs to the seat
     return next
   }
   return {

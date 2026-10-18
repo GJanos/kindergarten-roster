@@ -1,12 +1,13 @@
 import { addDays } from './calendar'
 import { dayCapacities, type DayCapacity } from './capacity'
-import { fairShares, worstGapFloor, type GapKind } from './fairness'
+import { fairShares, totalGapFloor, worstGapFloor, type GapKind } from './fairness'
 import { Lin, Milp } from './lp'
 import { SHIFTS, type Shift, type SolveInput, type Staff } from './types'
 
 /**
- * Solve stages in strict priority order (spec §6.5). The keep* stages only count in a
- * recalculation of a week in progress (v2-F); 'yearly' is the v2 tie-break.
+ * Solve stages in strict priority order (spec §6.5, reordered in v3-b). The keep* stages only
+ * count in a recalculation of a week in progress (v2-F); 'yearly' is the v2 tie-break. Her v3-b
+ * rules: nanny pairs before fairness, the daily DE/DU balance after it, the keys last.
  */
 export const STAGES = [
   'holes',
@@ -14,10 +15,14 @@ export const STAGES = [
   'keepPeople',
   'keepHours',
   'keepDuties',
+  'pairs',
   'worstGap',
   'totalGap',
+  'balance',
   'switches',
   'turnarounds',
+  'keysSeated',
+  'keysGap',
   'yearly',
 ] as const
 export type Stage = (typeof STAGES)[number]
@@ -29,8 +34,11 @@ export const INTEGRAL_STAGES: ReadonlySet<Stage> = new Set([
   'keepPeople',
   'keepHours',
   'keepDuties',
+  'pairs',
+  'balance',
   'switches',
   'turnarounds',
+  'keysSeated',
 ])
 
 /** Variable names. p indexes `people`, d indexes `days`, g is the group number (from 1). */
@@ -51,6 +59,13 @@ export const v = {
   keptPerson: (p: number) => `kp_${p}`,
   keptHours: (p: number, d: number) => `kh_${p}_${d}`,
   keptDuties: (p: number, d: number) => `kd_${p}_${d}`,
+  dutyGroup: (d: number, g: number) => `y_${d}_${g}`,
+  holeDuty: (d: number) => `hd_${d}`,
+  onDuty: (p: number, d: number, g: number, t: Shift) => `z_${p}_${d}_${g}_${t[0]}`,
+  nannyShift: (d: number, g: number, t: Shift) => `ns_${d}_${g}_${t[0]}`,
+  pairClash: (d: number, g: number) => `pc_${d}_${g}`,
+  imbalance: (d: number, role: 'teacher' | 'nanny', step: 1 | 2) => `e${step}_${d}_${role[0]}`,
+  keyFromReserve: (key: 'open' | 'close', p: number, d: number) => `k${key[0]}_${p}_${d}`,
 }
 
 /** An open (not closed) day of the period. `present` holds indexes into `people`. */
@@ -64,6 +79,8 @@ export type RosterModel = {
   capacities: DayCapacity[]
   /** Per day, per person: the sum of their seat variables (empty if they can have none). */
   seats: Lin[][]
+  /** Per day, per person: their ügyelet (sums to 0 or 1; empty for nannies). */
+  duty: Lin[][]
 }
 
 export function groupNumbers(groups: number): number[] {
@@ -162,6 +179,32 @@ export function buildModel(input: SolveInput): RosterModel {
     milp.constrain(Lin.sum(nannies.map((p) => v.close(p, d))).add(holeClose), '=', 1)
   }
 
+  // ── Ügyelet (v3-b): one group a day, both its teachers on duty, or a hole ─
+  const duty = days.map(() => people.map(() => new Lin()))
+  for (const day of days) {
+    if (day.groups === 0) continue // no teacher at all: no group, no duty
+    const d = day.index
+    const choice = new Lin().add(milp.binary(v.holeDuty(d)))
+    objectives.holes.add(v.holeDuty(d))
+    for (const g of groupNumbers(day.groups)) {
+      const y = milp.binary(v.dutyGroup(d, g))
+      choice.add(y)
+      // Each of its two seats hands the duty to whoever holds it: Σ_p z = y with z ≤ x is exact
+      // (one holder, or a hole and then no duty), and far tighter for HiGHS than z = x·y.
+      for (const t of SHIFTS) {
+        const holders = new Lin()
+        for (const p of day.present.filter(isTeacher)) {
+          const z = milp.nonNegative(v.onDuty(p, d, g, t))
+          milp.constrain(new Lin().add(z), '<=', new Lin().add(v.teacherSeat(p, d, g, t)))
+          holders.add(z)
+          duty[d][p].add(z)
+        }
+        milp.constrain(holders, '=', new Lin().add(y))
+      }
+    }
+    milp.constrain(choice, '=', 1)
+  }
+
   // Nobody opens, or closes, on every working day of the period.
   if (days.length >= 2) {
     people.forEach((person, p) => {
@@ -187,7 +230,9 @@ export function buildModel(input: SolveInput): RosterModel {
           ? Lin.sum(ds.map((d) => v.open(p, d)))
           : share.kind === 'closer'
             ? Lin.sum(ds.map((d) => v.close(p, d)))
-            : ds.reduce((reserve, d) => reserve.plus(seats[d][p], -1), Lin.constant(ds.length))
+            : share.kind === 'duty'
+              ? ds.reduce((sum, d) => sum.plus(duty[d][p]), new Lin())
+              : ds.reduce((reserve, d) => reserve.plus(seats[d][p], -1), Lin.constant(ds.length))
     const gap = milp.nonNegative(v.gap(share.kind, p))
     const scaled = new Lin().add(gap, share.den)
     milp.constrain(scaled, '>=', new Lin().plus(count, share.den).addConstant(-share.num))
@@ -195,15 +240,28 @@ export function buildModel(input: SolveInput): RosterModel {
     // A whole count is never closer to its share than the share is to a whole number.
     const r = share.num % share.den
     if (r !== 0) milp.constrain(scaled, '>=', Math.min(r, share.den - r))
-    milp.constrain(new Lin().add(worst), '>=', new Lin().add(gap))
-    objectives.totalGap.add(gap)
+    if (share.kind === 'opener' || share.kind === 'closer') {
+      objectives.keysGap.add(gap) // demoted in v3-b: the hours are the same either way
+    } else {
+      milp.constrain(new Lin().add(worst), '>=', new Lin().add(gap))
+      objectives.totalGap.add(gap)
+    }
     // The year so far: someone ahead on this count is steered away from more of it (v2).
     const year = input.history?.[share.staffId]?.[share.kind] ?? 0
     if (year !== 0) objectives.yearly.plus(count, year)
   }
   // Without this floor HiGHS can take seconds to prove what counting shows at once.
-  const floor = worstGapFloor(shares)
+  const isKey = (s: { kind: GapKind }) => s.kind === 'opener' || s.kind === 'closer'
+  const floor = worstGapFloor(shares.filter((s) => !isKey(s)))
   if (floor > 0) milp.constrain(new Lin().add(worst), '>=', floor)
+  // The same for the summed gaps; a hair under, so rounding never makes the floor unreachable.
+  for (const [stage, kinds] of [
+    ['totalGap', shares.filter((s) => !isKey(s))],
+    ['keysGap', shares.filter(isKey)],
+  ] as const) {
+    const total = totalGapFloor(kinds)
+    if (total > 0) milp.constrain(new Lin().plus(objectives[stage]), '>=', total - 1e-9)
+  }
 
   // ── Group switches and turnarounds (§6.4) ─────────────────────────────────
   for (let i = 0; i + 1 < days.length; i++) {
@@ -238,5 +296,5 @@ export function buildModel(input: SolveInput): RosterModel {
     }
   }
 
-  return { milp, objectives, people, days, capacities, seats }
+  return { milp, objectives, people, days, capacities, seats, duty }
 }

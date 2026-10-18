@@ -33,6 +33,22 @@ describe('fairShares', () => {
     const opener = fairShares(input).find((s) => s.staffId === 'n1' && s.kind === 'opener')
     expect(opener?.days).toEqual([WEEK[1]])
   })
+
+  it('deals two ügyelet seats a day over the teachers, on days with 2 or more full groups', () => {
+    const input = makeInput({ teachers: 5, nannies: 2, groups: 2, days: WEEK.slice(0, 2) })
+    const duty = fairShares(input).filter((s) => s.kind === 'duty')
+    expect(duty).toHaveLength(5)
+    // 2 days × 2 seats = 4 duty days over 10 teacher-days.
+    expect(duty[0]).toMatchObject({ staffId: 't1', num: 8, den: 10, pool: 'duty' })
+    expect(duty[0].days).toEqual(WEEK.slice(0, 2))
+  })
+
+  it('leaves out 1-group days (duty is forced) and days with an empty teacher seat', () => {
+    const one = makeInput({ teachers: 3, nannies: 2, groups: 1, days: WEEK.slice(0, 2) })
+    expect(fairShares(one).filter((s) => s.kind === 'duty')).toEqual([])
+    const short = makeInput({ teachers: 3, nannies: 2, groups: 2, days: WEEK.slice(0, 1) })
+    expect(fairShares(short).filter((s) => s.kind === 'duty')).toEqual([])
+  })
 })
 
 describe('floors', () => {

@@ -107,8 +107,8 @@ const oneDay = (assignments: Assignment[]): Roster => ({
   ...TEST_META,
 })
 const wall = oneDay([
-  day('t1', 'morning', { seat: { kind: 'teacher', group: 1, shift: 'morning' } }),
-  day('t2', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' } }),
+  day('t1', 'morning', { seat: { kind: 'teacher', group: 1, shift: 'morning' }, duty: true }),
+  day('t2', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' }, duty: true }),
   day('t3', 'afternoon'),
   day('n1', 'morning', { seat: { kind: 'nanny', group: 1 }, opener: true }),
   day('n2', 'afternoon', { closer: true }),
@@ -138,7 +138,10 @@ describe('anchored solve', () => {
   it('lets a reserve on the same shift take the seat, and moves nobody else', () => {
     const r = recalcWed(wall, ['t2'])
     expect(of(r, 't3')).toEqual(
-      day('t3', 'afternoon', { seat: { kind: 'teacher', group: 1, shift: 'afternoon' } }),
+      day('t3', 'afternoon', {
+        seat: { kind: 'teacher', group: 1, shift: 'afternoon' },
+        duty: true, // the seat's ügyelet comes with it
+      }),
     )
     for (const id of ['t1', 'n1', 'n2', 'n3']) expect(of(r, id)).toEqual(of(wall, id))
   })
