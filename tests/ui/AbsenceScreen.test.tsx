@@ -76,6 +76,28 @@ describe('AbsenceScreen', () => {
     )
   })
 
+  it('heads the helpers with sections of their own, never marked short (v3-c)', () => {
+    const helpers: Action[] = [
+      ...actions,
+      { type: 'addStaff', id: 'as', role: 'assistant' },
+      { type: 'updateStaff', id: 'as', patch: { fullName: 'Pap Bea', displayName: 'Bea' } },
+      { type: 'addStaff', id: 'c', role: 'civil' },
+      { type: 'updateStaff', id: 'c', patch: { fullName: 'Tóth Zsófi', displayName: 'Zsófi' } },
+      { type: 'setAbsent', staffId: 'as', dates: ['2026-10-26'], absent: true, kind: 'leave' },
+    ]
+    render(<Screen state={helpers.reduce(reducer, emptyState())} dispatch={vi.fn()} />)
+    const heads = screen.getAllByRole('rowheader').filter((h) => h.className === 'section')
+    expect(heads.map((h) => h.textContent)).toEqual([
+      'Óvónők',
+      'Dajkák',
+      'Pedagógiai asszisztensek',
+      'Civilek',
+    ])
+    const away = screen.getByLabelText('Távol (asszisztens) 2026-10-26')
+    expect(away.textContent).toBe('1')
+    expect(away.className).toBe('count')
+  })
+
   it('marks a day, and a stretch by dragging along the row', () => {
     const dispatch = renderScreen()
     fireEvent.pointerDown(screen.getByLabelText('Anna 2026-10-26'))

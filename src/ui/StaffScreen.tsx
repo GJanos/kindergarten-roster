@@ -1,17 +1,14 @@
 import { ui } from '../i18n/hu'
 import { isRostered, type Action, type AppState } from '../state/appState'
 import { carryPatch, leaveBalance } from '../state/leave'
-import type { Role, Staff } from '../core/types'
+import { ROLES, type Role, type Staff } from '../core/types'
 import { today } from './dates'
 import { Info } from './Info'
 import { YearBalance } from './YearBalance'
 
 type Props = { state: AppState; dispatch: (action: Action) => void }
 
-const ROLES: readonly Role[] = ['teacher', 'nanny']
-const other = (role: Role): 'teacher' | 'nanny' => (role === 'teacher' ? 'nanny' : 'teacher')
-
-/** Teachers and nannies side by side; deleted people stay hidden. */
+/** The four roles side by side (two since v3-c's helpers); deleted people stay hidden. */
 export function StaffScreen({ state, dispatch }: Props) {
   const visible = state.staff.filter((s) => !s.deleted)
   const uses = new Map<string, number>()
@@ -92,7 +89,7 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                 {ui.staff.leaveCarry(year)} <Info text={ui.staff.leaveCarryHint} />
               </th>
               <th>{ui.staff.leaveLeft(year)}</th>
-              <th />
+              <th>{ui.staff.role}</th>
               <th />
             </tr>
           </thead>
@@ -158,13 +155,18 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                       ui.absences.balance(leaveBalance(state.absences, s, year).remaining)}
                   </td>
                   <td>
-                    <button
-                      className="small"
-                      title={ui.staff.moveHint[other(role)]}
-                      onClick={() => update(s.id, { role: other(role) })}
+                    <select
+                      aria-label={ui.staff.role}
+                      title={ui.staff.roleHint}
+                      value={s.role}
+                      onChange={(e) => update(s.id, { role: e.target.value as Role })}
                     >
-                      {ui.staff.move[other(role)]}
-                    </button>
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {ui.staff.roles[r]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td>
                     <button className="small" title={ui.staff.removeHint} onClick={() => remove(s)}>

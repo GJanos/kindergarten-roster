@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { addDays, periodForWeek } from '../core/calendar'
 import { dayCapacities, expectedHoles } from '../core/capacity'
-import { editRoster, type Swap } from '../core/edit'
+import { editRoster, editShift, type ShiftChange, type Swap } from '../core/edit'
 import { recalcInput } from '../core/recalc'
-import type { Anchor, Warning } from '../core/types'
+import { HELPER_SHIFTS, isHelper, type Anchor, type Roster, type Warning } from '../core/types'
 import { footnotes } from '../export/views'
 import { rosterFileName, rosterWorkbook, workbookBytes } from '../export/xlsx'
-import { ui } from '../i18n/hu'
+import { helperShort, ui } from '../i18n/hu'
 import { groupCount, periodState, reducer, type Action, type AppState } from '../state/appState'
 import { backupJson } from '../state/backup'
 import { sickCall } from '../state/sickCall'
@@ -82,6 +82,12 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
   const editable = roster !== undefined && !archived && !stale && !solving
   const earlyNote = roster?.stoppedEarly && ui.roster.stoppedEarly(roster.stoppedEarly)
   const nameOf = (id: string) => state.staff.find((s) => s.id === id)?.displayName ?? '?'
+  // The picked person's day, when she is a helper: her hours can change by hand (v3-c).
+  const pickedRole = picked && state.staff.find((s) => s.id === picked.staffId)?.role
+  const pickedHelper =
+    picked && pickedRole && isHelper(pickedRole)
+      ? roster?.assignments.find((a) => a.staffId === picked.staffId && a.date === picked.date)
+      : undefined
   // Re-solving throws hand edits away, so she is asked first.
   const mayDropEdits = () => !roster?.edited || window.confirm(ui.roster.confirmDropEdits)
 
@@ -92,20 +98,36 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
     return () => window.removeEventListener('keydown', cancel)
   }, [picked])
 
+  // A hand edit that passed the gate: save it, as one undo step with its cells marked.
+  const applyEdit = (edited: Roster, label: string) => {
+    if (!roster) return
+    dispatch({ type: 'saveRoster', week, roster: edited, inputKey: inputKey(input) })
+    history.record({
+      week,
+      label,
+      undo: [{ type: 'restoreRoster', week, roster, inputKey: period.rosterInputKey }],
+      changed: [...changedCells(roster, edited, state.staff, period.groupLabels)],
+    })
+  }
+
   const swap = (change: Swap) => {
     if (!roster) return
     const result = editRoster(input, roster, change, from)
-    if (!result.ok) {
-      setSwapError(ui.roster.swapRefused(result.violations.map((v) => v.rule)))
-      return
-    }
-    dispatch({ type: 'saveRoster', week, roster: result.roster, inputKey: inputKey(input) })
-    history.record({
-      week,
-      label: ui.roster.didSwap(nameOf(change.a), nameOf(change.b), change.date),
-      undo: [{ type: 'restoreRoster', week, roster, inputKey: period.rosterInputKey }],
-      changed: [...changedCells(roster, result.roster, state.staff, period.groupLabels)],
-    })
+    if (!result.ok) return setSwapError(ui.roster.swapRefused(result.violations.map((v) => v.rule)))
+    applyEdit(result.roster, ui.roster.didSwap(nameOf(change.a), nameOf(change.b), change.date))
+  }
+
+  // A helper's hours by hand (v3-c): 8–16, 6–14 or 10–18.
+  const changeShift = (change: ShiftChange) => {
+    setPicked(undefined)
+    if (!roster) return
+    const result = editShift(input, roster, change, from)
+    if (!result.ok)
+      return setSwapError(ui.roster.shiftRefused(result.violations.map((v) => v.rule)))
+    applyEdit(
+      result.roster,
+      ui.roster.didShift(nameOf(change.staffId), helperShort[change.shift], change.date),
+    )
   }
 
   // First click picks, a second on the same day swaps; another day moves the pick.
@@ -418,6 +440,18 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {picked && (
           <div className="swap-bar">
             <span>{ui.roster.picked(nameOf(picked.staffId), picked.date)}</span>
+            {pickedHelper &&
+              HELPER_SHIFTS.map((shift) => (
+                <button
+                  key={shift}
+                  title={ui.roster.shiftHint}
+                  aria-pressed={pickedHelper.shift === shift}
+                  disabled={pickedHelper.shift === shift || solving}
+                  onClick={() => changeShift({ ...picked, shift })}
+                >
+                  {helperShort[shift]}
+                </button>
+              ))}
             {from !== undefined && picked.date >= from && (
               <button
                 onClick={() => {
