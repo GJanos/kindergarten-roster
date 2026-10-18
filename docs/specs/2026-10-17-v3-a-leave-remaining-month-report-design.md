@@ -55,7 +55,9 @@ three v3 parts (a → b → c). No solver or data change.
 ## Decisions
 
 - **Report only, no lock** (her choice over "report + lock").
-- **Print only, no Excel.** "Print to PDF" covers emailing it to the accountant.
+- **Print now, Excel later.** "Print to PDF" covers emailing it to the accountant. An Excel
+  export may be wanted later, so `monthReport` returns plain rows that the print panel and a
+  future `xlsx.ts` sheet can share, the way `views.ts` serves both today.
 - **Leave left uses the month's end**, so a printed October report stays correct after leave is
   entered for November.
 - **The calendar year for leave, as now.** The kindergarten year still only drives fairness.

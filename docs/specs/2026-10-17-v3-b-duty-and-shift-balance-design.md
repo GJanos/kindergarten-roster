@@ -111,9 +111,14 @@ holes → substitutions → keepPeople → keepHours → keepDuties → pairs �
 - Validate rejects two duty groups and duty on a hole. A swap moves duty with the seat.
 - Recalc pins past duty.
 
-**Performance gate:** her real weeks (`data/ovoda-mentes-*.json`) and the 6–8-group demo, timed
-per stage. Four more stages at 15 s each can push the worst case, so the watchdog limit is
-checked against the new total.
+**Time limits go up a lot.** She agreed in person (2026-10-17) that waits of a minute or more are
+fine, and her laptop is slow. Correctness comes before speed:
+
+- The per-stage limit doubles: 15 → **30 s**, and `yearly` goes 10 → 20 s.
+- The watchdog becomes the sum of the stage limits plus a margin, so it never cuts a solve the
+  stages would finish.
+- Her real weeks (`data/ovoda-mentes-*.json`) and the 6–8-group demo are timed per stage, to
+  check that nothing hits the new limits on an ordinary week. The timings are not a gate.
 
 ## Decisions
 

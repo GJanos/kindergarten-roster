@@ -80,8 +80,8 @@ Her staff includes two kinds of helpers the app can't hold. Both usually work a 
 - **Person view:** two more sections, and a `day` fill colour.
 - **Excel / print:** the same, from `views.ts`.
 - **Warnings:** `SUBSTITUTION` gets helper texts that name the shift (the "why" she asked for).
-- **Data:** `migrate.ts` accepts the new roles. Old backups load unchanged, so there's no schema
-  bump. Undo, backup and restore carry `shift: 'day'`.
+- **Data:** `migrate.ts` accepts the new roles. Undo, backup and restore carry `shift: 'day'`.
+  Loading old backups unchanged is nice to have, not a requirement.
 
 ## Tests
 
@@ -91,7 +91,7 @@ Her staff includes two kinds of helpers the app can't hold. Both usually work a 
 - Helpers never show up in fairness shares, the balance or the year totals.
 - A by-hand shift change sets `edited`, can be undone, and validate refuses a broken stand-in.
 - Capacity with civils.
-- Old backups migrate.
+- Old backups migrate (nice to have).
 
 ## Decisions (assumptions, to confirm with her)
 
