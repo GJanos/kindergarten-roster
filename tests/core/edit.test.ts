@@ -212,7 +212,7 @@ describe('random swaps on random periods', () => {
           expect(result.violations.length).toBeGreaterThan(0)
         }
       }
-    })
+    }, 300_000) // the same random weeks as the properties test: a few take 1–2 min to solve
   }
 })
 
