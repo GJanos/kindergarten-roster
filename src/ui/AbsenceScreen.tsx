@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addDays, mondayOf, periodForWeek } from '../core/calendar'
-import type { AbsenceKind, Staff } from '../core/types'
+import { rosterOrder } from '../core/names'
+import type { AbsenceKind } from '../core/types'
 import { formatPeriod, monthLabel, ui } from '../i18n/hu'
 import type { Action, AppState } from '../state/appState'
 import { AbsenceGrid } from './AbsenceGrid'
@@ -18,17 +19,6 @@ type Props = {
 }
 
 const KINDS: readonly AbsenceKind[] = ['leave', 'sick', 'other']
-
-/** Teachers first, then nannies, each by name. */
-export function rosterOrder(staff: Staff[]): Staff[] {
-  return [...staff].sort((a, b) =>
-    a.role === b.role
-      ? (a.displayName || a.fullName).localeCompare(b.displayName || b.fullName, 'hu')
-      : a.role === 'teacher'
-        ? -1
-        : 1,
-  )
-}
 
 /** Back to the current week or month. Kept in place, only hidden, so the bar never shifts. */
 function TodayButton({ away, onClick }: { away: boolean; onClick: () => void }) {

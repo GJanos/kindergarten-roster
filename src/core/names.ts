@@ -18,3 +18,14 @@ export function resolveNames(text: string, staff: Staff[]): string {
   const names = new Map(staff.map((s) => [s.id, s.displayName]))
   return text.replace(REFERENCE, (_, id: string) => names.get(id) ?? '?')
 }
+
+/** Teachers first, then nannies, each by name. */
+export function rosterOrder(staff: Staff[]): Staff[] {
+  return [...staff].sort((a, b) =>
+    a.role === b.role
+      ? (a.displayName || a.fullName).localeCompare(b.displayName || b.fullName, 'hu')
+      : a.role === 'teacher'
+        ? -1
+        : 1,
+  )
+}
