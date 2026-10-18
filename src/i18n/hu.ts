@@ -197,6 +197,10 @@ export const ui = {
       'Éves szabadságkeret napokban. Üresen hagyva nem követjük. A Távollétek és a Munkatársak ' +
       'fülön látszik, mennyi maradt belőle.',
     leaveLeft: (year: string) => `Maradt (${year})`,
+    leaveCarry: (year: string) => `Áthozott (${year})`,
+    leaveCarryHint:
+      'Az előző évből áthozott szabadságnapok, a keret fölött. Másik évét a Távollétek fülön, ' +
+      'a név melletti gombbal írhatod be.',
     confirmRemove: (name: string) => `Biztosan törlöd: ${name}?`,
     confirmRemoveRostered: (name: string) =>
       `${name} már szerepelt beosztásban. Ha csak egy ideig nem dolgozik, inkább vedd ki az ` +

@@ -187,6 +187,9 @@ describe('AbsenceScreen kinds', () => {
     fireEvent.click(balance)
     const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
     expect(carry.value).toBe('3')
+    // It floats in the dock, named, so the grid keeps its rows and nothing moves.
+    expect(carry.closest('table')).toBeNull()
+    expect(carry.closest('.action-dock')?.textContent).toContain('Anna')
     fireEvent.change(carry, { target: { value: '5' } })
     expect(dispatch).toHaveBeenLastCalledWith({
       type: 'updateStaff',
@@ -203,6 +206,14 @@ describe('AbsenceScreen kinds', () => {
     ]
     render(<Screen state={steps.reduce(reducer, state)} dispatch={vi.fn()} />)
     expect(screen.getByText('1 nappal túllépve').className).toBe('leave-balance over')
+  })
+
+  it('opens the carry-over editor at 0 when nothing is carried over', () => {
+    const steps: Action[] = [{ type: 'updateStaff', id: 'a', patch: { leaveAllowance: 20 } }]
+    render(<Screen state={steps.reduce(reducer, state)} dispatch={vi.fn()} />)
+    fireEvent.click(screen.getByText('20 maradt'))
+    const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
+    expect(carry.value).toBe('0')
   })
 
   it('shows the monthly report in place of the grid, prints it, and closes on a month change', () => {

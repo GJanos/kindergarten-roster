@@ -181,4 +181,36 @@ describe('StaffScreen', () => {
       vi.useRealTimers()
     }
   })
+
+  it("types this calendar year's carry-over next to the allowance", () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 5, 12))
+    try {
+      const tracked = run(...person('a', 'Kiss Anna'), {
+        type: 'updateStaff',
+        id: 'a',
+        patch: { leaveAllowance: 40, leaveCarry: { '2025': 1, '2026': 3 } },
+      })
+      const dispatch = renderScreen(tracked)
+      expect(screen.getByText('Áthozott (2026)')).toBeTruthy()
+      const carry = screen.getByLabelText('Áthozott napok (2026)') as HTMLInputElement
+      expect(carry.value).toBe('3')
+      expect(screen.getByText('43 maradt')).toBeTruthy()
+      fireEvent.change(carry, { target: { value: '5' } })
+      expect(dispatch).toHaveBeenLastCalledWith({
+        type: 'updateStaff',
+        id: 'a',
+        patch: { leaveCarry: { '2025': 1, '2026': 5 } },
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reads 0 carried over when nothing is', () => {
+    renderScreen(run(...person('a', 'Kiss Anna')))
+    const year = new Date().getFullYear()
+    const carry = screen.getByLabelText(`Áthozott napok (${year})`) as HTMLInputElement
+    expect(carry.value).toBe('0')
+  })
 })

@@ -1,6 +1,6 @@
 import { ui } from '../i18n/hu'
 import { isRostered, type Action, type AppState } from '../state/appState'
-import { leaveBalance } from '../state/leave'
+import { carryPatch, leaveBalance } from '../state/leave'
 import type { Role, Staff } from '../core/types'
 import { today } from './dates'
 import { Info } from './Info'
@@ -88,6 +88,9 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
               <th>
                 {ui.staff.leaveAllowance} <Info text={ui.staff.leaveAllowanceHint} />
               </th>
+              <th>
+                {ui.staff.leaveCarry(year)} <Info text={ui.staff.leaveCarryHint} />
+              </th>
               <th>{ui.staff.leaveLeft(year)}</th>
               <th />
               <th />
@@ -138,6 +141,16 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                               : Math.max(0, Math.round(Number(e.target.value))),
                         })
                       }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      className="allowance"
+                      aria-label={ui.absences.carry(year)}
+                      value={s.leaveCarry?.[year] ?? 0}
+                      onChange={(e) => update(s.id, carryPatch(s, year, e.target.value))}
                     />
                   </td>
                   <td className="leave-left">

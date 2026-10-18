@@ -766,6 +766,9 @@ td {
   gap: 12px;
   align-items: center;
   padding: 6px 8px;
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  background: var(--surface);
 }
 .leave-editor input,
 .staff input.allowance {

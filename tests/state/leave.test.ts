@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Absence, Staff } from '../../src/core/types'
-import { leaveBalance } from '../../src/state/leave'
+import { carryPatch, leaveBalance } from '../../src/state/leave'
 
 const anna: Staff = {
   id: 'a',
@@ -37,5 +37,20 @@ describe('leaveBalance', () => {
   it('goes below zero past the allowance', () => {
     const tight: Staff = { ...anna, leaveAllowance: 1, leaveCarry: undefined }
     expect(leaveBalance(absences, tight, '2026').remaining).toBe(-1)
+  })
+})
+
+describe('carryPatch', () => {
+  it("sets one year's carry-over and keeps the other years", () => {
+    const both: Staff = { ...anna, leaveCarry: { '2025': 2, '2026': 3 } }
+    expect(carryPatch(both, '2026', '5')).toEqual({ leaveCarry: { '2025': 2, '2026': 5 } })
+    expect(carryPatch(both, '2026', '')).toEqual({ leaveCarry: { '2025': 2 } })
+  })
+
+  it('rounds, and drops zero, below zero and empty, leaving no empty record', () => {
+    expect(carryPatch(anna, '2026', '2.6')).toEqual({ leaveCarry: { '2026': 3 } })
+    expect(carryPatch(anna, '2026', '0')).toEqual({ leaveCarry: undefined })
+    expect(carryPatch(anna, '2026', '-4')).toEqual({ leaveCarry: undefined })
+    expect(carryPatch(anna, '2026', '')).toEqual({ leaveCarry: undefined })
   })
 })
