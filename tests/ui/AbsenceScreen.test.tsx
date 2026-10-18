@@ -98,6 +98,20 @@ describe('AbsenceScreen', () => {
     expect(away.className).toBe('count')
   })
 
+  it('names the asszisztens left when teachers run short (v3-c)', () => {
+    // 3 teachers, 1 asszisztens, 2 groups: 2 teachers away leaves 1 + her, short of 4.
+    const crew = (
+      [
+        { type: 'setAbsent', staffId: 't1', dates: ['2026-10-26'], absent: true },
+        { type: 'setAbsent', staffId: 't2', dates: ['2026-10-26'], absent: true },
+      ] as Action[]
+    ).reduce(reducer, { ...emptyState(), staff: makeStaff(3, 2, 1) })
+    render(<Screen state={crew} dispatch={vi.fn()} />)
+    expect(screen.getByLabelText('Távol (óvónő) 2026-10-26').title).toBe(
+      'Kevés óvónő: 1 óvónő + 1 asszisztens marad, 2 csoporthoz 4 kell.',
+    )
+  })
+
   it('marks a day, and a stretch by dragging along the row', () => {
     const dispatch = renderScreen()
     fireEvent.pointerDown(screen.getByLabelText('Anna 2026-10-26'))
@@ -306,6 +320,9 @@ describe('AbsenceScreen at a glance', () => {
     const teachers = (date: string) => screen.getByLabelText(`Távol (óvónő) ${date}`)
     expect(teachers('2026-10-26').textContent).toBe('2')
     expect(teachers('2026-10-26').className).toBe('count short') // 3 left, 4 needed
+    // Hovering says why, so a mark caused by someone else's absence makes sense.
+    expect(teachers('2026-10-26').title).toBe('Kevés óvónő: 3 óvónő marad, 2 csoporthoz 4 kell.')
+    expect(teachers('2026-10-27').title).toBe('')
     expect(teachers('2026-10-27').textContent).toBe('1')
     expect(teachers('2026-10-27').className).toBe('count') // 4 left
     expect(screen.getByLabelText('Távol (dajka) 2026-10-26').textContent).toBe('')

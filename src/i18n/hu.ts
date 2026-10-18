@@ -171,7 +171,7 @@ const refusal = (rules: string[]) =>
 export const ui = {
   appName: 'Óvodai beosztás',
   loading: 'Betöltés…',
-  tabs: { staff: 'Munkatársak', absences: 'Távollétek', roster: 'Beosztás' },
+  tabs: { staff: 'Munkatársak', absences: 'Távollétek', roster: 'Beosztás', balance: 'Egyenleg' },
   firstLaunch: {
     intro: 'Hogyan kezdjük?',
     start: 'Új kezdés',
@@ -249,6 +249,7 @@ export const ui = {
       'hetekkel együtt. Zárójelben: ennyivel több (+) vagy ' +
       'kevesebb (−) jutott neki az egyenlő résznél. Ahol egy hét nem osztható el egyenlően, a ' +
       'következő beosztás ezt egyenlíti ki.',
+    yearBalanceNoStaff: 'Még nincs munkatárs. A Munkatársak fülön veheted fel őket.',
     yearBalanceEmpty:
       'Még üres: az idei első mentett beosztás után itt látod, ki hányszor volt délelőttös, ' +
       'délutános, nyitó, záró, tartalék vagy ügyeletes.',
@@ -300,7 +301,12 @@ export const ui = {
       civil: 'Távol (civil)',
     } satisfies Record<Role, string>,
     shortHint:
-      'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka).',
+      'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka). ' +
+      'Asszisztens egy délutános óvónőt, civil egy dajkát pótolhat. Vidd az egeret a narancs mezőre: kiírja, mennyien maradnak.',
+    shortTeachers: (teachers: number, assistants: number, groups: number, need: number) =>
+      `Kevés óvónő: ${teachers} óvónő${assistants > 0 ? ` + ${assistants} asszisztens` : ''} marad, ${groups} csoporthoz ${need} kell.`,
+    shortNannies: (nannies: number, civils: number, need: number) =>
+      `Kevés dajka: ${nannies} dajka${civils > 0 ? ` + ${civils} civil` : ''} marad, ${need} kell.`,
     today: 'Ma',
   },
   roster: {

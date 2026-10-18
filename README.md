@@ -9,7 +9,7 @@ people).
 
 ## What she can do
 
-Three tabs, all in Hungarian.
+Four tabs, all in Hungarian.
 
 **Munkatársak (staff)**
 
@@ -17,9 +17,7 @@ Three tabs, all in Hungarian.
   helpers) and _civilek_. Each person has the short name that appears on the wall, a yearly leave
   allowance, the days carried over into this year and the days left. A _Munkakör_ list moves
   someone to another role. Someone who has left is hidden, not deleted, so old weeks keep their names.
-- The **yearly balance**: per person, the mornings, afternoons, openings, closings, reserve and
-  ügyelet days this kindergarten year, weeks planned ahead included, and how far each is from an
-  even share.
+  Teachers and nannies sit side by side, the helpers on a row of their own below.
 
 **Távollétek (absences)**
 
@@ -34,7 +32,9 @@ Three tabs, all in Hungarian.
   accountant.
 - Today's column is outlined and school-break days are tinted.
 - A _Távol_ row per role counts who is away. For teachers and nannies it turns orange when too
-  few are left for the week's groups, counting the helpers who can stand in.
+  few are left for the week's groups, counting the helpers who can stand in. Hovering an orange
+  cell says how many are left and how many are needed, so a mark caused by a helper's absence
+  makes sense.
 
 **Beosztás (roster)**
 
@@ -66,6 +66,12 @@ Three tabs, all in Hungarian.
   with the fewest changes. The undo bar then lists whom to phone and what to tell them: people
   whose hours changed first, then those who only move group or key.
 - Weeks that are over are archived: read-only, but still printable.
+
+**Egyenleg (yearly balance)**
+
+- Per person, the mornings, afternoons, openings, closings, reserve and ügyelet days this
+  kindergarten year, weeks planned ahead included, and how far each is from an even share. Its own
+  tab since 2026-10-18, so it is one click away instead of folded under the staff list.
 
 **Everywhere**
 

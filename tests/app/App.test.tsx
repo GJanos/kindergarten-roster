@@ -35,6 +35,14 @@ describe('App', () => {
     expect(await screen.findByText('Hogyan kezdjük?')).toBeTruthy()
   })
 
+  it('shows the yearly balance on a tab of its own', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByText('Bemutató adatok'))
+    fireEvent.click(screen.getByRole('button', { name: 'Egyenleg' }))
+    expect(screen.getByText(/Éves egyenleg \(2026\/27\)/)).toBeTruthy()
+    expect(screen.getByText('Anna').closest('tr')).toBeTruthy()
+  })
+
   it('keeps her data after the page is closed', async () => {
     render(<App />)
     fireEvent.click(await screen.findByText('Új kezdés'))

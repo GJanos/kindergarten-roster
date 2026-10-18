@@ -4,11 +4,16 @@ import { carryPatch, leaveBalance } from '../state/leave'
 import { ROLES, type Role, type Staff } from '../core/types'
 import { today } from './dates'
 import { Info } from './Info'
-import { YearBalance } from './YearBalance'
 
 type Props = { state: AppState; dispatch: (action: Action) => void }
 
-/** The four roles side by side (two since v3-c's helpers); deleted people stay hidden. */
+/** Teachers and nannies, then the helpers (v3-c) on a row of their own below. */
+const ROWS: readonly (readonly Role[])[] = [
+  ['teacher', 'nanny'],
+  ['assistant', 'civil'],
+]
+
+/** The staff by role, side by side where they fit; deleted people stay hidden. */
 export function StaffScreen({ state, dispatch }: Props) {
   const visible = state.staff.filter((s) => !s.deleted)
   const uses = new Map<string, number>()
@@ -28,22 +33,23 @@ export function StaffScreen({ state, dispatch }: Props) {
         </ul>
       </details>
       {visible.length === 0 && <p>{ui.staff.empty}</p>}
-      <div className="staff-columns">
-        {ROLES.map((role) => (
-          <StaffColumn
-            key={role}
-            role={role}
-            // Inactive people sink to the bottom; the order is otherwise hers.
-            people={visible
-              .filter((s) => s.role === role)
-              .sort((a, b) => Number(b.active) - Number(a.active))}
-            isDuplicate={(s) => (uses.get(s.displayName.trim()) ?? 0) > 1}
-            state={state}
-            dispatch={dispatch}
-          />
-        ))}
-      </div>
-      <YearBalance state={state} today={today()} />
+      {ROWS.map((roles) => (
+        <div key={roles[0]} className="staff-columns">
+          {roles.map((role) => (
+            <StaffColumn
+              key={role}
+              role={role}
+              // Inactive people sink to the bottom; the order is otherwise hers.
+              people={visible
+                .filter((s) => s.role === role)
+                .sort((a, b) => Number(b.active) - Number(a.active))}
+              isDuplicate={(s) => (uses.get(s.displayName.trim()) ?? 0) > 1}
+              state={state}
+              dispatch={dispatch}
+            />
+          ))}
+        </div>
+      ))}
     </section>
   )
 }

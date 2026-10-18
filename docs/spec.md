@@ -357,7 +357,7 @@ rename reaches rosters saved before it. Texts saved before v2 hold plain names a
 ## 8. UI — Hungarian, large
 
 Base text 16 px, buttons ≥ 38 px (the main actions 46 px); light and dark theme, following the
-system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Three tabs: **Munkatársak · Távollétek · Beosztás**. Footer on
+system until she picks one with the ☾ / ☀ button (remembered; the printout is always light). Four tabs: **Munkatársak · Távollétek · Beosztás · Egyenleg** (the fourth since 2026-10-18). Footer on
 every screen: *"Utolsó mentés: 3 napja"* + **Mentés fájlba**, orange after 7 days without a backup.
 First launch: **Új kezdés · Visszatöltés fájlból · Bemutató adatok**; demo mode shows a
 *"Bemutató adatok — nem valódi személyek"* banner.
@@ -374,7 +374,8 @@ someone already rostered recommends unticking Aktív instead. Deleting them anyw
 (`deleted: true`, inactive) but keeps the record, so past rosters keep the name. Someone never
 rostered is deleted outright.
 
-**Éves egyenleg (2026/27)** — a folded table at the bottom: per person the year's mornings,
+**Éves egyenleg (2026/27)** — the **Egyenleg** tab (until 2026-10-18 a folded table at the bottom
+of Munkatársak): per person the year's mornings,
 afternoons, openings, closings and reserve days from the saved rosters, each with its difference
 from an equal share, e.g. *12 (+1,5)*.
 
