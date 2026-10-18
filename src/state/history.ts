@@ -47,7 +47,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
     if (!row) {
       row = {
         staffId,
-        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 0 },
         deltas: {},
       }
       rows.set(staffId, row)

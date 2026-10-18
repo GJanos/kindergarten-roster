@@ -90,6 +90,7 @@ const counts: Record<GapKind, (a: Assignment) => boolean> = {
   opener: (a) => a.opener === true,
   closer: (a) => a.closer === true,
   reserve: (a) => a.seat === undefined,
+  duty: (a) => a.duty === true,
 }
 
 export function countFor(share: Share, roster: Roster): number {

@@ -83,12 +83,12 @@ describe('yearTotals', () => {
     expect(yearTotals(state, '2026-11-05')).toEqual([
       {
         staffId: 't1',
-        counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 0 },
         deltas: { morning: 0.5 },
       },
       {
         staffId: 'n1',
-        counts: { morning: 1, afternoon: 1, opener: 1, closer: 1, reserve: 1 },
+        counts: { morning: 1, afternoon: 1, opener: 1, closer: 1, reserve: 1, duty: 0 },
         deltas: { opener: 0.5, reserve: -0.5 },
       },
     ])
@@ -101,7 +101,7 @@ describe('yearTotals', () => {
     expect(yearTotals(state, '2026-11-05')).toEqual([
       {
         staffId: 't1',
-        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0 },
+        counts: { morning: 0, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 0 },
         deltas: {},
       },
     ])

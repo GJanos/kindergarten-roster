@@ -18,6 +18,9 @@ const SEVERITY: Record<WarningCode, Severity> = {
   GROUP_SWITCH: 'grey',
   TURNAROUND: 'grey',
   UNEVEN: 'grey',
+  DUTY_MISSING: 'red',
+  PAIR_SAME: 'grey',
+  SHIFT_IMBALANCE: 'grey',
 }
 const RANK: Record<Severity, number> = { red: 0, orange: 1, grey: 2 }
 
@@ -83,7 +86,7 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
           cells: [{ date: hole.date, group: hole.group }],
         },
       )
-    } else {
+    } else if (hole.kind !== 'duty') {
       add(
         hole.kind === 'opener' ? 'OPENER_MISSING' : 'CLOSER_MISSING',
         hole.date,

@@ -397,7 +397,7 @@ const shiftAdjective: Record<Shift, string> = { morning: 'délelőttös', aftern
 
 export type UnevenDetail =
   | { kind: 'morning' | 'afternoon'; count: number; of: number }
-  | { kind: 'opener' | 'closer' | 'reserve'; count: number; of: number }
+  | { kind: 'opener' | 'closer' | 'reserve' | 'duty'; count: number; of: number }
 
 /** "2 délutánnal több": the instrumental of each count, after a number. */
 const yearNoun: Record<UnevenDetail['kind'], string> = {
@@ -406,6 +406,7 @@ const yearNoun: Record<UnevenDetail['kind'], string> = {
   opener: 'nyitással',
   closer: 'zárással',
   reserve: 'tartaléknappal',
+  duty: 'ügyelettel',
 }
 
 export const warningText = {
@@ -454,6 +455,7 @@ export const warningText = {
       opener: `${detail.count} napon nyit`,
       closer: `${detail.count} napon zár`,
       reserve: `${detail.count} napon tartalék`,
+      duty: `${detail.count} napon ügyeletes`,
     }[detail.kind]
     const text = `Egyenlő elosztás nem volt lehetséges: ${name} ${what} ${outOf(detail.of)}.`
     if (yearly === undefined || Math.abs(yearly) < 1) return text

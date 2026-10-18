@@ -13,6 +13,7 @@ const warningFor: Record<Hole['kind'], WarningCode> = {
   teacherSeat: 'TEACHER_SEAT_EMPTY',
   opener: 'OPENER_MISSING',
   closer: 'CLOSER_MISSING',
+  duty: 'DUTY_MISSING',
 }
 
 describe('every random period', () => {
