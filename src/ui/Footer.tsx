@@ -55,6 +55,7 @@ export function Footer({ state, dispatch, replace, persisted, storageError }: Pr
       {persisted === false && <span className="note">{ui.footer.notPersisted}</span>}
       {storageError && <span className="error">{ui.footer.saveFailed}</span>}
       {error && <span className="error">{error}</span>}
+      <span className="note version">{ui.footer.version(__BUILD__)}</span>
     </footer>
   )
 }

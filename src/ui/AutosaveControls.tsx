@@ -10,7 +10,9 @@ const clock = (iso: string) => {
 /** The footer's autosave part (2026-10-18): off, on, or a visible reason why it is not saving. */
 export function AutosaveControls({ auto }: { auto: Autosave }) {
   const { status } = auto
-  if (status === 'unsupported' || status === 'loading') return null
+  if (status === 'loading') return null
+  // Said, not hidden: a missing button reads as a missing feature (2026-10-18).
+  if (status === 'unsupported') return <span className="note">{ui.autosave.unsupported}</span>
   if (status === 'demo') return <span className="note">{ui.autosave.demo}</span>
   if (status === 'off') {
     return (
