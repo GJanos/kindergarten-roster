@@ -195,6 +195,24 @@ export const ui = {
     notPersisted: 'A böngésző nem garantálja a tárolást — ments gyakrabban fájlba.',
     saveFailed: 'Nem sikerült menteni a böngészőbe — ments fájlba!',
   },
+  /** Autosave to a folder she picks (2026-10-18). */
+  autosave: {
+    enable: 'Automatikus mentés…',
+    hint:
+      'Kiválasztasz egy mappát, és néhány percenként oda menti a napi mentést (ovoda-mentes-ÉÉÉÉ-HH-NN.json), ' +
+      'ha valami változott. Naponta egy fájl, a korábbi napoké megmarad. Csak Chrome-ban és Edge-ben.',
+    on: (folder: string) => `Automatikus mentés bekapcsolva → ${folder}`,
+    saved: (time: string, folder: string, file: string) =>
+      `Automatikus mentés: ${time} → ${folder}/${file}`,
+    interval: 'Automatikus mentés gyakorisága',
+    every: (minutes: number) => `${minutes} percenként`,
+    disable: 'Kikapcsolás',
+    paused: 'Az automatikus mentés szünetel — a böngésző újra engedélyt kér a mappához.',
+    allow: 'Engedélyezés',
+    failed: 'Az automatikus mentés nem sikerült (megvan még a mappa?).',
+    retry: 'Újra',
+    demo: 'Bemutató módban nincs automatikus mentés.',
+  },
   confirmRestore: 'Ez felülírja a jelenlegi adatokat. Folytatod?',
   restoreFailed: 'A fájl nem olvasható. Semmi sem változott.',
   staff: {
