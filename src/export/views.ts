@@ -1,4 +1,4 @@
-import type { Absence, Assignment, Role, Roster, Staff } from '../core/types'
+import type { Absence, Assignment, Role, Roster, Shift, Staff } from '../core/types'
 import { resolveNames } from '../core/names'
 import { ABSENCE_WORD, DUTY, HOLE, dutyMark, groupName, groupShort, shiftShort } from '../i18n/hu'
 
@@ -8,7 +8,7 @@ export type Tone = 'hole' | 'substitution' | 'muted' | 'duty'
 export type Line = { text: string; bold?: boolean; tone?: Tone; staffId?: string }
 export type GroupView = { days: string[]; rows: { label: string; cells: Line[][] }[] }
 
-export type Fill = 'morning' | 'afternoon' | 'absent' | 'closed'
+export type Fill = Shift | 'absent' | 'closed'
 export type PersonCell = { text: string; fill?: Fill; bold?: boolean; tone?: Tone }
 export type PersonView = {
   days: string[]

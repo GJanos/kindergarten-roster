@@ -1,4 +1,4 @@
-import type { Balance, GapKind, Shift } from '../core/types'
+import { isHelper, type Balance, type GapKind, type SeatShift } from '../core/types'
 import type { AppState } from './appState'
 
 /** Sep 1 of the kindergarten year `date` falls in (the year her balance resets). */
@@ -31,16 +31,18 @@ export function yearlyHistory(state: AppState, week: string): Balance {
   return total
 }
 
-export type YearCounts = Record<Shift | Exclude<GapKind, 'morning'>, number>
+export type YearCounts = Record<SeatShift | Exclude<GapKind, 'morning'>, number>
 export type YearRow = { staffId: string; counts: YearCounts; deltas: Balance[string] }
 
 /**
  * Each person's kindergarten year: days per shift, openings, closings, reserve days and ügyelet
  * days, counted from the year's saved rosters, plus their summed deltas. Weeks planned ahead count
  * too: she rosters break weeks in advance, and a balance that ignored them never moved after a
- * solve (2026-10-18). Teachers first. Every active person has a row, zeros until their first day.
+ * solve (2026-10-18). Teachers first; helpers have no row (v3-c). Every active person has a row,
+ * zeros until their first day.
  */
 export function yearTotals(state: AppState, today: string): YearRow[] {
+  const helpers = new Set(state.staff.filter((s) => isHelper(s.role)).map((s) => s.id))
   const from = yearStart(today)
   const until = `${Number(from.slice(0, 4)) + 1}-09-01`
   const rows = new Map<string, YearRow>()
@@ -60,6 +62,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
   for (const [monday, period] of Object.entries(state.periods)) {
     if (monday < from || monday >= until || !period.roster) continue
     for (const a of period.roster.assignments) {
+      if (helpers.has(a.staffId) || a.shift === 'day') continue // outside the balance (v3-c)
       const { counts } = rowOf(a.staffId)
       counts[a.shift]++
       if (a.opener) counts.opener++
@@ -71,7 +74,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
   }
   for (const [staffId, mine] of Object.entries(deltas)) rowOf(staffId).deltas = mine
   return state.staff
-    .filter((s) => !s.deleted && (s.active || rows.has(s.id)))
+    .filter((s) => !s.deleted && !isHelper(s.role) && (s.active || rows.has(s.id)))
     .sort((a, b) => (a.role === b.role ? 0 : a.role === 'teacher' ? -1 : 1))
     .map((s) => rowOf(s.id))
 }

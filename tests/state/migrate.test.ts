@@ -63,4 +63,17 @@ describe('migrate', () => {
   ])('rejects %s', (_, raw) => {
     expect(() => migrate(raw)).toThrow(InvalidDataError)
   })
+
+  it('accepts the helper roles, and nothing else (v3-c)', () => {
+    const person = (role: string) => ({
+      id: role,
+      fullName: 'X',
+      displayName: 'X',
+      role,
+      active: true,
+    })
+    const state = { ...emptyState(), staff: [person('assistant'), person('civil')] }
+    expect(migrate(structuredClone(state))).toEqual(state)
+    expect(() => migrate({ ...emptyState(), staff: [person('cook')] })).toThrow(InvalidDataError)
+  })
 })

@@ -9,7 +9,7 @@ import { YearBalance } from './YearBalance'
 type Props = { state: AppState; dispatch: (action: Action) => void }
 
 const ROLES: readonly Role[] = ['teacher', 'nanny']
-const other = (role: Role): Role => (role === 'teacher' ? 'nanny' : 'teacher')
+const other = (role: Role): 'teacher' | 'nanny' => (role === 'teacher' ? 'nanny' : 'teacher')
 
 /** Teachers and nannies side by side; deleted people stay hidden. */
 export function StaffScreen({ state, dispatch }: Props) {
@@ -59,7 +59,7 @@ type ColumnProps = Props & {
 
 function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps) {
   const year = today().slice(0, 4)
-  const title = role === 'teacher' ? ui.staff.teachers : ui.staff.nannies
+  const title = ui.staff.sections[role]
   const headingId = `staff-${role}`
   const update = (id: string, patch: Partial<Omit<Staff, 'id'>>) =>
     dispatch({ type: 'updateStaff', id, patch })

@@ -5,8 +5,8 @@ import type { Absence, DayPlan, RosterMeta, SolveInput, Staff } from '../../src/
 
 export const TEST_META: RosterMeta = { solvedAt: '2026-10-20T08:00:00.000Z', appVersion: 'test' }
 
-/** Teachers t1…tN, then nannies n1…nM, all active; names are the ids in capitals. */
-export function makeStaff(teachers: number, nannies: number): Staff[] {
+/** Teachers t1…tN, nannies n1…nM, asszisztens a1…, civils c1…, all active; names are the ids in capitals. */
+export function makeStaff(teachers: number, nannies: number, assistants = 0, civils = 0): Staff[] {
   const person = (id: string, role: Staff['role']): Staff => ({
     id,
     fullName: id.toUpperCase(),
@@ -14,9 +14,13 @@ export function makeStaff(teachers: number, nannies: number): Staff[] {
     role,
     active: true,
   })
+  const some = (count: number, prefix: string, role: Staff['role']) =>
+    Array.from({ length: count }, (_, i) => person(`${prefix}${i + 1}`, role))
   return [
-    ...Array.from({ length: teachers }, (_, i) => person(`t${i + 1}`, 'teacher')),
-    ...Array.from({ length: nannies }, (_, i) => person(`n${i + 1}`, 'nanny')),
+    ...some(teachers, 't', 'teacher'),
+    ...some(nannies, 'n', 'nanny'),
+    ...some(assistants, 'a', 'assistant'),
+    ...some(civils, 'c', 'civil'),
   ]
 }
 
@@ -27,6 +31,8 @@ export function consecutiveDays(start: string, count: number): string[] {
 export type InputSpec = {
   teachers: number
   nannies: number
+  assistants?: number // pedagógiai asszisztens (v3-c)
+  civils?: number
   groups: number
   days?: string[] // default: Monday 2026-10-26 to Friday 2026-10-30
   absent?: Record<string, string[]> // staff id → absent dates
@@ -45,7 +51,7 @@ export function makeInput(spec: InputSpec): SolveInput {
       : { date, requestedGroups: spec.groups, override }
   })
   return {
-    staff: makeStaff(spec.teachers, spec.nannies),
+    staff: makeStaff(spec.teachers, spec.nannies, spec.assistants, spec.civils),
     absences,
     period: { start: days[0], days },
     dayPlans,

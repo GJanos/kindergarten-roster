@@ -1,11 +1,21 @@
 import { usesFridayTimes } from './calendar'
-import type { Role, Shift } from './types'
+import { isHelper, type Role, type Shift } from './types'
+
+/** A helper's hours (v3-c): the same every day. */
+const HELPER_TIMES: Record<Shift, string> = {
+  day: '8:00–16:00',
+  morning: '6:00–14:00',
+  afternoon: '10:00–18:00',
+}
 
 /**
  * Fixed shift times (spec §2): never optimised, never stretched. Ügyelet (v3-b) moves a teacher's
- * shift 30 minutes — the morning one earlier, the afternoon one later — at the same length.
+ * shift 30 minutes — the morning one earlier, the afternoon one later — at the same length. A
+ * helper's 10–18 already covers a DU ügyelet, so her hours never move (v3-c).
  */
 export function shiftTimes(role: Role, shift: Shift, date: string, duty = false): string {
+  if (isHelper(role)) return HELPER_TIMES[shift]
+  if (shift === 'day') throw new Error(`No day shift for a ${role}`)
   if (role === 'nanny') return shift === 'morning' ? '6:00–14:00' : '10:00–18:00'
   const friday = usesFridayTimes(date)
   if (duty) {

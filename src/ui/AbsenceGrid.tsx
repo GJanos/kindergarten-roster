@@ -92,7 +92,7 @@ export function AbsenceGrid({ state, dispatch, people, days, brush, wide }: Prop
                   {(i === 0 || people[i - 1].role !== s.role) && (
                     <tr>
                       <th scope="row" colSpan={days.length + 1} className="section">
-                        {s.role === 'teacher' ? ui.staff.teachers : ui.staff.nannies}
+                        {ui.staff.sections[s.role]}
                       </th>
                     </tr>
                   )}

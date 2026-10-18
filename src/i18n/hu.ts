@@ -1,6 +1,6 @@
 import { weekday } from '../core/calendar'
 import { shiftTimes } from '../core/shifts'
-import type { AbsenceKind, Assignment, Role, Shift } from '../core/types'
+import type { AbsenceKind, Assignment, Role, SeatShift, Shift } from '../core/types'
 
 /** Every Hungarian string the app shows lives in this file. */
 
@@ -76,11 +76,20 @@ export function formatPeriod(days: string[]): string {
 
 export const groupName = (group: number) => `${group}. csoport`
 export const groupShort = (group: number) => `${group}. cs.`
-export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU' }
+export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU', day: 'NAP' }
+/** A helper's hours, short (v3-c): 'Asszisztens: Bea (8–16)'. */
+export const helperShort: Record<Shift, string> = {
+  day: '8–16',
+  morning: '6–14',
+  afternoon: '10–18',
+}
 
 /** Ügyelet in the group view: the teacher's shifted start, or end (v3-b). */
 export const DUTY = 'Ügyelet'
-export const dutyMark: Record<Shift, string> = { morning: ' 6:30-tól', afternoon: ' 17:30-ig' }
+export const dutyMark: Record<SeatShift, string> = {
+  morning: ' 6:30-tól',
+  afternoon: ' 17:30-ig',
+}
 
 export const HOLE = 'BETÖLTETLEN'
 
@@ -184,7 +193,24 @@ export const ui = {
     nanny: 'Dajka',
     teachers: 'Óvónők',
     nannies: 'Dajkák',
-    add: { teacher: '+ Új óvónő', nanny: '+ Új dajka' },
+    roles: {
+      teacher: 'Óvónő',
+      nanny: 'Dajka',
+      assistant: 'Pedagógiai asszisztens',
+      civil: 'Civil',
+    } satisfies Record<Role, string>,
+    sections: {
+      teacher: 'Óvónők',
+      nanny: 'Dajkák',
+      assistant: 'Pedagógiai asszisztensek',
+      civil: 'Civilek',
+    } satisfies Record<Role, string>,
+    add: {
+      teacher: '+ Új óvónő',
+      nanny: '+ Új dajka',
+      assistant: '+ Új asszisztens',
+      civil: '+ Új civil',
+    } satisfies Record<Role, string>,
     move: { teacher: '→ Óvónő', nanny: '→ Dajka' },
     moveHint: { teacher: 'Áthelyezés az óvónők közé', nanny: 'Áthelyezés a dajkák közé' },
     remove: 'Törlés',
@@ -259,7 +285,12 @@ export const ui = {
       close: 'Bezár',
     },
     carry: (year: string) => `Áthozott napok (${year})`,
-    away: { teacher: 'Távol (óvónő)', nanny: 'Távol (dajka)' } satisfies Record<Role, string>,
+    away: {
+      teacher: 'Távol (óvónő)',
+      nanny: 'Távol (dajka)',
+      assistant: 'Távol (asszisztens)',
+      civil: 'Távol (civil)',
+    } satisfies Record<Role, string>,
     shortHint:
       'Narancs: aznap kevesebben maradnak, mint amennyi a hét csoportszámához kell (csoportonként 2 óvónő, 1 dajka, de legalább 2 dajka).',
     today: 'Ma',
@@ -420,7 +451,7 @@ function numberList(numbers: number[]): string {
     : `${items.slice(0, -1).join(', ')} és ${items[items.length - 1]}`
 }
 
-const shiftAdjective: Record<Shift, string> = { morning: 'délelőttös', afternoon: 'délutános' }
+const shiftAdjective: Record<SeatShift, string> = { morning: 'délelőttös', afternoon: 'délutános' }
 
 export type UnevenDetail =
   | { kind: 'morning' | 'afternoon'; count: number; of: number }
@@ -443,7 +474,7 @@ export const warningText = {
     absentTeachers.length > 0
       ? `Hívj be valakit: ${absentTeachers.join(', ')} (távol).`
       : 'Hívj be valakit.',
-  teacherSeatEmpty: (date: string, group: number, shift: Shift, times: string) =>
+  teacherSeatEmpty: (date: string, group: number, shift: SeatShift, times: string) =>
     `${capitalize(dayName(date))}, ${groupShort(group)}: nincs ${shiftAdjective[shift]} óvónő (${times}).`,
   teacherSeatAction: 'Hívj be valakit, vagy vond össze a csoportot.',
   keyMissing: (date: string, key: 'opener' | 'closer', nannies: number) =>

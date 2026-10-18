@@ -67,6 +67,9 @@
   .fill-afternoon {
     background: #dcebfa;
   }
+  .fill-day {
+    background: #e2f0d9;
+  }
   .fill-absent,
   .fill-closed {
     background: #e3e3e3;
