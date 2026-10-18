@@ -33,9 +33,7 @@ describe('Hungarian dates', () => {
 
 describe('compactDates', () => {
   it('joins consecutive days into ranges', () => {
-    expect(compactDates(['2026-10-06', '2026-10-07', '2026-10-08', '2026-10-20'])).toBe(
-      '6–8., 20.',
-    )
+    expect(compactDates(['2026-10-06', '2026-10-07', '2026-10-08', '2026-10-20'])).toBe('6–8., 20.')
   })
   it('never runs a range across a weekend', () => {
     const twoWeeks = [5, 6, 7, 8, 9, 12, 13, 14, 15, 16].map(
