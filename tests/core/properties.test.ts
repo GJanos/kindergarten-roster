@@ -1,6 +1,6 @@
 import loadHighs from 'highs'
 import { describe, expect, it } from 'vitest'
-import { dayCapacities, zeroHoleNeeds } from '../../src/core/capacity'
+import { dayCapacities, expectedHoles, zeroHoleNeeds } from '../../src/core/capacity'
 import { TEST_META, randomInput } from './fixtures'
 import { makeRoster } from '../../src/core/pipeline'
 import type { Hole, WarningCode } from '../../src/core/types'
@@ -31,6 +31,12 @@ describe('every random period', () => {
         return c.closed || (c.teachers >= needs.teachers && c.nannies >= needs.nannies)
       })
       if (enoughStaff) expect(roster.holes).toEqual([])
+
+      // The quick-fix preview counts holes from the headcount alone: it must match the solver.
+      for (const c of capacities) {
+        const red = roster.warnings.filter((w) => w.date === c.date && w.severity === 'red')
+        expect(red.length, c.date).toBe(expectedHoles(c))
+      }
 
       for (const hole of roster.holes) {
         expect(

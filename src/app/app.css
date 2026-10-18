@@ -842,3 +842,20 @@ td {
   gap: 12px;
   margin-top: 12px;
 }
+
+/* Quick fixes in one go (2026-10-18): a picked fix stays pressed; the card estimates the day. */
+.fixes button.on {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--on-accent);
+}
+.fixes button.on::before {
+  content: '✓ ';
+}
+.warning-day .estimate {
+  color: var(--orange);
+  font-size: 0.8rem;
+}
+.warning-day .estimate.ok {
+  color: var(--green);
+}

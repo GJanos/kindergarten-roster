@@ -40,8 +40,10 @@ Three tabs, all in Hungarian.
   - Day chips show each day's capacity. A day can be set to fewer groups or closed.
   - Groups can carry names.
   - **Számol** solves the week.
-- **Warnings**, grouped by day and explained in plain Hungarian, with one-click fixes: run
-  fewer groups that day, or call in someone who is away (people on leave before the sick).
+- **Warnings**, grouped by day and explained in plain Hungarian, with quick fixes: run fewer
+  groups that day, or call in someone who is away (people on leave before the sick). She picks
+  as many as she needs, each day card estimates what they leave (_→ várhatóan rendben_), and
+  one _Alkalmaz és újraszámol_ applies them all in a single solve and a single undo step.
   Hovering a warning highlights its cells.
 - **Undo** for every fix, call-in, re-solve and swap. The cells the last change altered are
   outlined.
@@ -226,7 +228,7 @@ When the user presses _Számol_:
 7. **Check:** `validateRoster` re-checks every hard rule independently of the model. A roster
    that fails is never shown; the user sees an error message instead.
 8. **Explain:** `explain` writes the Hungarian warnings (red, orange, grey), some with a
-   one-click fix such as _Szerdán 1 csoport_.
+   quick fix such as _Szerdán 1 csoport_.
 9. **Save:** the roster is saved with a fingerprint of its input and its fairness deltas. If
    staff, absences or group counts change later, the screen says the roster is out of date.
 

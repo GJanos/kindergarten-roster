@@ -2,6 +2,7 @@ import { resolveNames } from '../core/names'
 import type { SolveInput, Staff, Warning } from '../core/types'
 import { dayHeader, ui } from '../i18n/hu'
 import { Info } from './Info'
+import { sameFix } from './pendingFixes'
 import { shownWarningCount, warningDays, type DayFix } from './warningDays'
 
 type Props = {
@@ -9,12 +10,24 @@ type Props = {
   input: SolveInput
   staff: Staff[] // everyone, hidden people included, so old rosters resolve
   onHover: (warning?: Warning) => void
-  onFix?: (fix: DayFix) => void // absent for an archived week: history has no fixes
+  onFix?: (fix: DayFix) => void // selects or deselects; absent for an archived week
   fixFrom?: string // a week in progress: days before this get no fixes, they are over
+  pending?: DayFix[] // the fixes selected, applied together with one solve
+  estimates?: Record<string, number> // per day with a selection: the holes it would leave
 }
 
 /** Above the result, one card per day; hovering a line highlights its cells. */
-export function WarningsPanel({ warnings, input, staff, onHover, onFix, fixFrom }: Props) {
+export function WarningsPanel({
+  warnings,
+  input,
+  staff,
+  onHover,
+  onFix,
+  fixFrom,
+  pending = [],
+  estimates = {},
+}: Props) {
+  const isOn = (fix: DayFix) => pending.some((p) => sameFix(p, fix))
   const { days, notes } = warningDays(warnings, input)
   const shown = (text: string) => resolveNames(text, staff)
   const line = (w: Warning, text: string, key: string) => (
@@ -58,6 +71,14 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix, fixFrom 
                   <h4 id={headingId}>
                     {dayHeader(day.date)}
                     {day.holes > 0 && <span className="count">{ui.roster.holes(day.holes)}</span>}
+                    {estimates[day.date] !== undefined && (
+                      <span
+                        className={estimates[day.date] === 0 ? 'estimate ok' : 'estimate'}
+                        title={ui.roster.expectedHint}
+                      >
+                        {ui.roster.expected(estimates[day.date])}
+                      </span>
+                    )}
                   </h4>
                   <ul>{day.items.map((w, i) => line(w, day.texts[i], `${w.code}-${i}`))}</ul>
                   {onDayFix &&
@@ -72,7 +93,8 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix, fixFrom 
                         fix.kind === 'setGroups' ? (
                           <button
                             key={`groups-${fix.groups}`}
-                            className="fix"
+                            className={isOn(fix) ? 'fix on' : 'fix'}
+                            aria-pressed={isOn(fix)}
                             title={ui.roster.fixHint(fix.date, fix.groups)}
                             onClick={() => onDayFix(fix)}
                           >
@@ -81,7 +103,8 @@ export function WarningsPanel({ warnings, input, staff, onHover, onFix, fixFrom 
                         ) : (
                           <button
                             key={fix.staffId}
-                            className="fix"
+                            className={isOn(fix) ? 'fix on' : 'fix'}
+                            aria-pressed={isOn(fix)}
                             title={ui.roster.callInHint(fix.name, fix.date)}
                             onClick={() => onDayFix(fix)}
                           >

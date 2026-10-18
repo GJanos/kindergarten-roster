@@ -325,9 +325,17 @@ export const ui = {
     otherNotes: (count: number) => `Egyéb megjegyzések (${count})`,
     callIn: (name: string, sick?: boolean) => `${name} mégis jön${sick ? ' (beteg)' : ''}`,
     callInHint: (name: string, date: string) =>
-      `Törli ${name} távollétét ${onDay(date)}, és újraszámol.`,
+      `Kijelöli: törli ${name} távollétét ${onDay(date)}. A kijelöltek egyszerre számolódnak újra.`,
     fixHint: (date: string, groups: number) =>
-      `${capitalize(onDay(date))} ${groups} csoport indul, így nem marad üres óvónői hely. Újraszámol.`,
+      `Kijelöli: ${onDay(date)} ${groups} csoport indul, így nem marad üres óvónői hely. A kijelöltek egyszerre számolódnak újra.`,
+    /** Quick fixes in one go (2026-10-18): what the selections leave, and the dock bar. */
+    expected: (holes: number) =>
+      holes === 0 ? '→ várhatóan rendben' : `→ várhatóan ${holes} hiány`,
+    expectedHint: 'A kijelölt változtatásokkal, a létszám alapján — még nincs újraszámolva.',
+    pendingTitle: (count: number) => `${count} változtatás kijelölve:`,
+    pendingCallIn: (name: string, date: string) => `${name} mégis jön ${onDay(date)}`,
+    applyFixes: 'Alkalmaz és újraszámol',
+    didFixes: (parts: string[]) => `${parts.length} változtatás: ${parts.join(' · ')}.`,
     errorGeneric: 'Hiba történt — frissítsd az oldalt.',
     errorInvalid: 'Hiba történt a beosztás készítésekor.',
     groupLabel: (group: number) => `${groupName(group)} neve (nem kötelező)`,
