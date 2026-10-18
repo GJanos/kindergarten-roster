@@ -65,6 +65,7 @@ describe('yearTotals', () => {
         date: monday,
         shift: 'morning',
         seat: { kind: 'teacher', group: 1, shift: 'morning' },
+        duty: true,
       },
       {
         staffId: 'n1',
@@ -83,7 +84,7 @@ describe('yearTotals', () => {
     expect(yearTotals(state, '2026-11-05')).toEqual([
       {
         staffId: 't1',
-        counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 0 },
+        counts: { morning: 1, afternoon: 0, opener: 0, closer: 0, reserve: 0, duty: 1 },
         deltas: { morning: 0.5 },
       },
       {

@@ -1,6 +1,6 @@
 import type { Absence, Assignment, Role, Roster, Staff } from '../core/types'
 import { resolveNames } from '../core/names'
-import { ABSENCE_WORD, HOLE, groupName, groupShort, shiftShort } from '../i18n/hu'
+import { ABSENCE_WORD, DUTY, HOLE, dutyMark, groupName, groupShort, shiftShort } from '../i18n/hu'
 
 /** The printout's two tables as plain data, shared by print and Excel. */
 
@@ -60,9 +60,15 @@ export function groupView(roster: Roster, staff: Staff[], groupLabels: string[] 
           (x) => x.seat?.kind === 'teacher' && x.seat.group === g && x.seat.shift === shift,
         )
         return a
-          ? { text: `${shiftShort[shift]}: ${name(a.staffId)}`, staffId: a.staffId }
+          ? {
+              text: `${shiftShort[shift]}: ${name(a.staffId)}${a.duty ? dutyMark[shift] : ''}`,
+              staffId: a.staffId,
+            }
           : { text: `${shiftShort[shift]}: ${HOLE}`, tone: 'hole' }
       })
+      if (today.some((x) => x.duty && x.seat?.kind === 'teacher' && x.seat.group === g)) {
+        lines.unshift({ text: DUTY, bold: true })
+      }
       const nanny = today.find((x) => x.seat?.kind === 'nanny' && x.seat.group === g)
       if (nanny?.substitution) {
         lines.push({
@@ -137,7 +143,7 @@ export function personView(roster: Roster, staff: Staff[], absences: Absence[]):
             ? ' · zár'
             : ''
       return {
-        text: `${shiftShort[a.shift]} · ${where}${extra}`,
+        text: `${shiftShort[a.shift]} · ${where}${extra}${a.duty ? ' · ügyelet' : ''}`,
         fill: a.shift,
         ...bold(a),
         ...(a.substitution ? { tone: 'substitution' as const } : {}),

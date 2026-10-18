@@ -43,6 +43,7 @@ export function YearBalance({ state, today }: { state: AppState; today: string }
               <td>{`${counts.opener}${signed(deltas.opener)}`}</td>
               <td>{`${counts.closer}${signed(deltas.closer)}`}</td>
               <td>{`${counts.reserve}${signed(deltas.reserve)}`}</td>
+              <td>{`${counts.duty}${signed(deltas.duty)}`}</td>
             </tr>
           ))}
         </tbody>

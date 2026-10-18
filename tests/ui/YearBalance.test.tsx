@@ -39,14 +39,14 @@ describe('YearBalance', () => {
     render(<YearBalance state={state} today="2026-11-05" />)
     expect(screen.getByText(/Éves egyenleg \(2026\/27\)/)).toBeTruthy()
     const row = screen.getByText('T1').closest('tr')!
-    expect(row.textContent).toBe('T11 (+0,5)0 (−0,5)000')
+    expect(row.textContent).toBe('T11 (+0,5)0 (−0,5)0000')
   })
 
   it('shows zeros and says it fills up, before the first saved roster of the year', () => {
     render(<YearBalance state={{ ...state, periods: {} }} today="2026-11-05" />)
     expect(screen.getByText(/Éves egyenleg/)).toBeTruthy()
     expect(screen.getByText(/első mentett beosztás/)).toBeTruthy()
-    expect(screen.getByText('T1').closest('tr')!.textContent).toBe('T100000')
+    expect(screen.getByText('T1').closest('tr')!.textContent).toBe('T1000000')
   })
 
   it('drops the note once a roster is saved', () => {

@@ -35,8 +35,8 @@ export type YearCounts = Record<Shift | Exclude<GapKind, 'morning'>, number>
 export type YearRow = { staffId: string; counts: YearCounts; deltas: Balance[string] }
 
 /**
- * Each person's kindergarten year up to this week: days worked per shift, openings, closings and
- * reserve days, counted from the saved rosters, plus their summed deltas. Teachers first. Every
+ * Each person's kindergarten year up to this week: days worked per shift, openings, closings,
+ * reserve days and ügyelet days, counted from the saved rosters, plus their summed deltas. Teachers first. Every
  * active person has a row, zeros until their first saved day.
  */
 export function yearTotals(state: AppState, today: string): YearRow[] {
@@ -63,6 +63,7 @@ export function yearTotals(state: AppState, today: string): YearRow[] {
       if (a.opener) counts.opener++
       if (a.closer) counts.closer++
       if (!a.seat) counts.reserve++
+      if (a.duty) counts.duty++
     }
     if (period.roster.balance) addInto(deltas, period.roster.balance)
   }

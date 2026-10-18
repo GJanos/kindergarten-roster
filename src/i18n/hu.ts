@@ -78,6 +78,10 @@ export const groupName = (group: number) => `${group}. csoport`
 export const groupShort = (group: number) => `${group}. cs.`
 export const shiftShort: Record<Shift, string> = { morning: 'DE', afternoon: 'DU' }
 
+/** Ügyelet in the group view: the teacher's shifted start, or end (v3-b). */
+export const DUTY = 'Ügyelet'
+export const dutyMark: Record<Shift, string> = { morning: ' 6:30-tól', afternoon: ' 17:30-ig' }
+
 export const HOLE = 'BETÖLTETLEN'
 
 /** An absence as the printout and Excel name it. */
@@ -208,8 +212,8 @@ export const ui = {
       'következő beosztás ezt egyenlíti ki.',
     yearBalanceEmpty:
       'Még üres: az idei első mentett beosztás után itt látod, ki hányszor volt délelőttös, ' +
-      'délutános, nyitó, záró vagy tartalék.',
-    yearColumns: ['Név', 'Délelőtt', 'Délután', 'Nyit', 'Zár', 'Tartalék'],
+      'délutános, nyitó, záró, tartalék vagy ügyeletes.',
+    yearColumns: ['Név', 'Délelőtt', 'Délután', 'Nyit', 'Zár', 'Tartalék', 'Ügyelet'],
     legendTitle: 'ⓘ Tudnivalók',
     legend: [
       'Aktív: csak az aktív munkatársak kerülnek a beosztásba. Aki egy ideig nem dolgozik (például tartós szabadság), annál vedd ki a jelölést. A nem aktívak a lista alján, szürkén látszanak.',
@@ -485,4 +489,5 @@ export const LEGEND = [
   'DE = délelőtt, DU = délután. Félkövér: nyit (6:00) vagy zár (18:00).',
   'Óvónő: DE 7:00–13:30, DU 10:30–17:00; pénteken és ledolgozós szombaton DE 7:00–13:00, DU 11:00–17:00.',
   'Dajka: DE 6:00–14:00, DU 10:00–18:00.',
+  'Ügyelet: a csoport óvónői DE 6:30-tól, DU 17:30-ig dolgoznak, ugyanannyi órában.',
 ]
