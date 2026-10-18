@@ -7,6 +7,18 @@
     size: A4 landscape;
     margin: 10mm;
   }
+  /* The monthly absence report: one portrait page, unlike the landscape roster. */
+  @page report {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  .month-report-print {
+    page: report;
+  }
+  .month-report-print h1 {
+    margin: 0 0 6pt;
+    font-size: 14pt;
+  }
 
   :root {
     font-size: 10pt;
