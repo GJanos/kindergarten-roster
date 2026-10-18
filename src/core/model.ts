@@ -62,7 +62,7 @@ export const v = {
   dutyGroup: (d: number, g: number) => `y_${d}_${g}`,
   holeDuty: (d: number) => `hd_${d}`,
   onDuty: (p: number, d: number, g: number, t: Shift) => `z_${p}_${d}_${g}_${t[0]}`,
-  nannyShift: (d: number, g: number, t: Shift) => `ns_${d}_${g}_${t[0]}`,
+  seatMorning: (p: number, d: number, g: number) => `nm_${p}_${d}_${g}`,
   pairClash: (d: number, g: number) => `pc_${d}_${g}`,
   imbalance: (d: number, role: 'teacher' | 'nanny', step: 1 | 2) => `e${step}_${d}_${role[0]}`,
   keyFromReserve: (key: 'open' | 'close', p: number, d: number) => `k${key[0]}_${p}_${d}`,
@@ -110,6 +110,13 @@ export function buildModel(input: SolveInput): RosterModel {
 
   // Seat variables per day and person: all of them, and per group.
   const seats = days.map(() => people.map(() => new Lin()))
+  // Per day and group: the people who can take its nanny seat, with their seat variable (v3-b).
+  const nannySeatVars = days.map(() => new Map<number, [number, string][]>())
+  const nannySeatHolder = (d: number, g: number, p: number, name: string) => {
+    const list = nannySeatVars[d].get(g) ?? []
+    list.push([p, name])
+    nannySeatVars[d].set(g, list)
+  }
   const groupSeats = days.map(() => people.map(() => new Map<number, Lin>()))
   const inGroup = (d: number, p: number, g: number): Lin => {
     const lin = groupSeats[d][p].get(g) ?? new Lin()
@@ -143,10 +150,14 @@ export function buildModel(input: SolveInput): RosterModel {
       }
     }
     for (const p of substitutes) {
-      for (const g of groups) objectives.substitutions.add(seat(v.substitution(p, d, g), d, p, g))
+      for (const g of groups) {
+        const name = seat(v.substitution(p, d, g), d, p, g)
+        objectives.substitutions.add(name)
+        nannySeatHolder(d, g, p, name)
+      }
     }
     for (const p of nannies) {
-      for (const g of groups) seat(v.nannySeat(p, d, g), d, p, g)
+      for (const g of groups) nannySeatHolder(d, g, p, seat(v.nannySeat(p, d, g), d, p, g))
       const open = milp.binary(v.open(p, d))
       const close = milp.binary(v.close(p, d))
       milp.constrain(new Lin().add(open), '<=', new Lin().add(v.shift(p, d, 'morning')))
@@ -203,6 +214,60 @@ export function buildModel(input: SolveInput): RosterModel {
       }
     }
     milp.constrain(choice, '=', 1)
+  }
+
+  // ── Her v3-b soft rules ───────────────────────────────────────────────────
+  for (const day of days) {
+    const d = day.index
+
+    // Groups 1–2, 3–4…: one nanny DE, the other DU. m_g is 1 when g's nanny seat holder works
+    // DE (m = seat·morning, exact); the seat is always filled, so 1 − m_g is its DU. A one-sided
+    // bound here instead left HiGHS's relaxation free and made switches time out (2026-10-18).
+    const morningIn = (g: number) => {
+      const m = new Lin()
+      for (const [p, seatVar] of nannySeatVars[d].get(g) ?? []) {
+        const w = milp.nonNegative(v.seatMorning(p, d, g))
+        const morning = v.shift(p, d, 'morning')
+        milp.constrain(new Lin().add(w), '<=', new Lin().add(seatVar))
+        milp.constrain(new Lin().add(w), '<=', new Lin().add(morning))
+        milp.constrain(new Lin().add(w), '>=', new Lin().add(seatVar).add(morning).addConstant(-1))
+        m.add(w)
+      }
+      return m
+    }
+    for (let g = 1; g + 1 <= day.groups; g += 2) {
+      const clash = milp.nonNegative(v.pairClash(d, g))
+      objectives.pairs.add(clash)
+      const both = new Lin().plus(morningIn(g)).plus(morningIn(g + 1))
+      milp.constrain(new Lin().add(clash), '>=', new Lin().plus(both).addConstant(-1)) // both DE
+      milp.constrain(new Lin().add(clash), '>=', Lin.constant(1).plus(both, -1)) // both DU
+    }
+
+    // DE − DU per role, reserves included: a gap of 2 costs 1, 3 costs 4, 4 costs 7.
+    for (const role of ['teacher', 'nanny'] as const) {
+      const members = day.present.filter((p) => people[p].role === role)
+      if (members.length < 2) continue
+      const diff = new Lin()
+      for (const p of members) {
+        diff.add(v.shift(p, d, 'morning')).add(v.shift(p, d, 'afternoon'), -1)
+      }
+      for (const step of [1, 2] as const) {
+        const over = milp.nonNegative(v.imbalance(d, role, step))
+        objectives.balance.add(over, step)
+        milp.constrain(new Lin().add(over), '>=', new Lin().plus(diff).addConstant(-step))
+        milp.constrain(new Lin().add(over), '>=', new Lin().plus(diff, -1).addConstant(-step))
+      }
+    }
+
+    // An opener or closer from reserve costs a little: a seated nanny should hold the key.
+    for (const p of day.present.filter((q) => !isTeacher(q))) {
+      for (const key of ['open', 'close'] as const) {
+        const spare = milp.nonNegative(v.keyFromReserve(key, p, d))
+        objectives.keysSeated.add(spare)
+        const holds = key === 'open' ? v.open(p, d) : v.close(p, d)
+        milp.constrain(new Lin().add(spare), '>=', new Lin().add(holds).plus(seats[d][p], -1))
+      }
+    }
   }
 
   // Nobody opens, or closes, on every working day of the period.

@@ -65,7 +65,7 @@ describe('floors', () => {
 })
 
 describe('the solver balances', () => {
-  it('gives a nanny working 3 of 5 days one opening (spec §11)', () => {
+  it('gives a nanny working 3 of 5 days one key day (spec §11; keys rank last since v3-b)', () => {
     const input = makeInput({
       teachers: 4,
       nannies: 4,
@@ -74,7 +74,10 @@ describe('the solver balances', () => {
     })
     const roster = solve(input, highs, TEST_META)
     expect(validateRoster(input, roster)).toEqual([])
-    expect(roster.assignments.filter((a) => a.staffId === 'n4' && a.opener)).toHaveLength(1)
+    // Below switches and turnarounds now, so it may be a closing rather than an opening.
+    expect(
+      roster.assignments.filter((a) => a.staffId === 'n4' && (a.opener || a.closer)),
+    ).toHaveLength(1)
   })
 
   it('splits mornings evenly and keeps every gap under one', () => {
