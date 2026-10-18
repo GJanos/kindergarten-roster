@@ -510,6 +510,17 @@ export const warningText = {
     `${capitalize(dayName(date))}: ${groups} csoport (kézi beállítás).`,
   substitution: (date: string, group: number, name: string) =>
     `${capitalize(dayName(date))}, ${groupShort(group)}: dajka helyett óvónő — ${name}.`,
+  /** Why a helper's hours moved (v3-c): 'Hétfő: Bea 10–18, mert az 1. csoport DU óvónője hiányzik.' */
+  helperStandIn: (
+    date: string,
+    group: number,
+    seat: 'teacher' | 'nanny',
+    name: string,
+    hours: string,
+  ) =>
+    `${capitalize(dayName(date))}: ${name} ${hours}, mert ${article(group)} ${groupName(group)} ${
+      seat === 'teacher' ? 'DU óvónője' : 'dajkája'
+    } hiányzik.`,
   closedDay: (date: string) => `${capitalize(onDay(date))} zárva.`,
   groupSwitch: (name: string, date: string, from: number, to: number) =>
     `${name} ${onDay(date)} ${article(from)} ${from}. csoportból ${article(to)} ${to}. csoportba kerül.`,

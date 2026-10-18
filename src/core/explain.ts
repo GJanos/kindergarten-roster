@@ -1,10 +1,17 @@
-import { CALL_IN_ORDER, warningText as t } from '../i18n/hu'
+import { CALL_IN_ORDER, helperShort, warningText as t } from '../i18n/hu'
 import { dayCapacities, groupsWithoutTeacherHoles } from './capacity'
 import { countFor, fairShares } from './fairness'
 import { groupSwitches, pairClashes, shiftImbalances, turnarounds } from './metrics'
 import { nameRef } from './names'
 import { shiftTimes } from './shifts'
-import type { Roster, Severity, SolveInput, Warning, WarningCode } from './types'
+import {
+  isHelper,
+  type Roster,
+  type Severity,
+  type SolveInput,
+  type Warning,
+  type WarningCode,
+} from './types'
 
 const SEVERITY: Record<WarningCode, Severity> = {
   NO_TEACHER: 'red',
@@ -101,11 +108,15 @@ export function explain(input: SolveInput, roster: Roster): Warning[] {
   }
 
   for (const a of roster.assignments) {
-    if (a.substitution && a.seat) {
-      add('SUBSTITUTION', a.date, t.substitution(a.date, a.seat.group, name(a.staffId)), {
-        cells: [{ staffId: a.staffId, date: a.date, group: a.seat.group }],
-      })
-    }
+    if (!a.substitution || !a.seat || a.seat.kind === 'helper') continue
+    const role = staff.get(a.staffId)?.role
+    const text =
+      role && isHelper(role)
+        ? t.helperStandIn(a.date, a.seat.group, a.seat.kind, name(a.staffId), helperShort[a.shift])
+        : t.substitution(a.date, a.seat.group, name(a.staffId))
+    add('SUBSTITUTION', a.date, text, {
+      cells: [{ staffId: a.staffId, date: a.date, group: a.seat.group }],
+    })
   }
 
   for (const s of groupSwitches(input, roster)) {
