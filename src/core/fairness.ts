@@ -1,5 +1,12 @@
-import { dayCapacities } from './capacity'
-import type { Assignment, Balance, GapKind, Roster, SolveInput } from './types'
+import { assistantStandIns, dayCapacities, seatedTeachers } from './capacity'
+import {
+  isHelper,
+  type Assignment,
+  type Balance,
+  type GapKind,
+  type Roster,
+  type SolveInput,
+} from './types'
 
 export type { GapKind } from './types'
 
@@ -23,7 +30,7 @@ export type Share = {
 export function fairShares(input: SolveInput): Share[] {
   const open = dayCapacities(input).filter((c) => !c.closed)
   const absent = new Set(input.absences.map((a) => `${a.staffId}|${a.date}`))
-  const people = input.staff.filter((s) => s.active)
+  const people = input.staff.filter((s) => s.active && !isHelper(s.role)) // helpers: no fairness (v3-c)
   const presentOn = (staffId: string, dates: string[]) =>
     dates.filter((date) => !absent.has(`${staffId}|${date}`))
   const openDays = open.map((c) => c.date)
@@ -40,10 +47,9 @@ export function fairShares(input: SolveInput): Share[] {
   for (const role of ['teacher', 'nanny'] as const) {
     let pool = 0
     for (const c of open) {
-      const substitutes = Math.max(0, c.groups - c.nannies)
       pool +=
         role === 'teacher'
-          ? Math.max(0, c.teachers - substitutes - 2 * c.groups)
+          ? Math.max(0, seatedTeachers(c) - 2 * c.groups)
           : Math.max(0, c.nannies - c.groups)
     }
     const members = people
@@ -87,8 +93,10 @@ export function fairShares(input: SolveInput): Share[] {
   // both teachers. A short day counts too: a seat elsewhere stays empty, but the holes stage
   // still places the duty (leaving those days out let one pair take it 3 days running). A
   // 1-group day's duty is forced, and with too few teachers there is none: both stay out.
+  // An asszisztens may hold a DU duty seat on a day she stands in (v3-c): then the teachers'
+  // total isn't fixed, so that day stays out too.
   const dutyDays = open
-    .filter((c) => c.groups >= 2 && c.teachers - Math.max(0, c.groups - c.nannies) > c.groups)
+    .filter((c) => c.groups >= 2 && seatedTeachers(c) > c.groups && assistantStandIns(c) === 0)
     .map((c) => c.date)
   const dutyHolders = people
     .filter((s) => s.role === 'teacher')

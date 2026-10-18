@@ -7,6 +7,7 @@ import { validateRoster } from '../../src/core/validate'
 
 const highs = await loadHighs()
 const WEEK = consecutiveDays('2026-10-26', 5)
+const D = '2026-10-26'
 
 describe('fairShares', () => {
   it('splits mornings, reserve days and keys by days worked', () => {
@@ -97,5 +98,28 @@ describe('the solver balances', () => {
       ).toHaveLength(2)
     }
     for (const share of fairShares(input)) expect(gapOf(share, roster)).toBeLessThan(1)
+  })
+})
+
+describe('helpers and fairness (v3-c)', () => {
+  it('gives helpers no share at all', () => {
+    const input = makeInput({ teachers: 4, nannies: 3, assistants: 1, civils: 1, groups: 2 })
+    const ids = new Set(fairShares(input).map((s) => s.staffId))
+    expect(ids.has('a1')).toBe(false)
+    expect(ids.has('c1')).toBe(false)
+  })
+
+  it('counts a civil stand-in before a teacher one in the reserve pool', () => {
+    // 2 groups, 1 nanny, 1 civil: the civil takes the second nanny seat, so all 5 teachers stay
+    // teachers and one of them is reserve each day.
+    const input = makeInput({ teachers: 5, nannies: 1, civils: 1, groups: 2, days: [D] })
+    const reserve = fairShares(input).filter((s) => s.kind === 'reserve' && s.staffId[0] === 't')
+    expect(reserve.reduce((sum, s) => sum + s.num / s.den, 0)).toBe(1)
+  })
+
+  it('leaves a day an asszisztens may stand in out of the ügyelet pool', () => {
+    // 3 teachers, 2 groups: one DU seat is hers to fill, so the teachers' duty total isn't fixed.
+    const input = makeInput({ teachers: 3, nannies: 2, assistants: 1, groups: 2, days: [D] })
+    expect(fairShares(input).filter((s) => s.kind === 'duty')).toEqual([])
   })
 })
