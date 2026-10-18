@@ -35,4 +35,23 @@ describe('Excel export', () => {
     for (const person of input.staff) expect(text).toContain(person.displayName)
     expect(rosterFileName(roster)).toBe('beosztas-2026-10-26.xlsx')
   })
+
+  it("tints each day's ügyelet group cell", async () => {
+    const input = makeInput({ teachers: 4, nannies: 3, groups: 2 })
+    const roster = solve(input, highs, TEST_META)
+    const reopened = new ExcelJS.Workbook()
+    await reopened.xlsx.load(
+      (await workbookBytes(await rosterWorkbook(roster, input.staff, input.absences)))
+        .buffer as ArrayBuffer,
+    )
+    const sheet = reopened.getWorksheet('Csoportok')!
+    const tinted: string[] = []
+    sheet.eachRow((row) =>
+      row.eachCell((cell) => {
+        const fill = cell.fill as { fgColor?: { argb?: string } } | undefined
+        if (fill?.fgColor?.argb === 'FFF1ECFB') tinted.push(String(cell.address))
+      }),
+    )
+    expect(tinted).toHaveLength(roster.period.days.length) // one group a day
+  })
 })

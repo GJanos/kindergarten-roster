@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TEST_META, makeStaff } from '../core/fixtures'
 import type { Roster } from '../../src/core/types'
-import { groupView, personView } from '../../src/export/views'
+import { groupView, isDutyCell, personView } from '../../src/export/views'
 
 const [MON, TUE, WED] = ['2026-10-26', '2026-10-27', '2026-10-28']
 const staff = makeStaff(3, 2)
@@ -154,7 +154,9 @@ describe('ügyelet (v3-b)', () => {
 
   it('heads the duty group with Ügyelet and shows the shifted start and end', () => {
     const cell = groupView(dutyDay, staff).rows[0].cells[0]
-    expect(cell[0]).toEqual({ text: 'Ügyelet', bold: true })
+    expect(cell[0]).toEqual({ text: 'Ügyelet', bold: true, tone: 'duty' })
+    expect(isDutyCell(cell)).toBe(true)
+    expect(isDutyCell([{ text: 'DE: T1' }])).toBe(false)
     expect(cell[1].text).toBe('DE: T1 6:30-tól')
     expect(cell[2].text).toBe('DU: T2 17:30-ig')
   })
