@@ -288,7 +288,9 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {!archived && days.length === 0 && <p>{ui.roster.noDays}</p>}
         {open && input.staff.length === 0 && <p>{ui.roster.noStaff}</p>}
 
-        {open && <DayChips capacities={capacities} onEdit={setEditing} />}
+        {open && (
+          <DayChips capacities={capacities} onEdit={setEditing} from={started ? from : undefined} />
+        )}
         {open && (
           <GroupLabels
             groups={groups}
@@ -414,9 +416,16 @@ export function RosterScreen({ state, dispatch, week, onWeek, history }: Props) 
         {editingPlan && (
           <DayEditor
             plan={editingPlan}
-            onOverride={(count) =>
+            onOverride={(count) => {
+              // An editor left open across midnight: recalcInput now pins its day, so the change
+              // would never reach the roster. Close it instead of ignoring the click silently.
+              const next = days.find((date) => date >= today())
+              if (roster && next !== undefined && editingPlan.date < next) {
+                setEditing(undefined)
+                return
+              }
               dispatch({ type: 'setOverride', week, date: editingPlan.date, groups: count })
-            }
+            }}
             onDone={() => setEditing(undefined)}
           />
         )}

@@ -466,6 +466,40 @@ describe('RosterScreen swap', () => {
     expect(document.querySelector('.day-editor')?.closest('.action-dock')).not.toBeNull()
   })
 
+  it('leaves the past days of a week in progress uneditable, where a change could never land', () => {
+    vi.setSystemTime(new Date(2026, 9, 28, 12)) // Wednesday, mid-week
+    render(<Harness initial={withRoster(base)} />)
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('.capacity button')]
+    const byDay = (day: string) => chips.find((c) => c.textContent?.includes(day))!
+    expect(byDay('10.26').disabled).toBe(true) // Monday: recalcInput pins it
+    expect(byDay('10.28').disabled).toBe(false) // today still runs
+    fireEvent.click(byDay('10.28'))
+    expect(document.querySelector('.day-editor')).not.toBeNull()
+  })
+
+  it('closes a day editor left open when its day becomes history at midnight', () => {
+    vi.setSystemTime(new Date(2026, 9, 28, 23, 59)) // Wednesday, a minute before midnight
+    const dispatch = vi.fn()
+    render(
+      <RosterScreen
+        state={withRoster(base)}
+        dispatch={dispatch}
+        week={WEEK}
+        onWeek={() => {}}
+        history={noHistory}
+      />,
+    )
+    const wednesday = [...document.querySelectorAll<HTMLButtonElement>('.capacity button')].find(
+      (c) => c.textContent?.includes('10.28'),
+    )!
+    fireEvent.click(wednesday)
+    expect(document.querySelector('.day-editor')).not.toBeNull()
+    vi.setSystemTime(new Date(2026, 9, 29, 0, 1)) // Thursday: Wednesday is now kept history
+    fireEvent.click(within(document.querySelector('.day-editor') as HTMLElement).getByText('+'))
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'setOverride')).toBe(false)
+    expect(document.querySelector('.day-editor')).toBeNull()
+  })
+
   it('drops the selection on Mégse, on Escape, or on the same name again', () => {
     render(<Harness initial={withValid} />)
     const bar = /kiválasztva/

@@ -418,6 +418,9 @@ export const ui = {
       `csak ${teachers} óvónő${assistants > 0 ? ` + ${assistants} asszisztens` : ''} — ${groups} csoporthoz ${need} kell`,
     fewNannies: (nannies: number, civils: number, need: number) =>
       `csak ${nannies} dajka${civils > 0 ? ` + ${civils} civil` : ''} — ${need} kell`,
+    fewGroups: (groups: number, wanted: number) =>
+      `csak ${groups} csoport indulhat — ${wanted} kért`,
+    historyDay: 'Korábbi nap: a beosztás már nem változik',
     manual: (groups: number) => `kézi: ${groups} cs.`,
     fix: (date: string, groups: number) => `${capitalize(onDay(date))} ${groups} csoport`,
   },

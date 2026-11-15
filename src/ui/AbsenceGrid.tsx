@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { isBreakDay, isWorkingDay, mondayOf } from '../core/calendar'
-import { cover, zeroHoleNeeds } from '../core/capacity'
+import { seatShortage, zeroHoleNeeds } from '../core/capacity'
 import { ROLES, isHelper, type AbsenceKind, type Role, type Staff } from '../core/types'
 import { dayHeader, ui, weekdayInitial } from '../i18n/hu'
 import { groupCount, periodState, type Action, type AppState } from '../state/appState'
@@ -44,8 +44,9 @@ export function AbsenceGrid({ state, dispatch, people, days, brush, wide }: Prop
   const setCarry = (person: Staff, value: string) =>
     dispatch({ type: 'updateStaff', id: person.id, patch: carryPatch(person, year, value) })
   const carryPerson = people.find((p) => p.id === carryOpen)
-  // Enough left for the week's groups? The same counting as the roster screen's day chips; only
-  // teachers and nannies get the orange mark (v3-c).
+  // Enough left for the day's own groups? The same counting as the roster screen's day chips; only
+  // teachers and nannies get the orange mark (v3-c). A day she closed, or narrowed, is judged by
+  // its own count, not the week's.
   const coverage = (role: Role, date: string) => {
     const isAway = (p: Staff) => kindOf.has(`${p.id}|${date}`)
     const away = people.filter((p) => p.role === role && isAway(p)).length
@@ -53,20 +54,22 @@ export function AbsenceGrid({ state, dispatch, people, days, brush, wide }: Prop
     const [teachers, nannies, assistants, civils] = ROLES.map(
       (r) => people.filter((p) => p.role === r && !isAway(p)).length,
     )
-    const have = cover({ teachers, nannies, assistants, civils })
-    const groups = groupCount(periodState(state, mondayOf(date)))
+    const period = periodState(state, mondayOf(date))
+    const plan = period.dayPlans.find((d) => d.date === date)
+    const groups = plan?.override ?? groupCount(period)
+    if (groups === 0) return { away, short: false } // closed: nobody works, nothing is short
     const needs = zeroHoleNeeds(groups)
+    const short = seatShortage({ teachers, nannies, assistants, civils, groups })
     // Why it is orange, on hover: the mark can come from a helper's absence too (2026-10-18).
     if (role === 'teacher') {
-      const short = have.teachers < needs.teachers
       const hint = ui.absences.shortTeachers(teachers, assistants, groups, needs.teachers)
-      return { away, short, hint: short ? hint : undefined }
+      return { away, short: short.teachers > 0, hint: short.teachers > 0 ? hint : undefined }
     }
-    const short = have.nannies < needs.nannies
     return {
       away,
-      short,
-      hint: short ? ui.absences.shortNannies(nannies, civils, needs.nannies) : undefined,
+      short: short.nannies > 0,
+      hint:
+        short.nannies > 0 ? ui.absences.shortNannies(nannies, civils, needs.nannies) : undefined,
     }
   }
 
