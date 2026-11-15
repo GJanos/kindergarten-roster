@@ -1,6 +1,6 @@
 import { ui } from '../i18n/hu'
 import { isRostered, type Action, type AppState } from '../state/appState'
-import { carryPatch, leaveBalance } from '../state/leave'
+import { allowancePatch, carryPatch, leaveBalance } from '../state/leave'
 import { ROLES, type Role, type Staff } from '../core/types'
 import { today } from './dates'
 import { Info } from './Info'
@@ -136,14 +136,7 @@ function StaffColumn({ role, people, isDuplicate, state, dispatch }: ColumnProps
                       className="allowance"
                       aria-label={ui.staff.leaveAllowance}
                       value={s.leaveAllowance ?? ''}
-                      onChange={(e) =>
-                        update(s.id, {
-                          leaveAllowance:
-                            e.target.value === ''
-                              ? undefined
-                              : Math.max(0, Math.round(Number(e.target.value))),
-                        })
-                      }
+                      onChange={(e) => update(s.id, allowancePatch(e.target.value))}
                     />
                   </td>
                   <td>

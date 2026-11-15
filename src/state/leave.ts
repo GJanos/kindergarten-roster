@@ -27,9 +27,21 @@ export function leaveBalance(
  * nothing carried over is stored as nothing, and shows as 0.
  */
 export function carryPatch(person: Staff, year: string, value: string): Pick<Staff, 'leaveCarry'> {
+  const days = value === '' ? 0 : Math.round(Number(value))
+  // A pasted "1e999" is Infinity: keep what was there rather than store a value migrate rejects.
+  if (!Number.isFinite(days)) return { leaveCarry: person.leaveCarry }
   const carry = { ...person.leaveCarry }
-  const days = value === '' ? 0 : Math.max(0, Math.round(Number(value)))
-  if (days === 0) delete carry[year]
+  if (days <= 0) delete carry[year]
   else carry[year] = days
   return { leaveCarry: Object.keys(carry).length > 0 ? carry : undefined }
+}
+
+/**
+ * The yearly allowance typed in: empty clears it, a non-finite entry changes nothing. Same rule as
+ * the carry-over, for the same reason.
+ */
+export function allowancePatch(value: string): Pick<Staff, 'leaveAllowance'> {
+  if (value === '') return { leaveAllowance: undefined }
+  const days = Math.round(Number(value))
+  return Number.isFinite(days) ? { leaveAllowance: Math.max(0, days) } : {}
 }

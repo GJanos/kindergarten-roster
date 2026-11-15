@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Absence, Staff } from '../../src/core/types'
-import { carryPatch, leaveBalance } from '../../src/state/leave'
+import { allowancePatch, carryPatch, leaveBalance } from '../../src/state/leave'
 
 const anna: Staff = {
   id: 'a',
@@ -52,5 +52,20 @@ describe('carryPatch', () => {
     expect(carryPatch(anna, '2026', '0')).toEqual({ leaveCarry: undefined })
     expect(carryPatch(anna, '2026', '-4')).toEqual({ leaveCarry: undefined })
     expect(carryPatch(anna, '2026', '')).toEqual({ leaveCarry: undefined })
+  })
+
+  it('keeps what was there when the typed value is not a finite number', () => {
+    // Infinity (a pasted "1e999") would fail migrate's isCount on the next load and lose the state.
+    expect(carryPatch(anna, '2026', '1e999')).toEqual({ leaveCarry: { '2026': 3 } })
+    expect(carryPatch(anna, '2027', 'abc')).toEqual({ leaveCarry: { '2026': 3 } })
+  })
+})
+
+describe('allowancePatch', () => {
+  it('clears on empty, rounds, and ignores a value that is not a finite number', () => {
+    expect(allowancePatch('')).toEqual({ leaveAllowance: undefined })
+    expect(allowancePatch('25.6')).toEqual({ leaveAllowance: 26 })
+    expect(allowancePatch('-3')).toEqual({ leaveAllowance: 0 })
+    expect(allowancePatch('1e999')).toEqual({})
   })
 })
