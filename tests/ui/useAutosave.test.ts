@@ -85,6 +85,79 @@ describe('useAutosave', () => {
     expect(folder.files.size).toBe(1)
   })
 
+  it('keeps its interval across re-renders, on the default clock', async () => {
+    const folder = fakeFolder()
+    const dispatch = vi.fn<(action: Action) => void>()
+    const deps: AutosaveDeps = {
+      supported: () => true,
+      pick: vi.fn(),
+      load: async () => ({ dir: folder, minutes: 5 }),
+      save: vi.fn(),
+      clear: vi.fn(),
+    }
+    const { result, rerender } = renderHook(
+      ({ state }: { state: AppState }) => useAutosave(state, dispatch, deps),
+      { initialProps: { state: emptyState() } },
+    )
+    await settle()
+    expect(result.current.status).toBe('on')
+    // Each dispatch re-renders the footer; none may restart the five-minute countdown.
+    for (let i = 0; i < 5; i++) {
+      rerender({ state: reducer(emptyState(), { type: 'addStaff', id: `a${i}` }) })
+      await act(() => vi.advanceTimersByTimeAsync(MINUTE))
+    }
+    expect(folder.files.size).toBe(1)
+  })
+
+  it('writes a change that arrives while a write is running, once that write finishes', async () => {
+    let writes = 0
+    const written: string[] = []
+    let release = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const dir: DirectoryHandle = {
+      name: 'Slow',
+      queryPermission: async () => 'granted',
+      requestPermission: async () => 'granted',
+      getFileHandle: async () => ({
+        createWritable: async () => ({
+          write: async (data) => {
+            writes++
+            written.push(data)
+          },
+          close: async () => {
+            await gate
+          },
+        }),
+      }),
+    }
+    const dispatch = vi.fn<(action: Action) => void>()
+    const deps: AutosaveDeps = {
+      supported: () => true,
+      pick: vi.fn(),
+      load: async () => ({ dir, minutes: 5 }),
+      save: vi.fn(),
+      clear: vi.fn(),
+    }
+    const { result, rerender } = renderHook(
+      ({ state }: { state: AppState }) => useAutosave(state, dispatch, deps),
+      { initialProps: { state: emptyState() } },
+    )
+    await settle()
+    rerender({ state: reducer(emptyState(), { type: 'addStaff', id: 'a' }) })
+    await act(() => vi.advanceTimersByTimeAsync(5 * MINUTE))
+    rerender({ state: reducer(emptyState(), { type: 'addStaff', id: 'b' }) })
+    await act(async () => {
+      window.dispatchEvent(new Event('pagehide'))
+    })
+    release()
+    await settle()
+    expect(writes).toBe(2)
+    expect(written[0]).not.toContain('"id":"b"') // the first write started before the change
+    expect(written[1]).toContain('"id":"b"') // the queued one carries it
+  })
+
   it('saves a change when the tab is hidden or closed', async () => {
     const folder = fakeFolder()
     const { result, rerender } = setup({ dir: folder, minutes: 30 }, folder)

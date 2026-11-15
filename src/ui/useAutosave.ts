@@ -53,6 +53,10 @@ const BROWSER: AutosaveDeps = {
   clear: clearAutosave,
 }
 
+// One clock function for the whole app: a fresh `() => new Date()` as a default parameter would be
+// a new identity on every render, recreating `write` and restarting the interval each time.
+const NOW = () => new Date()
+
 type Phase = Exclude<AutosaveStatus, 'unsupported' | 'demo'>
 
 /**
@@ -63,7 +67,7 @@ export function useAutosave(
   state: AppState,
   dispatch: (action: Action) => void,
   deps: AutosaveDeps = BROWSER,
-  now: () => Date = () => new Date(),
+  now: () => Date = NOW,
 ): Autosave {
   const supported = deps.supported()
   const [phase, setPhase] = useState<Phase>('loading')
@@ -73,6 +77,7 @@ export function useAutosave(
   const latest = useRef(state)
   const saved = useRef<string>(undefined) // what the last write held; none yet this session
   const busy = useRef(false)
+  const pending = useRef(false) // a change arrived while a write was running
 
   useEffect(() => {
     latest.current = state
@@ -96,20 +101,32 @@ export function useAutosave(
 
   const write = useCallback(
     async (dir: DirectoryHandle) => {
-      const current = latest.current
-      if (current.demo || busy.current) return
+      // A write is already running: remember that something changed and go again once it ends,
+      // so the pagehide save isn't lost (2026-10-20).
+      if (busy.current) {
+        pending.current = true
+        return
+      }
       busy.current = true
       try {
-        const name = await writeBackupFile(dir, current, today(now()))
-        saved.current = contentOf(current)
-        const at = now().toISOString()
-        setFileName(name)
-        setSavedAt(at)
-        setPhase('on')
-        dispatch({ type: 'markBackedUp', at })
-      } catch {
-        const allowed = await canWrite(dir, false).catch(() => false)
-        setPhase(allowed ? 'failed' : 'paused')
+        do {
+          pending.current = false
+          const current = latest.current
+          if (current.demo) return
+          try {
+            const name = await writeBackupFile(dir, current, today(now()))
+            saved.current = contentOf(current)
+            const at = now().toISOString()
+            setFileName(name)
+            setSavedAt(at)
+            setPhase('on')
+            dispatch({ type: 'markBackedUp', at })
+          } catch {
+            const allowed = await canWrite(dir, false).catch(() => false)
+            setPhase(allowed ? 'failed' : 'paused')
+            return
+          }
+        } while (pending.current)
       } finally {
         busy.current = false
       }
