@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cover,
   dayCapacities,
   expectedHoles,
   gMax,
   groupsWithoutTeacherHoles,
+  seatShortage,
   zeroHoleNeeds,
 } from '../../src/core/capacity'
 import { makeInput } from './fixtures'
@@ -161,11 +161,26 @@ describe('helpers in the headcount (v3-c)', () => {
     })
   })
 
-  it('lets an asszisztens cover a DU teacher seat, a civil a nanny seat', () => {
-    expect(cover({ teachers: 3, nannies: 1, assistants: 1, civils: 2 })).toEqual({
-      teachers: 4,
-      nannies: 3,
+  it('counts a helper only in the seat it can fill, the way the solver seats them', () => {
+    const day = (
+      teachers: number,
+      nannies: number,
+      assistants: number,
+      civils: number,
+      groups: number,
+    ) => ({
+      teachers,
+      nannies,
+      assistants,
+      civils,
+      groups,
     })
+    expect(seatShortage(day(2, 2, 0, 0, 2))).toEqual({ teachers: 2, nannies: 0 })
+    // A civil fills a nanny seat, but two nannies are still needed for the keys.
+    expect(seatShortage(day(2, 1, 0, 1, 2))).toEqual({ teachers: 2, nannies: 0 })
+    expect(seatShortage(day(2, 0, 0, 1, 1))).toEqual({ teachers: 0, nannies: 1 })
+    // An asszisztens fills a DU teacher seat beside a teacher.
+    expect(seatShortage(day(1, 2, 1, 0, 1))).toEqual({ teachers: 0, nannies: 0 })
   })
 })
 

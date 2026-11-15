@@ -48,9 +48,15 @@ export function assistantStandIns(c: Day): number {
   return missing > 0 ? Math.min(c.assistants, missing) : 0
 }
 
-/** Who covers `zeroHoleNeeds`: an asszisztens a DU teacher seat, a civil a nanny seat (v3-c). */
-export function cover(c: Headcount): { teachers: number; nannies: number } {
-  return { teachers: c.teachers + c.assistants, nannies: c.nannies + c.civils }
+/** Who covers `zeroHoleNeeds` with the seats the solver gives them: an asszisztens a DU teacher
+ * seat (one beside a teacher), a civil a nanny seat (v3-c). The one answer both the day chips and
+ * the absence grid use (2026-10-20). */
+export function seatShortage(c: Day): { teachers: number; nannies: number } {
+  const needs = zeroHoleNeeds(c.groups)
+  return {
+    teachers: Math.max(0, needs.teachers - seatedTeachers(c) - assistantStandIns(c)),
+    nannies: Math.max(0, needs.nannies - c.nannies - civilStandIns(c)),
+  }
 }
 
 export function dayCapacities(input: SolveInput): DayCapacity[] {
